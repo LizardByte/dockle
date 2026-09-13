@@ -639,6 +639,7 @@ dl.dockle-alert > dd {
   bottom: auto;
   color: var(--dockle-muted);
   font-size: 0.8rem;
+  font-style: normal;
   margin: 0 auto;
   max-width: var(--dockle-content-width);
   padding: 1rem 1.25rem 2rem;

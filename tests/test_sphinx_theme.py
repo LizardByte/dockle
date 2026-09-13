@@ -75,6 +75,16 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertIn("a.dockle-current", stylesheet)
         self.assertIn("markCurrentNavigation", script)
 
+    def test_attribution_resets_framework_typography(self) -> None:
+        stylesheet = (
+            THEME_DIRECTORY / "static" / "dockle.css"
+        ).read_text(encoding="utf-8")
+        attribution = stylesheet.split(
+            ".dockle-footer,\n.dockle-built-with {", 1
+        )[1].split("}", 1)[0]
+
+        self.assertIn("font-style: normal", attribution)
+
 
 if __name__ == "__main__":
     unittest.main()
