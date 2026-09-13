@@ -17,6 +17,7 @@ from dockle.markdown import render_markdown
 _HEAD_END = re.compile(r"</head\s*>", re.IGNORECASE)
 _HTML_START = re.compile(r"<html(?P<attributes>\s[^>]*)?>", re.IGNORECASE)
 _BODY_START = re.compile(r"<body(?P<attributes>\s[^>]*)?>", re.IGNORECASE)
+_BODY_END = re.compile(r"</body\s*>", re.IGNORECASE)
 _JSDOC_HOME_TITLE = re.compile(
     r'<h1\s+class=["\']page-title["\']>\s*Home\s*</h1>',
     re.IGNORECASE,
@@ -190,10 +191,17 @@ def apply_theme(
             include_theme_toggle=(
                 "data-dockle-theme-toggle" not in document
             ),
-            include_built_with="data-dockle-built-with" not in document,
         )
         if "data-dockle-universal-search" not in document:
             document = _insert_after_body(document, decorations, html_file)
+            changed = True
+
+        if "data-dockle-built-with" not in document:
+            document = _insert_before_body_end(
+                document,
+                _built_with_footer(),
+                html_file,
+            )
             changed = True
 
         if changed:
@@ -224,6 +232,17 @@ def _insert_after_body(
     if match is None:
         raise ThemeError(f"generated HTML has no body element: {html_file}")
     return f"{document[:match.end()]}{markup}{document[match.end():]}"
+
+
+def _insert_before_body_end(
+    document: str,
+    markup: str,
+    html_file: Path,
+) -> str:
+    match = _BODY_END.search(document)
+    if match is None:
+        raise ThemeError(f"generated HTML has no closing body element: {html_file}")
+    return f"{document[:match.start()]}{markup}{document[match.start():]}"
 
 
 def _relative(asset: Path, html_file: Path) -> str:
@@ -270,7 +289,6 @@ def _page_decorations(
     project_version: str,
     logo_asset: Path | None,
     include_theme_toggle: bool,
-    include_built_with: bool,
 ) -> str:
     relative_index = _relative(
         output / "_dockle" / "search.json",
@@ -320,20 +338,19 @@ def _page_decorations(
     if include_theme_toggle:
         toggle = (
             '<button type="button" class="dockle-theme-toggle" '
-            'data-dockle-theme-toggle aria-label="Toggle color scheme">'
-            '<i data-lucide="moon" aria-hidden="true"></i></button>'
+            'data-dockle-theme-toggle aria-label="Color scheme: auto">'
+            '<i data-lucide="monitor" aria-hidden="true"></i></button>'
         )
-    built_with = ""
-    if include_built_with:
-        built_with = (
-            '<footer class="dockle-built-with" data-dockle-built-with>'
-            f'Built with <a href="{_DOCKLE_URL}">Dockle {__version__}'
-            '<i data-lucide="external-link" aria-hidden="true"></i>'
-            '</a>.</footer>'
-        )
+    return f'{links}<div class="dockle-toolbar">{search}{toggle}</div>'
+
+
+def _built_with_footer() -> str:
     return (
-        f'{links}<div class="dockle-toolbar">{search}{toggle}</div>'
-        f"{built_with}"
+        '<footer class="dockle-footer dockle-built-with" '
+        'data-dockle-built-with>'
+        f'Built with <a href="{_DOCKLE_URL}">Dockle {__version__}'
+        '<i data-lucide="external-link" aria-hidden="true"></i>'
+        '</a>.</footer>'
     )
 
 
@@ -417,14 +434,14 @@ def write_portal(
 {chr(10).join(cards)}
     </section>
 {project_docs}{repository}  </main>
-  <footer class="dockle-built-with dockle-portal-built-with"
+  <footer class="dockle-footer dockle-built-with dockle-portal-built-with"
           data-dockle-built-with>
     Built with <a href="{_DOCKLE_URL}">Dockle {__version__}<i
       data-lucide="external-link" aria-hidden="true"></i></a>.
   </footer>
   <button type="button" class="dockle-theme-toggle"
-          data-dockle-theme-toggle aria-label="Toggle color scheme">
-    <i data-lucide="moon" aria-hidden="true"></i>
+          data-dockle-theme-toggle aria-label="Color scheme: auto">
+    <i data-lucide="monitor" aria-hidden="true"></i>
   </button>
 </body>
 </html>

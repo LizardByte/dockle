@@ -56,6 +56,11 @@
       ["path", { d: "M4 12h16" }],
       ["path", { d: "M4 19h16" }],
     ],
+    monitor: [
+      ["rect", { width: "20", height: "14", x: "2", y: "3", rx: "2" }],
+      ["line", { x1: "8", x2: "16", y1: "21", y2: "21" }],
+      ["line", { x1: "12", x2: "12", y1: "17", y2: "21" }],
+    ],
     moon: [["path", { d: "M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401" }]],
     "octagon-alert": [
       ["path", { d: "M12 16h.01" }],
@@ -118,6 +123,7 @@
   const root = document.documentElement;
   const storageKey = "dockle-color-scheme";
   const colorPreference = window.matchMedia("(prefers-color-scheme: dark)");
+  const themeModes = ["auto", "light", "dark"];
   let storedScheme = null;
 
   const isComponentReference = Boolean(document.querySelector("#component-reference"))
@@ -144,7 +150,14 @@
     root.dataset.colorScheme = storedScheme;
   }
 
-  const currentScheme = () => {
+  const selectedScheme = () => {
+    if (root.dataset.colorScheme === "light" || root.dataset.colorScheme === "dark") {
+      return root.dataset.colorScheme;
+    }
+    return "auto";
+  };
+
+  const resolvedScheme = () => {
     if (root.dataset.colorScheme) {
       return root.dataset.colorScheme;
     }
@@ -152,13 +165,20 @@
   };
 
   const updateThemeButtons = () => {
-    const useLight = currentScheme() === "dark";
+    const selected = selectedScheme();
+    const selectedIndex = themeModes.indexOf(selected);
+    const next = themeModes[(selectedIndex + 1) % themeModes.length];
+    const icons = { auto: "monitor", light: "sun", dark: "moon" };
     document.querySelectorAll("[data-dockle-theme-toggle]").forEach((button) => {
       const icon = button.querySelector("[data-lucide]");
-      button.setAttribute("aria-label", `Use ${useLight ? "light" : "dark"} color scheme`);
+      const resolved = selected === "auto" ? ` (${resolvedScheme()})` : "";
+      button.setAttribute(
+        "aria-label",
+        `Color scheme: ${selected}${resolved}. Switch to ${next}`,
+      );
       button.title = button.getAttribute("aria-label");
       if (icon) {
-        icon.dataset.lucide = useLight ? "sun" : "moon";
+        icon.dataset.lucide = icons[selected];
         renderIcon(icon);
       }
     });
@@ -166,10 +186,19 @@
 
   document.querySelectorAll("[data-dockle-theme-toggle]").forEach((button) => {
     button.addEventListener("click", () => {
-      const next = currentScheme() === "dark" ? "light" : "dark";
-      root.dataset.colorScheme = next;
+      const currentIndex = themeModes.indexOf(selectedScheme());
+      const next = themeModes[(currentIndex + 1) % themeModes.length];
+      if (next === "auto") {
+        delete root.dataset.colorScheme;
+      } else {
+        root.dataset.colorScheme = next;
+      }
       try {
-        localStorage.setItem(storageKey, next);
+        if (next === "auto") {
+          localStorage.removeItem(storageKey);
+        } else {
+          localStorage.setItem(storageKey, next);
+        }
       } catch {
         // The in-page selection still works for the current page.
       }
@@ -336,6 +365,20 @@
     });
     tabSet.prepend(tabList);
   });
+
+  const placeBuiltWithFooter = () => {
+    const footer = document.querySelector("[data-dockle-built-with]");
+    const destinations = {
+      doxygen: "#doc-content",
+      jsdoc: "#main",
+      rustdoc: "main .width-limiter",
+    };
+    const selector = destinations[root.dataset.dockleFramework];
+    const destination = selector ? document.querySelector(selector) : null;
+    if (footer && destination && !destination.contains(footer)) {
+      destination.append(footer);
+    }
+  };
 
   const ensureDoxygenPageToc = () => {
     if (root.dataset.dockleFramework !== "doxygen") {
@@ -537,6 +580,7 @@
   });
 
   addDoxygenNavigation();
+  placeBuiltWithFooter();
   renderIcons();
   updateThemeButtons();
   window.addEventListener("load", ensureDoxygenPageToc);

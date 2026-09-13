@@ -194,22 +194,26 @@ th {
   --dockle-alert-color: #2563eb;
   background: var(--dockle-background-secondary) !important;
   border: 1px solid var(--dockle-border) !important;
+  border-left: 0.25rem solid var(--dockle-alert-color) !important;
   border-radius: var(--dockle-radius);
   box-shadow: none !important;
   overflow: hidden;
   padding: 0;
 }
 
+dl.dockle-alert,
 .dockle-alert {
   color: var(--dockle-content);
   margin: 1rem 0;
+  padding: 0;
 }
 
 .dockle-alert-title,
 .admonition-title {
   align-items: center;
   background: color-mix(in srgb, var(--dockle-alert-color) 16%, var(--dockle-background)) !important;
-  border-top: 0.25rem solid var(--dockle-alert-color);
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--dockle-alert-color) 32%, transparent);
   color: var(--dockle-alert-color) !important;
   display: flex;
   font-weight: 700;
@@ -621,12 +625,21 @@ dl.dockle-alert > dd {
   text-align: right;
 }
 
-.dockle-footer {
+.dockle-footer,
+.dockle-built-with {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  bottom: auto;
   color: var(--dockle-muted);
   font-size: 0.8rem;
   margin: 0 auto;
   max-width: var(--dockle-content-width);
   padding: 1rem 1.25rem 2rem;
+  position: static;
+  right: auto;
+  width: 100%;
+  z-index: auto;
 }
 
 .dockle-footer a,
@@ -634,19 +647,6 @@ dl.dockle-alert > dd {
   align-items: center;
   display: inline-flex;
   gap: 0.25rem;
-}
-
-.dockle-built-with {
-  background: var(--dockle-background-secondary);
-  border: 1px solid var(--dockle-border);
-  border-radius: 999px;
-  bottom: 1rem;
-  color: var(--dockle-muted);
-  font-size: 0.75rem;
-  padding: 0.3rem 0.65rem;
-  position: fixed;
-  right: 1rem;
-  z-index: 120;
 }
 
 .dockle-theme-toggle {
@@ -1073,10 +1073,6 @@ html[data-dockle-framework="doxygen"] .dockle-alert dd {
   color: var(--dockle-content) !important;
 }
 
-html[data-dockle-framework="doxygen"] .dockle-built-with {
-  right: calc(var(--dockle-page-toc-width) + 1rem);
-}
-
 html[data-dockle-framework="doxygen"] .memitem,
 html[data-dockle-framework="doxygen"] .memproto,
 html[data-dockle-framework="doxygen"] .memdoc {
@@ -1327,15 +1323,6 @@ html[data-dockle-framework="rustdoc"] rustdoc-topbar {
   .dockle-home:visited {
     left: auto;
     right: 1rem;
-  }
-
-  .dockle-built-with {
-    left: 1rem;
-    right: auto;
-  }
-
-  html[data-dockle-framework="doxygen"] .dockle-built-with {
-    right: auto;
   }
 
   .dockle-compat-brand {

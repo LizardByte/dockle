@@ -39,6 +39,30 @@ class SphinxThemeTests(unittest.TestCase):
             .lower(),
         )
 
+    def test_theme_supports_auto_light_and_dark_modes(self) -> None:
+        script = (THEME_DIRECTORY / "static" / "dockle.js").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn('["auto", "light", "dark"]', script)
+        self.assertIn('auto: "monitor"', script)
+        self.assertIn("localStorage.removeItem(storageKey)", script)
+
+    def test_admonitions_use_one_left_accent_layout(self) -> None:
+        stylesheet = (
+            THEME_DIRECTORY / "static" / "dockle.css"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("dl.dockle-alert", stylesheet)
+        self.assertIn(
+            "border-left: 0.25rem solid var(--dockle-alert-color)",
+            stylesheet,
+        )
+        self.assertNotIn(
+            "border-top: 0.25rem solid var(--dockle-alert-color)",
+            stylesheet,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
