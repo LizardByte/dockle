@@ -29,7 +29,12 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertTrue((THEME_DIRECTORY / "static" / "dockle.js").is_file())
         self.assertTrue((THEME_DIRECTORY / "main.html").is_file())
         self.assertTrue((THEME_DIRECTORY / "mkdocs_theme.yml").is_file())
-        self.assertNotIn("furo", (THEME_DIRECTORY / "theme.toml").read_text(encoding="utf-8").lower())
+        self.assertNotIn(
+            "furo",
+            (THEME_DIRECTORY / "theme.toml")
+            .read_text(encoding="utf-8")
+            .lower(),
+        )
 
 
 if __name__ == "__main__":

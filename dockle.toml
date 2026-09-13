@@ -3,6 +3,8 @@ name = "Dockle"
 version = "0.1.0"
 description = "Build documentation with multiple frameworks and one consistent theme."
 repository = "https://github.com/LizardByte/dockle"
+home = "docs/home.md"
+logo = "branding/dockle-logo.png"
 
 [theme]
 primary = "#2962ff"
@@ -18,10 +20,10 @@ clean = true
 
 [[targets]]
 name = "sphinx"
-title = "Sphinx guide"
-description = "Narrative reStructuredText documentation rendered by Dockle's first-party Sphinx theme."
+title = "Sphinx example"
+description = "Python and Markdown rendered by Dockle's first-party Sphinx theme."
 framework = "sphinx"
-source = "docs"
+source = "examples/sphinx"
 
 [[targets]]
 name = "doxygen"

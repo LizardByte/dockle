@@ -65,26 +65,6 @@
           {% if config.theme.version %}<span class="dockle-version">{{ config.theme.version }}</span>{% endif %}
         </div>
 
-        {% if 'search' in config.plugins %}
-          <div class="dockle-search" role="search">
-            <label class="visually-hidden" for="dockle-mkdocs-search">Search documentation</label>
-            <input
-              id="dockle-mkdocs-search"
-              type="search"
-              placeholder="Search"
-              autocomplete="off"
-              data-dockle-search="{{ 'search/search_index.json'|url }}"
-              data-dockle-root="{{ base_url }}"
-            >
-            <ul
-              class="dockle-search-results"
-              data-dockle-search-results="dockle-mkdocs-search"
-              aria-live="polite"
-              hidden
-            ></ul>
-          </div>
-        {% endif %}
-
         <nav class="dockle-tree" aria-label="Documentation">
           {{ render_nav(nav) }}
         </nav>

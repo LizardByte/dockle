@@ -1,0 +1,4 @@
+[submodule "third-party/lizardbyte-common"]
+	path = third-party/lizardbyte-common
+	url = https://github.com/LizardByte/lizardbyte-common.git
+	branch = master

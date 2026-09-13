@@ -11,7 +11,9 @@ requires-python = ">=3.11"
 authors = [
   { name = "LizardByte" },
 ]
-dependencies = []
+dependencies = [
+  "Markdown>=3.8",
+]
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",
   "Environment :: Console",
@@ -22,6 +24,7 @@ classifiers = [
 
 [project.optional-dependencies]
 sphinx = [
+  "myst-parser>=4.0",
   "sphinx>=8.1",
 ]
 mkdocs = [
@@ -29,6 +32,7 @@ mkdocs = [
 ]
 all = [
   "mkdocs>=1.6",
+  "myst-parser>=4.0",
   "sphinx>=8.1",
 ]
 

@@ -8,7 +8,6 @@ from pathlib import Path
 from dockle.builders import BuildManager, Command
 from dockle.config import load_config
 
-
 ALL_TARGETS_CONFIG = """
 [project]
 name = "Example API"
@@ -83,12 +82,17 @@ class BuilderTests(unittest.TestCase):
 
         self.assertIn("html_theme = 'dockle'", conf)
         self.assertIn("'dockle.sphinx_theme'", conf)
+        self.assertIn("'myst_parser'", conf)
+        self.assertIn("myst_enable_extensions = ['alert']", conf)
+        self.assertIn("'sphinx.ext.autodoc'", conf)
         self.assertIn("#7c4dff", conf)
         self.assertIn("-W", plan.command.args)
         self.assertNotIn("conf.py", plan.command.args)
 
     def test_doxygen_plan_uses_supported_extra_stylesheet_hook(self) -> None:
-        (self.config.targets[1].source / "index").write_text("# API\n", encoding="utf-8")
+        (self.config.targets[1].source / "index").write_text(
+            "# API\n", encoding="utf-8"
+        )
         plan = self.manager.plan(self.config.targets[1])
         doxyfile = plan.generated_files[plan.work / "Doxyfile"]
 
@@ -106,10 +110,13 @@ class BuilderTests(unittest.TestCase):
         self.assertIn('edit_uri: ""', native)
         self.assertIn("name: dockle", native)
         self.assertIn('primary: "#7c4dff"', native)
+        self.assertIn("- dockle.markdown", native)
         self.assertIn("--strict", plan.command.args)
 
     def test_jsdoc_plan_generates_json(self) -> None:
-        (self.config.targets[3].source / "index").write_text("# API\n", encoding="utf-8")
+        (self.config.targets[3].source / "index").write_text(
+            "# API\n", encoding="utf-8"
+        )
         plan = self.manager.plan(self.config.targets[3])
         native = plan.generated_files[plan.work / "jsdoc.json"]
 
@@ -119,12 +126,22 @@ class BuilderTests(unittest.TestCase):
         self.assertEqual(plan.command.args[1], "--configure")
         self.assertIn("--pedantic", plan.command.args)
 
+    def test_jsdoc_plan_discovers_tutorials(self) -> None:
+        source = self.config.targets[3].source
+        (source / "tutorials").mkdir()
+        plan = self.manager.plan(self.config.targets[3])
+        native = plan.generated_files[plan.work / "jsdoc.json"]
+
+        self.assertIn('"tutorials"', native)
+
     def test_rustdoc_plan_uses_cargo_without_dependencies(self) -> None:
         plan = self.manager.plan(self.config.targets[4])
 
         self.assertEqual(plan.command.args[1], "doc")
         self.assertIn("--no-deps", plan.command.args)
-        self.assertTrue(plan.command.env["RUSTDOCFLAGS"].endswith("-D warnings"))
+        self.assertTrue(
+            plan.command.env["RUSTDOCFLAGS"].endswith("-D warnings")
+        )
 
     def test_build_writes_generated_config_and_themes_html(self) -> None:
         fake_tool = self.root / "fake-jsdoc"
@@ -141,18 +158,27 @@ class BuilderTests(unittest.TestCase):
         result = BuildManager(config, runner=runner).build((target,))
 
         self.assertEqual(result[0].themed_pages, 1)
-        generated = (config.build.work / "jsdoc" / "jsdoc.json").read_text(encoding="utf-8")
+        generated = (config.build.work / "jsdoc" / "jsdoc.json").read_text(
+            encoding="utf-8"
+        )
         html = (target.output / "index.html").read_text(encoding="utf-8")
         self.assertIn('"destination"', generated)
         self.assertIn('data-dockle-theme="jsdoc"', html)
         self.assertIn('data-dockle-framework="jsdoc"', html)
         self.assertTrue((target.output / "_dockle" / "dockle.css").is_file())
-        portal = (config.build.output / "index.html").read_text(encoding="utf-8")
+        portal = (config.build.output / "index.html").read_text(
+            encoding="utf-8"
+        )
         self.assertIn('data-dockle-framework="portal"', portal)
         self.assertIn('href="jsdoc/"', portal)
 
     def test_resolves_project_local_node_tool(self) -> None:
-        executable = self.root / "node_modules" / ".bin" / ("jsdoc.cmd" if sys.platform == "win32" else "jsdoc")
+        executable = (
+            self.root
+            / "node_modules"
+            / ".bin"
+            / ("jsdoc.cmd" if sys.platform == "win32" else "jsdoc")
+        )
         executable.parent.mkdir(parents=True)
         executable.touch()
 
@@ -174,8 +200,13 @@ class BuilderTests(unittest.TestCase):
         stale.write_text("stale", encoding="utf-8")
         target = config.targets[0]
 
-        BuildManager(config, runner=RecordingRunner(target.output)).build(config.targets[:1])
-        self.assertTrue(stale.is_file(), "a selected build must preserve other target outputs")
+        BuildManager(config, runner=RecordingRunner(target.output)).build(
+            config.targets[:1]
+        )
+        self.assertTrue(
+            stale.is_file(),
+            "a selected build must preserve other target outputs",
+        )
 
         # A complete build owns the whole output tree. Use a runner that writes
         # minimal HTML wherever each adapter expects native output.
@@ -184,7 +215,13 @@ class BuilderTests(unittest.TestCase):
                 for candidate in config.targets:
                     native_output = candidate.output
                     if candidate.framework == "rustdoc":
-                        native_output = config.build.work / candidate.name / "cargo-target" / "doc" / "fixture"
+                        native_output = (
+                            config.build.work
+                            / candidate.name
+                            / "cargo-target"
+                            / "doc"
+                            / "fixture"
+                        )
                     native_output.mkdir(parents=True, exist_ok=True)
                     (native_output / "index.html").write_text(
                         "<!doctype html><html><head></head><body>Docs</body></html>",
@@ -194,8 +231,13 @@ class BuilderTests(unittest.TestCase):
         # Point every native executable at the same harmless file; the custom
         # runner records no process invocation.
         frameworks = sorted({target.framework for target in config.targets})
-        tools = "\n".join(f'{framework} = "./fake-sphinx"' for framework in frameworks)
-        self.config_path.write_text(configured.replace('sphinx = "./fake-sphinx"', tools), encoding="utf-8")
+        tools = "\n".join(
+            f'{framework} = "./fake-sphinx"' for framework in frameworks
+        )
+        self.config_path.write_text(
+            configured.replace('sphinx = "./fake-sphinx"', tools),
+            encoding="utf-8",
+        )
         config = load_config(self.config_path)
         BuildManager(config, runner=MultiTargetRunner()).build(config.targets)
 

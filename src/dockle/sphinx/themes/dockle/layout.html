@@ -40,15 +40,6 @@
         {% if release %}<span class="dockle-version">{{ release|e }}</span>{% endif %}
       </div>
 
-      {% if builder == 'html' %}
-        <form class="dockle-search" action="{{ pathto('search')|e }}" method="get" role="search">
-          <label class="visually-hidden" for="dockle-search-input">Search documentation</label>
-          <input id="dockle-search-input" type="search" name="q" placeholder="Search" autocomplete="off">
-          <input type="hidden" name="check_keywords" value="yes">
-          <input type="hidden" name="area" value="default">
-        </form>
-      {% endif %}
-
       <nav class="dockle-tree" aria-label="Documentation">
         {{ toctree(maxdepth=4, collapse=False, includehidden=True) }}
       </nav>

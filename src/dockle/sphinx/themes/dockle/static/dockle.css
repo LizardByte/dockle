@@ -180,13 +180,38 @@ th {
 .note,
 .warning,
 .important,
-.attention {
+.attention,
+.dockle-alert {
   background: var(--dockle-background-secondary) !important;
   border: 1px solid var(--dockle-border) !important;
   border-left: 0.3rem solid var(--dockle-primary) !important;
   border-radius: var(--dockle-radius);
   box-shadow: none !important;
   padding: 0.8rem 1rem;
+}
+
+.dockle-alert {
+  color: var(--dockle-content);
+  margin: 1rem 0;
+}
+
+.dockle-alert-title,
+.admonition-title {
+  font-weight: 700;
+  margin: 0 0 0.35rem;
+}
+
+.dockle-alert-tip {
+  border-left-color: #16a34a !important;
+}
+
+.dockle-alert-warning,
+.dockle-alert-caution {
+  border-left-color: #d97706 !important;
+}
+
+.dockle-alert-important {
+  border-left-color: #9333ea !important;
 }
 
 .dockle-home,
@@ -264,10 +289,32 @@ th {
 
 .dockle-brand a,
 .dockle-mobile-header a {
+  align-items: center;
   color: var(--dockle-content);
+  display: inline-flex;
   font-size: 1.25rem;
   font-weight: 700;
   text-decoration: none;
+}
+
+.dockle-logo {
+  flex: 0 0 auto;
+  height: 2rem;
+  margin-right: 0.5rem;
+  object-fit: contain;
+  width: 2rem;
+}
+
+#projectname .dockle-logo {
+  vertical-align: middle;
+}
+
+.dockle-universal-search {
+  left: 1.25rem;
+  position: fixed;
+  top: 4.75rem;
+  width: calc(var(--dockle-sidebar-width) - 2.5rem);
+  z-index: 130;
 }
 
 .dockle-version {
@@ -300,6 +347,9 @@ th {
   max-height: 16rem;
   overflow-y: auto;
   padding: 0.25rem;
+  position: absolute;
+  width: 100%;
+  z-index: 140;
 }
 
 .dockle-search-results li {
@@ -309,8 +359,18 @@ th {
 }
 
 .dockle-search-results a {
+  color: var(--dockle-content);
   display: block;
   text-decoration: none;
+}
+
+.dockle-search-results a:hover,
+.dockle-search-results a:focus-visible {
+  color: var(--dockle-primary);
+}
+
+.dockle-sidebar .dockle-tree {
+  margin-top: 4.25rem;
 }
 
 .dockle-tree ul {
@@ -458,7 +518,16 @@ th {
 }
 
 .dockle-portal header {
+  align-items: center;
+  display: flex;
+  gap: 1.5rem;
   max-width: 48rem;
+}
+
+.dockle-portal-logo {
+  height: 6rem;
+  object-fit: contain;
+  width: 6rem;
 }
 
 .dockle-portal header h1 {
@@ -513,6 +582,16 @@ th {
 
 .dockle-portal-card > span:last-child {
   color: var(--dockle-muted);
+}
+
+.dockle-portal-docs {
+  max-width: var(--dockle-content-width);
+}
+
+.dockle-portal-repository {
+  border-top: 1px solid var(--dockle-border);
+  margin-top: 2.5rem;
+  padding-top: 1rem;
 }
 
 /* Doxygen. */
@@ -583,18 +662,14 @@ html[data-dockle-framework="doxygen"] #projectbrief {
 }
 
 html[data-dockle-framework="doxygen"] #MSearchBox {
-  box-sizing: border-box;
-  float: none;
-  margin: 1rem 1.25rem;
-  position: relative;
-  width: calc(100% - 2.5rem);
+  display: none !important;
 }
 
 html[data-dockle-framework="doxygen"] #nav-tree {
   border: 0;
   height: calc(100vh - 8.5rem) !important;
   overflow: auto;
-  padding: 0.25rem 0.75rem 4.25rem;
+  padding: 4.75rem 0.75rem 4.25rem;
 }
 
 html[data-dockle-framework="doxygen"] #nav-tree-contents {
@@ -819,7 +894,7 @@ html[data-dockle-framework="jsdoc"] body > nav {
   bottom: 0;
   margin: 0;
   overflow-y: auto;
-  padding: 5rem 1.25rem 4.25rem;
+  padding: 9rem 1.25rem 4.25rem;
   position: fixed;
   top: 0;
   width: var(--dockle-sidebar-width);
@@ -908,7 +983,11 @@ html[data-dockle-framework="rustdoc"] .sidebar {
   background: var(--dockle-background-secondary) !important;
   border-right: 1px solid var(--dockle-border);
   padding-bottom: 4.25rem !important;
-  padding-top: 5rem !important;
+  padding-top: 9rem !important;
+}
+
+html[data-dockle-framework="rustdoc"] .search-form {
+  display: none !important;
 }
 
 html[data-dockle-framework="rustdoc"] .rustdoc .main-heading,
@@ -924,6 +1003,26 @@ html[data-dockle-framework="rustdoc"] rustdoc-topbar {
 }
 
 @media (max-width: 800px) {
+  .dockle-universal-search {
+    left: auto;
+    margin: 0.75rem 1rem;
+    position: relative;
+    top: auto;
+    width: auto;
+  }
+
+  .dockle-sidebar .dockle-tree {
+    margin-top: 0;
+  }
+
+  .dockle-portal header {
+    align-items: flex-start;
+  }
+
+  .dockle-portal-logo {
+    height: 4rem;
+    width: 4rem;
+  }
   .dockle-home,
   .dockle-home:visited {
     left: auto;
@@ -1013,6 +1112,10 @@ html[data-dockle-framework="rustdoc"] rustdoc-topbar {
     position: static;
     top: auto;
     width: 100%;
+  }
+
+  html[data-dockle-framework="jsdoc"] .dockle-universal-search {
+    order: 0;
   }
 
   html[data-dockle-framework="jsdoc"] body > main,

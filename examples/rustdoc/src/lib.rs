@@ -1,17 +1,8 @@
-//! A compact API used to review Dockle's rustdoc integration.
-//!
-//! Dockle runs Cargo with a private target directory, copies the generated
-//! documentation into the configured output, and applies the common theme
-//! using subpath-safe relative assets.
-//!
-//! # Example
-//!
-//! ```
-//! use dockle_preview::{DocumentationTarget, WarningPolicy};
-//!
-//! let target = DocumentationTarget::new("api", "rustdoc", WarningPolicy::Fail);
-//! assert_eq!(target.framework(), "rustdoc");
-//! ```
+#![doc = include_str!("../README.md")]
+
+/// Common visual components rendered by rustdoc.
+#[doc = include_str!("../showcase.md")]
+pub mod showcase {}
 
 /// Controls how an adapter handles generator warnings.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -32,7 +23,11 @@ pub struct DocumentationTarget {
 
 impl DocumentationTarget {
     /// Creates a new documentation target.
-    pub fn new(name: impl Into<String>, framework: impl Into<String>, policy: WarningPolicy) -> Self {
+    pub fn new(
+        name: impl Into<String>,
+        framework: impl Into<String>,
+        policy: WarningPolicy,
+    ) -> Self {
         Self {
             name: name.into(),
             framework: framework.into(),

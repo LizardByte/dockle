@@ -1,8 +1,8 @@
 <div align="center">
   <img
-    src="https://raw.githubusercontent.com/LizardByte/.github/refs/heads/master/branding/logos/logo.svg"
-    alt="LizardByte icon"
-    width="256"
+    src="branding/dockle-logo.png"
+    alt="Dockle logo"
+    width="192"
   />
   <h1 align="center">Dockle</h1>
   <h4 align="center">Build documentation with multiple frameworks and one consistent theme.</h4>
@@ -15,6 +15,10 @@ Dockle is a configuration and presentation layer for documentation generators. A
 `dockle.toml`; Dockle translates that model into temporary Sphinx, Doxygen, MkDocs, JSDoc, or rustdoc configuration,
 runs the underlying tool, and applies its own shared, Furo-inspired visual layer to the generated HTML. A full build
 also creates a landing page that connects every target into one publishable documentation site.
+
+That landing page can render project Markdown directly and keep cards to each
+framework example. Project logos and home content are configured once and then
+copied into every generated documentation set.
 
 The Sphinx integration is a first-party `dockle` theme. Furo is a design reference, not a runtime dependency or base
 theme.
@@ -45,6 +49,8 @@ name = "Example"
 version = "1.0.0"
 description = "Example project documentation"
 repository = "https://github.com/example/example"
+home = "docs/index.md"
+logo = "branding/logo.png"
 
 [theme]
 primary = "#2962ff"
@@ -89,8 +95,10 @@ whole output tree so removed targets cannot leave stale pages behind; a named-ta
 
 ## Review all five adapters
 
-This repository is also an executable example. It contains small semantic fixtures for every initial adapter and one
-`dockle.toml` that builds them together:
+This repository is also an executable comparison suite. Every adapter has an
+overview, component showcase, GitHub-style alerts, code, tables, and an API or
+reference page. Each language fixture differs only where the underlying
+generator requires it:
 
 ```console
 python -m pip install -e ".[all]"
@@ -123,20 +131,27 @@ the Docs, each branch and pull request build will exercise the same five-target 
 | JSDoc | `jsdoc.json` | Generated HTML normalization | Implemented |
 | rustdoc | Cargo command and environment | Generated HTML normalization | Implemented |
 
-Sphinx and MkDocs now use first-party templates with the same sidebar, search, content column, on-page table of
-contents, responsive menu, and color-scheme control. The remaining adapters normalize visual primitives, mark every
-page with its source framework, use relative assets, and add a common link back to the documentation portal. Doxygen,
-JSDoc, and rustdoc still need deeper native structural integrations.
+Every adapter now receives Dockle's generated client-side search index and the
+same search interface, including result ranking and empty/error behavior.
+Sphinx and MkDocs use first-party templates; Doxygen, JSDoc, and rustdoc keep
+their semantic output while Dockle normalizes their structure and visual
+primitives. Markdown GitHub alerts are enabled through MyST for Sphinx, a
+Dockle Markdown extension for MkDocs and the root portal, Doxygen's native
+parser, and a shared post-render enhancement for JSDoc and rustdoc.
 
 ## Development
 
-The core has no runtime Python dependencies. Run its tests with the standard library:
+Initialize the shared lint tooling and run the test suite:
 
 ```console
+git submodule update --init third-party/lizardbyte-common
+uv run --project third-party/lizardbyte-common --locked --only-group lint-c \
+  clang-format --dry-run --Werror examples/doxygen/include/dockle_demo.hpp
 $env:PYTHONPATH = "src"  # PowerShell
 python -m unittest discover -s tests -v
 python -m compileall -q src tests
 ```
 
-See the [configuration reference](docs/configuration.rst) and [architecture and roadmap](docs/architecture.rst) for
-the public contract, design boundaries, and planned milestones.
+The root documentation source is [docs/home.md](docs/home.md). The older
+reStructuredText configuration and architecture notes remain useful design
+references while the public configuration continues to evolve.

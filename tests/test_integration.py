@@ -13,7 +13,10 @@ from dockle.config import load_config
 
 def _tool_available(name: str) -> bool:
     scripts = Path(sys.executable).resolve().parent
-    return shutil.which(name, path=str(scripts)) is not None or shutil.which(name) is not None
+    return (
+        shutil.which(name, path=str(scripts)) is not None
+        or shutil.which(name) is not None
+    )
 
 
 def _doxygen_path() -> Path | None:
@@ -26,7 +29,12 @@ def _doxygen_path() -> Path | None:
 
 def _jsdoc_path() -> Path | None:
     executable = "jsdoc.cmd" if sys.platform == "win32" else "jsdoc"
-    project_local = Path(__file__).resolve().parents[1] / "node_modules" / ".bin" / executable
+    project_local = (
+        Path(__file__).resolve().parents[1]
+        / "node_modules"
+        / ".bin"
+        / executable
+    )
     if project_local.is_file():
         return project_local
     discovered = shutil.which("jsdoc")
@@ -67,14 +75,18 @@ source = "src"
 
             results = BuildManager(config).build(config.targets)
 
-            html = (config.targets[0].output / "index.html").read_text(encoding="utf-8")
+            html = (config.targets[0].output / "index.html").read_text(
+                encoding="utf-8"
+            )
             self.assertGreaterEqual(results[0].themed_pages, 1)
             self.assertIn("dockle.css", html)
             self.assertIn('data-dockle-framework="doxygen"', html)
             self.assertIn("data-dockle-home", html)
             self.assertIn("data-dockle-brand", html)
 
-    @unittest.skipUnless(_tool_available("sphinx-build"), "Sphinx is not installed")
+    @unittest.skipUnless(
+        _tool_available("sphinx-build"), "Sphinx is not installed"
+    )
     def test_sphinx_builds_with_first_party_theme(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -101,13 +113,17 @@ source = "docs"
 
             results = BuildManager(config).build(config.targets)
 
-            html = (config.targets[0].output / "index.html").read_text(encoding="utf-8")
+            html = (config.targets[0].output / "index.html").read_text(
+                encoding="utf-8"
+            )
             self.assertGreaterEqual(results[0].themed_pages, 1)
             self.assertIn('class="dockle-shell"', html)
             self.assertIn("_static/dockle.css", html)
             self.assertIn("data-dockle-home", html)
 
-    @unittest.skipUnless(_tool_available("sphinx-build"), "Sphinx is not installed")
+    @unittest.skipUnless(
+        _tool_available("sphinx-build"), "Sphinx is not installed"
+    )
     def test_sphinx_can_discover_dockle_as_a_standalone_theme(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -118,8 +134,12 @@ source = "docs"
                 "project = 'Example'\nhtml_theme = 'dockle'\n",
                 encoding="utf-8",
             )
-            (source / "index.rst").write_text("Example\n=======\n", encoding="utf-8")
-            executable = shutil.which("sphinx-build", path=str(Path(sys.executable).resolve().parent))
+            (source / "index.rst").write_text(
+                "Example\n=======\n", encoding="utf-8"
+            )
+            executable = shutil.which(
+                "sphinx-build", path=str(Path(sys.executable).resolve().parent)
+            )
             assert executable is not None
 
             completed = subprocess.run(
@@ -137,7 +157,9 @@ source = "docs"
             root = Path(directory)
             docs = root / "docs"
             docs.mkdir()
-            (docs / "index.md").write_text("# Example\n\nA themed MkDocs page.\n", encoding="utf-8")
+            (docs / "index.md").write_text(
+                "# Example\n\nA themed MkDocs page.\n", encoding="utf-8"
+            )
             config_path = root / "dockle.toml"
             config_path.write_text(
                 """
@@ -155,12 +177,16 @@ source = "docs"
 
             results = BuildManager(config).build(config.targets)
 
-            html = (config.targets[0].output / "index.html").read_text(encoding="utf-8")
+            html = (config.targets[0].output / "index.html").read_text(
+                encoding="utf-8"
+            )
             self.assertGreaterEqual(results[0].themed_pages, 1)
             self.assertIn('data-dockle-theme="mkdocs"', html)
             self.assertIn('class="dockle-shell"', html)
             self.assertIn("static/dockle.css", html)
-            self.assertTrue((config.targets[0].output / "static" / "dockle.css").is_file())
+            self.assertTrue(
+                (config.targets[0].output / "static" / "dockle.css").is_file()
+            )
 
     @unittest.skipUnless(_jsdoc_path(), "JSDoc is not installed")
     def test_jsdoc_builds_with_project_local_executable(self) -> None:
@@ -168,7 +194,9 @@ source = "docs"
             root = Path(directory)
             source = root / "src"
             source.mkdir()
-            (source / "README.md").write_text("# Example API\n", encoding="utf-8")
+            (source / "README.md").write_text(
+                "# Example API\n", encoding="utf-8"
+            )
             (source / "example.js").write_text(
                 "/** Return the answer. @returns {number} The answer. */\nexport function answer() { return 42; }\n",
                 encoding="utf-8",
@@ -194,7 +222,9 @@ entry = "README.md"
 
             results = BuildManager(config).build(config.targets)
 
-            html = (config.targets[0].output / "index.html").read_text(encoding="utf-8")
+            html = (config.targets[0].output / "index.html").read_text(
+                encoding="utf-8"
+            )
             self.assertGreaterEqual(results[0].themed_pages, 1)
             self.assertIn('data-dockle-theme="jsdoc"', html)
             self.assertIn("data-dockle-home", html)
@@ -212,7 +242,9 @@ entry = "README.md"
                 '[package]\nname = "dockle-fixture"\nversion = "0.1.0"\nedition = "2024"\n',
                 encoding="utf-8",
             )
-            (source / "lib.rs").write_text("//! A rustdoc fixture.\n", encoding="utf-8")
+            (source / "lib.rs").write_text(
+                "//! A rustdoc fixture.\n", encoding="utf-8"
+            )
             config_path = root / "dockle.toml"
             config_path.write_text(
                 """
@@ -230,14 +262,20 @@ source = "crate"
 
             results = BuildManager(config).build(config.targets)
 
-            root_html = (config.targets[0].output / "index.html").read_text(encoding="utf-8")
-            html = (config.targets[0].output / "dockle_fixture" / "index.html").read_text(encoding="utf-8")
+            root_html = (config.targets[0].output / "index.html").read_text(
+                encoding="utf-8"
+            )
+            html = (
+                config.targets[0].output / "dockle_fixture" / "index.html"
+            ).read_text(encoding="utf-8")
             self.assertGreaterEqual(results[0].themed_pages, 1)
             self.assertIn('http-equiv="refresh"', root_html)
-            self.assertIn('url=dockle_fixture/', root_html)
+            self.assertIn("url=dockle_fixture/", root_html)
             self.assertIn('data-dockle-theme="rustdoc"', html)
             self.assertIn("data-dockle-brand", html)
-            self.assertTrue((config.targets[0].output / "_dockle" / "dockle.css").is_file())
+            self.assertTrue(
+                (config.targets[0].output / "_dockle" / "dockle.css").is_file()
+            )
 
 
 if __name__ == "__main__":

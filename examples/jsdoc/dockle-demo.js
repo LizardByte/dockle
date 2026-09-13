@@ -9,10 +9,12 @@ export class DocumentationTarget {
    * Create a target.
    * @param {string} name Stable name used for the output directory.
    * @param {string} framework Upstream documentation framework.
+   * @param {WarningPolicy} policy Warning behavior for the generator.
    */
-  constructor(name, framework) {
+  constructor(name, framework, policy) {
     this.name = name;
     this.framework = framework;
+    this.policy = policy;
   }
 
   /**
@@ -23,6 +25,12 @@ export class DocumentationTarget {
     return `${this.name} (${this.framework})`;
   }
 }
+
+/** Warning behavior for a documentation generator. */
+export const WarningPolicy = Object.freeze({
+  Report: "report",
+  Fail: "fail",
+});
 
 /**
  * Select targets matching a framework.

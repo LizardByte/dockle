@@ -56,7 +56,9 @@ source = "docs"
             error = io.StringIO()
 
             with contextlib.redirect_stderr(error):
-                status = main(["--config", str(config), "build", "missing", "--dry-run"])
+                status = main(
+                    ["--config", str(config), "build", "missing", "--dry-run"]
+                )
 
             self.assertEqual(status, 2)
             self.assertIn("unknown target", error.getvalue())
@@ -64,4 +66,3 @@ source = "docs"
 
 if __name__ == "__main__":
     unittest.main()
-
