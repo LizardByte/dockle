@@ -9,9 +9,10 @@ from markdown.extensions import Extension
 from markdown.preprocessors import Preprocessor
 
 _ALERT_START = re.compile(
-    r"^>\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*$",
+    r"^>\s*\[!(ATTENTION|CAUTION|DANGER|ERROR|HINT|IMPORTANT|NOTE|SEEALSO|TIP|TODO|WARNING)\]\s*$",
     re.IGNORECASE,
 )
+_FENCE_START = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 
 
 def normalize_github_alerts(source: str) -> str:
@@ -20,10 +21,33 @@ def normalize_github_alerts(source: str) -> str:
     lines = source.splitlines()
     normalized: list[str] = []
     index = 0
+    fence_character = ""
+    fence_length = 0
     while index < len(lines):
-        match = _ALERT_START.match(lines[index])
+        line = lines[index]
+        if fence_character:
+            normalized.append(line)
+            closing_fence = re.match(
+                rf"^ {{0,3}}{re.escape(fence_character)}{{{fence_length},}}\s*$",
+                line,
+            )
+            if closing_fence:
+                fence_character = ""
+                fence_length = 0
+            index += 1
+            continue
+
+        opening_fence = _FENCE_START.match(line)
+        if opening_fence:
+            fence_character = opening_fence.group(1)[0]
+            fence_length = len(opening_fence.group(1))
+            normalized.append(line)
+            index += 1
+            continue
+
+        match = _ALERT_START.match(line)
         if match is None:
-            normalized.append(lines[index])
+            normalized.append(line)
             index += 1
             continue
 

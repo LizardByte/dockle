@@ -11,16 +11,27 @@ first-party Sphinx theme.
 
 | Page | Purpose |
 | --- | --- |
-| [Component showcase](showcase.md) | Typography, code, tables, and alerts |
+| [Component reference](showcase.md) | Authoring syntax beside rendered results |
 | [API reference](api.md) | Framework-native Python API output |
 
-## Quick start
+## Use Dockle with Sphinx
 
-```python
-from dockle_demo import DocumentationTarget, WarningPolicy
+Add a Sphinx target to `dockle.toml`. Dockle supplies `conf.py`, the MyST
+extensions, and the theme:
 
-target = DocumentationTarget("api", "sphinx", WarningPolicy.FAIL)
-assert target.framework == "sphinx"
+```toml
+[[targets]]
+name = "python"
+framework = "sphinx"
+source = "docs/python"
+entry = "index"
+```
+
+Then build just that target:
+
+```console
+python -m dockle check python
+python -m dockle build python
 ```
 
 Every example uses the same concepts and page structure so visual differences

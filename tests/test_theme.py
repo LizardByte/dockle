@@ -41,6 +41,10 @@ class ThemeTests(unittest.TestCase):
             self.assertIn("../../../index.html", document)
             self.assertIn("data-dockle-home", document)
             self.assertIn("data-dockle-universal-search", document)
+            self.assertIn('class="dockle-toolbar"', document)
+            self.assertIn("Built with", document)
+            self.assertIn("Dockle 0.1.0", document)
+            self.assertIn('data-lucide="moon"', document)
             self.assertIn("../../_dockle/search.json", document)
             self.assertTrue((output / "_dockle" / "search.json").is_file())
 

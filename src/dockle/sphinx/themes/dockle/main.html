@@ -70,14 +70,16 @@
         </nav>
 
         {% if config.repo_url %}
-          <a class="dockle-repository" href="{{ config.repo_url }}">Source repository</a>
+          <a class="dockle-repository" href="{{ config.repo_url }}">Source repository<i
+            data-lucide="external-link" aria-hidden="true"></i></a>
         {% endif %}
       </aside>
 
       <div class="dockle-page">
         <header class="dockle-mobile-header">
           <button type="button" data-dockle-menu-toggle aria-controls="dockle-sidebar" aria-expanded="false">
-            Menu
+            <i data-lucide="menu" aria-hidden="true"></i>
+            <span class="visually-hidden">Menu</span>
           </button>
           <a href="{{ (nav.homepage.url if nav.homepage else '')|url }}">{{ config.site_name }}</a>
         </header>
@@ -89,10 +91,16 @@
             {% if page.previous_page or page.next_page %}
               <nav class="dockle-page-links" aria-label="Page navigation">
                 {% if page.previous_page %}
-                  <a href="{{ page.previous_page.url|url }}">← {{ page.previous_page.title }}</a>
+                  <a class="dockle-previous" href="{{ page.previous_page.url|url }}">
+                    <i data-lucide="arrow-left" aria-hidden="true"></i>
+                    <span><small>Previous</small>{{ page.previous_page.title }}</span>
+                  </a>
                 {% endif %}
                 {% if page.next_page %}
-                  <a class="dockle-next" href="{{ page.next_page.url|url }}">{{ page.next_page.title }} →</a>
+                  <a class="dockle-next" href="{{ page.next_page.url|url }}">
+                    <span><small>Next</small>{{ page.next_page.title }}</span>
+                    <i data-lucide="arrow-right" aria-hidden="true"></i>
+                  </a>
                 {% endif %}
               </nav>
             {% endif %}
@@ -106,14 +114,12 @@
           {% endif %}
         </main>
 
-        <footer class="dockle-footer">
-          {% if config.copyright %}{{ config.copyright }}. {% endif %}Built with Dockle and MkDocs.
+        <footer class="dockle-footer" data-dockle-built-with>
+          {% if config.copyright %}{{ config.copyright }}. {% endif %}Built with
+          <a href="{{ config.theme.dockle_url }}">Dockle {{ config.theme.dockle_version }}<i
+            data-lucide="external-link" aria-hidden="true"></i></a> and MkDocs.
         </footer>
       </div>
-
-      <button type="button" class="dockle-theme-toggle" data-dockle-theme-toggle aria-label="Toggle color scheme">
-        <span aria-hidden="true">◐</span>
-      </button>
     </div>
   </body>
 </html>

@@ -100,6 +100,8 @@ class BuilderTests(unittest.TestCase):
         self.assertIn("GENERATE_TREEVIEW", doxyfile)
         self.assertIn("WARN_AS_ERROR", doxyfile)
         self.assertIn("USE_MDFILE_AS_MAINPAGE", doxyfile)
+        self.assertIn('ALIASES                += "danger{1}', doxyfile)
+        self.assertIn('data-lucide=\\"\\3\\"', doxyfile)
 
     def test_mkdocs_plan_generates_only_dockle_owned_config(self) -> None:
         plan = self.manager.plan(self.config.targets[2])
@@ -111,6 +113,7 @@ class BuilderTests(unittest.TestCase):
         self.assertIn("name: dockle", native)
         self.assertIn('primary: "#7c4dff"', native)
         self.assertIn("- dockle.markdown", native)
+        self.assertIn('dockle_version: "0.1.0"', native)
         self.assertIn("--strict", plan.command.args)
 
     def test_jsdoc_plan_generates_json(self) -> None:

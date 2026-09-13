@@ -64,11 +64,12 @@ own Sphinx theme, inheriting only Sphinx's intentionally minimal ``basic`` templ
 Dockle's generated CSS through its supported extra-stylesheet setting. The other initial adapters inject the same
 generated stylesheet into their HTML after the upstream build.
 
-The compatibility stylesheet currently normalizes design tokens and common content components. Post-processing marks
-each page with its framework, attaches subpath-safe relative assets where needed, and adds a common return link to the
-root portal. A CSS overlay cannot make unrelated document trees structurally identical, so the next theme phase will
-add maintained native templates for navigation, search, version indicators, and mobile controls. Those templates will
-consume the same Dockle model and tokens rather than creating new user-facing configuration.
+The compatibility layer normalizes design tokens and common content components. Post-processing marks each page with
+its framework, attaches subpath-safe relative assets, adds common search and color-scheme controls, renders Lucide
+icons, and links back to the root portal. Sphinx and MkDocs use maintained native templates. Doxygen keeps its semantic
+HTML while Dockle completes missing page outlines and derives previous/next links from Doxygen's generated navigation
+tree. The other adapters receive the same controls through generated-HTML enhancement. These implementations are
+first-party Dockle code; ``doxygen-awesome-css`` and ``doxyconfig`` are design references, not dependencies.
 
 Milestones
 ----------
@@ -87,7 +88,7 @@ Milestone 1: theme fidelity (in progress)
 
 * Representative visual fixtures for every supported generator are implemented and built together.
 * The native MkDocs theme now shares Dockle's sidebar/page structure and assets with Sphinx.
-* Build a native JSDoc template with the common sidebar/page structure.
+* Evaluate whether a native JSDoc template is preferable to the compatibility layer.
 * Define supported-version ranges and visual regression baselines.
 * Add accessible color contrast, keyboard navigation, and mobile-layout checks.
 * Decide whether rustdoc needs a maintained template or a deliberately narrower compatibility promise.

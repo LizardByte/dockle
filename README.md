@@ -132,12 +132,21 @@ the Docs, each branch and pull request build will exercise the same five-target 
 | rustdoc | Cargo command and environment | Generated HTML normalization | Implemented |
 
 Every adapter now receives Dockle's generated client-side search index and the
-same search interface, including result ranking and empty/error behavior.
+same search interface, including result ranking and empty/error behavior. The
+color-scheme control sits beside search and uses a state-aware Lucide icon.
 Sphinx and MkDocs use first-party templates; Doxygen, JSDoc, and rustdoc keep
 their semantic output while Dockle normalizes their structure and visual
-primitives. Markdown GitHub alerts are enabled through MyST for Sphinx, a
+primitives. Doxygen additionally receives a persistent tree, an automatically
+completed page outline, and generated previous/next navigation.
+
+Markdown GitHub alerts are enabled through MyST for Sphinx, a
 Dockle Markdown extension for MkDocs and the root portal, Doxygen's native
-parser, and a shared post-render enhancement for JSDoc and rustdoc.
+parser, and a shared post-render enhancement for JSDoc and rustdoc. Dockle
+extends the same syntax with attention, danger, error, hint, see-also, and todo
+alerts. Its generated Doxyfile also supplies matching Doxygen aliases for
+admonition types that Doxygen does not provide itself. Portable tab sets use
+semantic `details` markup and are upgraded by Dockle's self-contained client
+script. Dockle does not depend on `doxygen-awesome-css` or `doxyconfig`.
 
 ## Development
 

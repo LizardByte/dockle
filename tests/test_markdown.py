@@ -20,6 +20,22 @@ class MarkdownTests(unittest.TestCase):
         self.assertIn('class="admonition note"', document)
         self.assertIn('class="admonition-title"', document)
 
+    def test_supports_extended_documentation_alerts(self) -> None:
+        source = "> [!DANGER]\n> Stop before continuing.\n"
+
+        converted = normalize_github_alerts(source)
+        document = render_markdown(source)
+
+        self.assertIn("!!! danger", converted)
+        self.assertIn('class="admonition danger"', document)
+
+    def test_preserves_alert_source_inside_fenced_code(self) -> None:
+        source = "```markdown\n> [!TIP]\n> Keep the source visible.\n```\n"
+
+        converted = normalize_github_alerts(source)
+
+        self.assertEqual(source.rstrip(), converted)
+
 
 if __name__ == "__main__":
     unittest.main()

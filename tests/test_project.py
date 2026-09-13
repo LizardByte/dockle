@@ -95,6 +95,19 @@ class ProjectDogfoodTests(unittest.TestCase):
 
         self.assertNotIn("furo", " ".join(declared).lower())
 
+    def test_reference_doxygen_projects_are_not_dependencies(self) -> None:
+        dependency_files = [
+            PROJECT_ROOT / "pyproject.toml",
+            PROJECT_ROOT / "package.json",
+            PROJECT_ROOT / ".gitmodules",
+        ]
+
+        declared = "\n".join(
+            path.read_text(encoding="utf-8") for path in dependency_files
+        ).lower()
+        self.assertNotIn("doxygen-awesome-css", declared)
+        self.assertNotIn("doxyconfig", declared)
+
 
 if __name__ == "__main__":
     unittest.main()

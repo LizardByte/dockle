@@ -11,20 +11,27 @@ normalizes the generated HTML with the shared presentation layer.
 
 | Page | Purpose |
 | --- | --- |
-| [Component showcase](tutorial-showcase.html) | Typography, code, tables, and alerts |
+| [Component reference](tutorial-showcase.html) | Authoring syntax beside rendered results |
 | [API reference](module-dockle-demo.html) | Framework-native JavaScript API output |
 
-## Quick start
+## Use Dockle with JSDoc
 
-```javascript
-import { DocumentationTarget, WarningPolicy } from "./dockle-demo.js";
+Add a JSDoc target to `dockle.toml`. Dockle supplies `jsdoc.json`, discovers
+the tutorial directory, and attaches the shared theme:
 
-const target = new DocumentationTarget(
-  "api",
-  "jsdoc",
-  WarningPolicy.Fail,
-);
-console.assert(target.framework === "jsdoc");
+```toml
+[[targets]]
+name = "javascript"
+framework = "jsdoc"
+source = "docs/javascript"
+entry = "README.md"
+```
+
+Then build just that target:
+
+```console
+python -m dockle check javascript
+python -m dockle build javascript
 ```
 
 Every example uses the same concepts and page structure so visual differences

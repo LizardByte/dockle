@@ -27,6 +27,9 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertTrue((THEME_DIRECTORY / "layout.html").is_file())
         self.assertTrue((THEME_DIRECTORY / "static" / "dockle.css").is_file())
         self.assertTrue((THEME_DIRECTORY / "static" / "dockle.js").is_file())
+        self.assertTrue(
+            (THEME_DIRECTORY / "static" / "LUCIDE_LICENSE.txt").is_file()
+        )
         self.assertTrue((THEME_DIRECTORY / "main.html").is_file())
         self.assertTrue((THEME_DIRECTORY / "mkdocs_theme.yml").is_file())
         self.assertNotIn(

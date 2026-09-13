@@ -45,14 +45,16 @@
       </nav>
 
       {% if theme_repository_url %}
-        <a class="dockle-repository" href="{{ theme_repository_url|e }}">Source repository</a>
+        <a class="dockle-repository" href="{{ theme_repository_url|e }}">Source repository<i
+          data-lucide="external-link" aria-hidden="true"></i></a>
       {% endif %}
     </aside>
 
     <div class="dockle-page">
       <header class="dockle-mobile-header">
         <button type="button" data-dockle-menu-toggle aria-controls="dockle-sidebar" aria-expanded="false">
-          Menu
+          <i data-lucide="menu" aria-hidden="true"></i>
+          <span class="visually-hidden">Menu</span>
         </button>
         <a href="{{ pathto(master_doc)|e }}">{{ project|e }}</a>
       </header>
@@ -64,10 +66,16 @@
           {% if prev or next %}
             <nav class="dockle-page-links" aria-label="Page navigation">
               {% if prev %}
-                <a class="dockle-previous" href="{{ prev.link|e }}">Previous: {{ prev.title }}</a>
+                <a class="dockle-previous" href="{{ prev.link|e }}">
+                  <i data-lucide="arrow-left" aria-hidden="true"></i>
+                  <span><small>Previous</small>{{ prev.title }}</span>
+                </a>
               {% endif %}
               {% if next %}
-                <a class="dockle-next" href="{{ next.link|e }}">Next: {{ next.title }}</a>
+                <a class="dockle-next" href="{{ next.link|e }}">
+                  <span><small>Next</small>{{ next.title }}</span>
+                  <i data-lucide="arrow-right" aria-hidden="true"></i>
+                </a>
               {% endif %}
             </nav>
           {% endif %}
@@ -81,15 +89,12 @@
         {% endif %}
       </main>
 
-      <footer class="dockle-footer">
+      <footer class="dockle-footer" data-dockle-built-with>
         {% if show_copyright and copyright %}&copy; {{ copyright }}.{% endif %}
-        Built with Dockle.
+        Built with <a href="{{ theme_dockle_url|e }}">Dockle {{ theme_dockle_version|e }}<i
+          data-lucide="external-link" aria-hidden="true"></i></a>.
       </footer>
     </div>
-
-    <button type="button" class="dockle-theme-toggle" data-dockle-theme-toggle aria-label="Toggle color scheme">
-      <span aria-hidden="true">◐</span>
-    </button>
   </div>
 {% endblock %}
 

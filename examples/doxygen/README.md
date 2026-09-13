@@ -11,19 +11,27 @@ the shared presentation layer through supported Doxygen hooks.
 
 | Page | Purpose |
 | --- | --- |
-| [Component showcase](showcase.md) | Typography, code, tables, and alerts |
+| [Component reference](showcase.md) | Authoring syntax beside rendered results |
 | [API reference](annotated.html) | Framework-native C++ API output |
 
-## Quick start
+## Use Dockle with Doxygen
 
-```cpp
-#include "include/dockle_demo.hpp"
+Add a Doxygen target to `dockle.toml`. Dockle supplies the complete `Doxyfile`,
+including the tree view, custom admonition aliases, and theme hooks:
 
-using dockle::demo::target;
-using dockle::demo::warning_policy;
+```toml
+[[targets]]
+name = "cpp"
+framework = "doxygen"
+source = "src"
+entry = "README.md"
+```
 
-constexpr target docs{"api", "doxygen", warning_policy::fail};
-static_assert(docs.generator() == "doxygen");
+Then build just that target:
+
+```console
+python -m dockle check cpp
+python -m dockle build cpp
 ```
 
 Every example uses the same concepts and page structure so visual differences

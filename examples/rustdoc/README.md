@@ -11,20 +11,26 @@ HTML with the shared presentation layer.
 
 | Page | Purpose |
 | --- | --- |
-| [Component showcase](showcase/index.html) | Typography, code, tables, and alerts |
+| [Component reference](showcase/index.html) | Authoring syntax beside rendered results |
 | [API reference](struct.DocumentationTarget.html) | Framework-native Rust API output |
 
-## Quick start
+## Use Dockle with rustdoc
 
-```rust
-use dockle_preview::{DocumentationTarget, WarningPolicy};
+Add a rustdoc target to `dockle.toml`. Dockle invokes Cargo with an isolated
+target directory and attaches the shared theme:
 
-let target = DocumentationTarget::new(
-    "api",
-    "rustdoc",
-    WarningPolicy::Fail,
-);
-assert_eq!(target.framework(), "rustdoc");
+```toml
+[[targets]]
+name = "rust"
+framework = "rustdoc"
+source = "rust-crate"
+```
+
+Then build just that target:
+
+```console
+python -m dockle check rust
+python -m dockle build rust
 ```
 
 Every example uses the same concepts and page structure so visual differences

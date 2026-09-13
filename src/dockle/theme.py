@@ -10,6 +10,7 @@ from html import escape
 from html.parser import HTMLParser
 from pathlib import Path
 
+from dockle import __version__
 from dockle.config import DockleConfig, TargetConfig, ThemeConfig
 from dockle.markdown import render_markdown
 
@@ -20,6 +21,7 @@ _JSDOC_HOME_TITLE = re.compile(
     r'<h1\s+class=["\']page-title["\']>\s*Home\s*</h1>',
     re.IGNORECASE,
 )
+_DOCKLE_URL = "https://github.com/LizardByte/dockle"
 
 
 class ThemeError(RuntimeError):
@@ -188,6 +190,7 @@ def apply_theme(
             include_theme_toggle=(
                 "data-dockle-theme-toggle" not in document
             ),
+            include_built_with="data-dockle-built-with" not in document,
         )
         if "data-dockle-universal-search" not in document:
             document = _insert_after_body(document, decorations, html_file)
@@ -267,6 +270,7 @@ def _page_decorations(
     project_version: str,
     logo_asset: Path | None,
     include_theme_toggle: bool,
+    include_built_with: bool,
 ) -> str:
     relative_index = _relative(
         output / "_dockle" / "search.json",
@@ -274,26 +278,27 @@ def _page_decorations(
     )
     relative_root = _relative(output, html_file)
     logo_url = _relative(logo_asset, html_file) if logo_asset else ""
-    search = f"""
-<div class="dockle-search dockle-universal-search"
-     data-dockle-universal-search data-dockle-logo-url="{logo_url}">
-  <label class="visually-hidden" for="dockle-search-input">
-    Search documentation
-  </label>
-  <input id="dockle-search-input" type="search"
-         placeholder="Search documentation" autocomplete="off"
-         data-dockle-search="{relative_index}"
-         data-dockle-root="{relative_root}">
-  <ul class="dockle-search-results"
-      data-dockle-search-results="dockle-search-input"
-      aria-live="polite" hidden></ul>
-</div>"""
+    search = f"""<div class="dockle-search dockle-universal-search"
+       data-dockle-universal-search data-dockle-logo-url="{logo_url}">
+    <i class="dockle-search-icon" data-lucide="search" aria-hidden="true"></i>
+    <label class="visually-hidden" for="dockle-search-input">
+      Search documentation
+    </label>
+    <input id="dockle-search-input" type="search"
+           placeholder="Search documentation" autocomplete="off"
+           data-dockle-search="{relative_index}"
+           data-dockle-root="{relative_root}">
+    <ul class="dockle-search-results"
+        data-dockle-search-results="dockle-search-input"
+        aria-live="polite" hidden></ul>
+  </div>"""
     links = ""
     if portal is not None:
         relative_portal = _relative(portal / "index.html", html_file)
         links += (
             f'<a class="dockle-home" href="{relative_portal}" '
-            "data-dockle-home>All docs</a>"
+            'data-dockle-home><i data-lucide="arrow-left" '
+            'aria-hidden="true"></i>All docs</a>'
         )
     if (
         portal is not None
@@ -316,9 +321,20 @@ def _page_decorations(
         toggle = (
             '<button type="button" class="dockle-theme-toggle" '
             'data-dockle-theme-toggle aria-label="Toggle color scheme">'
-            '<span aria-hidden="true">◐</span></button>'
+            '<i data-lucide="moon" aria-hidden="true"></i></button>'
         )
-    return f"{links}{search}{toggle}"
+    built_with = ""
+    if include_built_with:
+        built_with = (
+            '<footer class="dockle-built-with" data-dockle-built-with>'
+            f'Built with <a href="{_DOCKLE_URL}">Dockle {__version__}'
+            '<i data-lucide="external-link" aria-hidden="true"></i>'
+            '</a>.</footer>'
+        )
+    return (
+        f'{links}<div class="dockle-toolbar">{search}{toggle}</div>'
+        f"{built_with}"
+    )
 
 
 def write_portal(
@@ -360,7 +376,8 @@ def write_portal(
         repository = (
             '    <p class="dockle-portal-repository">'
             f'<a href="{escape(config.project.repository)}">'
-            "Source repository</a></p>\n"
+            'Source repository<i data-lucide="external-link" '
+            'aria-hidden="true"></i></a></p>\n'
         )
     logo = ""
     if logo_asset is not None:
@@ -400,9 +417,14 @@ def write_portal(
 {chr(10).join(cards)}
     </section>
 {project_docs}{repository}  </main>
+  <footer class="dockle-built-with dockle-portal-built-with"
+          data-dockle-built-with>
+    Built with <a href="{_DOCKLE_URL}">Dockle {__version__}<i
+      data-lucide="external-link" aria-hidden="true"></i></a>.
+  </footer>
   <button type="button" class="dockle-theme-toggle"
           data-dockle-theme-toggle aria-label="Toggle color scheme">
-    <span aria-hidden="true">◐</span>
+    <i data-lucide="moon" aria-hidden="true"></i>
   </button>
 </body>
 </html>

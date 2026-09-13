@@ -1,6 +1,6 @@
 #![doc = include_str!("../README.md")]
 
-/// Common visual components rendered by rustdoc.
+/// Common authoring and rendering components demonstrated by rustdoc.
 #[doc = include_str!("../showcase.md")]
 pub mod showcase {}
 

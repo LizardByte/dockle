@@ -11,16 +11,26 @@ extensions, and selects its first-party MkDocs theme.
 
 | Page | Purpose |
 | --- | --- |
-| [Component showcase](showcase.md) | Typography, code, tables, and alerts |
+| [Component reference](showcase.md) | Authoring syntax beside rendered results |
 | [API reference](api.md) | A configuration-oriented reference page |
 
-## Quick start
+## Use Dockle with MkDocs
+
+Add a MkDocs target to `dockle.toml`. Dockle supplies `mkdocs.yml`, the
+Markdown extensions, and the theme:
 
 ```toml
 [[targets]]
 name = "guide"
 framework = "mkdocs"
 source = "docs"
+```
+
+Then build just that target:
+
+```console
+python -m dockle check guide
+python -m dockle build guide
 ```
 
 Every example uses the same concepts and page structure so visual differences
