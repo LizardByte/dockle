@@ -63,6 +63,18 @@ class SphinxThemeTests(unittest.TestCase):
             stylesheet,
         )
 
+    def test_compatibility_sidebars_share_current_page_styles(self) -> None:
+        stylesheet = (
+            THEME_DIRECTORY / "static" / "dockle.css"
+        ).read_text(encoding="utf-8")
+        script = (THEME_DIRECTORY / "static" / "dockle.js").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn('#nav-tree a[href="javascript:void(0)"]', stylesheet)
+        self.assertIn("a.dockle-current", stylesheet)
+        self.assertIn("markCurrentNavigation", script)
+
 
 if __name__ == "__main__":
     unittest.main()

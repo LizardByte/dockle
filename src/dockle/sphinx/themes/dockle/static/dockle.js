@@ -216,6 +216,59 @@
 
   const searchRoot = document.querySelector("[data-dockle-universal-search]");
   const logoUrl = searchRoot?.dataset.dockleLogoUrl;
+  const targetTitle = searchRoot?.dataset.dockleTargetTitle;
+  if (targetTitle && root.dataset.dockleFramework === "jsdoc") {
+    const home = document.querySelector("body > nav h2 a");
+    if (home) {
+      home.textContent = targetTitle;
+    }
+  }
+  if (targetTitle && root.dataset.dockleFramework === "rustdoc") {
+    const crate = document.querySelector(".sidebar .sidebar-crate h2 > a");
+    if (crate) {
+      crate.textContent = targetTitle;
+    }
+  }
+
+  const normalizedPagePath = (url) => {
+    const path = new URL(url, document.baseURI).pathname;
+    return path.replace(/index\.html$/, "").replace(/\/$/, "");
+  };
+  const markCurrentNavigation = () => {
+    const currentPath = normalizedPagePath(location.href);
+    const selectors = {
+      jsdoc: "body > nav a[href]",
+      rustdoc: ".sidebar a[href]",
+      sphinx: ".dockle-tree a[href]",
+    };
+    const selector = selectors[root.dataset.dockleFramework];
+    if (!selector) {
+      return;
+    }
+    const matches = [...document.querySelectorAll(selector)].filter((link) => {
+      const href = link.getAttribute("href");
+      if (!href || href.startsWith("#")) {
+        return false;
+      }
+      const target = new URL(link.href, document.baseURI);
+      return !target.hash && normalizedPagePath(target) === currentPath;
+    });
+    const currentLinks = root.dataset.dockleFramework === "rustdoc"
+      ? matches.slice(0, 1)
+      : matches;
+    if (root.dataset.dockleFramework === "rustdoc") {
+      matches.slice(1).forEach((link) => {
+        link.closest("li")?.classList.remove("current");
+      });
+    }
+    currentLinks.forEach((link) => {
+      link.classList.add("dockle-current");
+      link.setAttribute("aria-current", "page");
+    });
+  };
+  markCurrentNavigation();
+  window.addEventListener("load", markCurrentNavigation);
+
   if (logoUrl) {
     const brandSelectors = [
       ".dockle-brand a",

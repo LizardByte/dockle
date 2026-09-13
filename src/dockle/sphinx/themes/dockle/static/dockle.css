@@ -511,9 +511,15 @@ dl.dockle-alert > dd {
 }
 
 .dockle-tree a:hover,
-.dockle-tree .current > a {
+.dockle-tree .current > a,
+.dockle-tree a.current,
+.dockle-tree a[aria-current="page"] {
   background: color-mix(in srgb, var(--dockle-primary) 10%, transparent);
   color: var(--dockle-primary);
+}
+
+.dockle-root-tree + ul {
+  margin-top: 0.25rem;
 }
 
 .dockle-repository {
@@ -877,6 +883,24 @@ html[data-dockle-framework="doxygen"] #nav-tree a {
   text-decoration: none;
 }
 
+html[data-dockle-framework="doxygen"] #nav-tree a[href="javascript:void(0)"],
+html[data-dockle-framework="doxygen"] #nav-tree .arrow,
+html[data-dockle-framework="doxygen"] #page-nav .arrow {
+  display: none !important;
+}
+
+html[data-dockle-framework="doxygen"] #nav-tree-contents > ul > li > .item {
+  display: none;
+}
+
+html[data-dockle-framework="doxygen"] #nav-tree-contents > ul > li > .children_ul {
+  padding-left: 0 !important;
+}
+
+html[data-dockle-framework="doxygen"] #page-nav ul.page-outline ul {
+  padding-left: 1rem;
+}
+
 html[data-dockle-framework="doxygen"] #nav-tree .selected {
   background: color-mix(in srgb, var(--dockle-primary) 10%, transparent);
   text-shadow: none;
@@ -1001,7 +1025,7 @@ html[data-dockle-framework="doxygen"] #page-nav ul.page-outline li.vis {
 }
 
 html[data-dockle-framework="doxygen"] #page-nav ul.page-outline li.vis::after {
-  background: var(--dockle-primary);
+  content: none !important;
 }
 
 html[data-dockle-framework="doxygen"] h2.groupheader,
@@ -1133,9 +1157,15 @@ html[data-dockle-framework="jsdoc"] body > nav {
 html[data-dockle-framework="jsdoc"] body > nav h2,
 html[data-dockle-framework="jsdoc"] body > nav h3 {
   border: 0;
+  color: var(--dockle-content);
+  font-family: var(--dockle-font);
   font-size: 0.95rem;
   margin: 1rem 0 0.25rem;
   padding: 0;
+}
+
+html[data-dockle-framework="jsdoc"] body > nav h2 {
+  margin-top: 0;
 }
 
 html[data-dockle-framework="jsdoc"] body > nav ul {
@@ -1145,15 +1175,18 @@ html[data-dockle-framework="jsdoc"] body > nav ul {
 }
 
 html[data-dockle-framework="jsdoc"] body > nav a {
+  border-radius: 0.2rem;
   color: var(--dockle-muted);
   display: block;
   overflow-wrap: anywhere;
-  padding: 0.18rem 0.35rem;
+  padding: 0.25rem 0.35rem;
   text-decoration: none;
 }
 
 html[data-dockle-framework="jsdoc"] body > nav a:hover,
-html[data-dockle-framework="jsdoc"] body > nav h2 a {
+html[data-dockle-framework="jsdoc"] body > nav a.dockle-current,
+html[data-dockle-framework="jsdoc"] body > nav a[aria-current="page"] {
+  background: color-mix(in srgb, var(--dockle-primary) 10%, transparent);
   color: var(--dockle-primary);
 }
 
@@ -1199,9 +1232,8 @@ html[data-dockle-framework="jsdoc"].dockle-component-reference #main > section >
   display: none;
 }
 
-html[data-dockle-framework="jsdoc"] footer {
-  color: var(--dockle-muted);
-  margin-left: var(--dockle-sidebar-width);
+html[data-dockle-framework="jsdoc"] #main > .dockle-built-with {
+  margin-left: 0;
 }
 
 html[data-dockle-framework="jsdoc"] .signature,
@@ -1255,6 +1287,71 @@ html[data-dockle-framework="rustdoc"] .sidebar {
   border-right: 1px solid var(--dockle-border);
   padding-bottom: 4.25rem !important;
   padding-top: 9rem !important;
+}
+
+html[data-dockle-framework="rustdoc"] .sidebar-resizer {
+  display: none !important;
+}
+
+html[data-dockle-framework="rustdoc"] .sidebar .sidebar-crate,
+html[data-dockle-framework="rustdoc"] .sidebar .sidebar-elems {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 0.75rem;
+  width: 100%;
+}
+
+html[data-dockle-framework="rustdoc"] .sidebar .sidebar-crate h2,
+html[data-dockle-framework="rustdoc"] .sidebar h3 {
+  border: 0;
+  color: var(--dockle-content);
+  font-family: var(--dockle-font);
+  font-size: 0.95rem;
+  margin: 1rem 0 0.25rem;
+  padding: 0;
+}
+
+html[data-dockle-framework="rustdoc"] .sidebar .sidebar-crate h2 {
+  margin-top: 0;
+}
+
+html[data-dockle-framework="rustdoc"] .sidebar ul.block,
+html[data-dockle-framework="rustdoc"] .sidebar ul.block ul {
+  list-style: none;
+  margin: 0;
+  padding-left: 0.85rem;
+}
+
+html[data-dockle-framework="rustdoc"] .sidebar ul.block {
+  padding-left: 0;
+}
+
+html[data-dockle-framework="rustdoc"] .sidebar li {
+  margin: 0.25rem 0;
+}
+
+html[data-dockle-framework="rustdoc"] .sidebar a,
+html[data-dockle-framework="rustdoc"] .sidebar a:visited {
+  border-radius: 0.2rem;
+  color: var(--dockle-muted) !important;
+  display: block;
+  font-family: var(--dockle-font);
+  overflow-wrap: anywhere;
+  padding: 0.25rem 0.35rem;
+  text-decoration: none;
+}
+
+html[data-dockle-framework="rustdoc"] .sidebar a:hover,
+html[data-dockle-framework="rustdoc"] .sidebar a.dockle-current,
+html[data-dockle-framework="rustdoc"] .sidebar a[aria-current="page"] {
+  background: color-mix(in srgb, var(--dockle-primary) 10%, transparent);
+  color: var(--dockle-primary) !important;
+}
+
+html[data-dockle-framework="rustdoc"] .sidebar .version {
+  color: var(--dockle-muted);
+  font-family: var(--dockle-font);
+  font-size: 0.8rem;
 }
 
 html[data-dockle-framework="rustdoc"] .search-form {

@@ -105,6 +105,7 @@ class Builder(ABC):
             portal=self.config.build.output,
             project_name=self.config.project.name,
             project_version=self.config.project.version,
+            target_title=self.target.title,
             logo=self.config.project.logo,
         )
 
@@ -126,6 +127,7 @@ class SphinxBuilder(Builder):
             "font": self.config.theme.font,
             "code_font": self.config.theme.code_font,
             "repository_url": self.config.project.repository,
+            "target_title": self.target.title,
             "dockle_version": __version__,
             "dockle_url": "https://github.com/LizardByte/dockle",
         }
