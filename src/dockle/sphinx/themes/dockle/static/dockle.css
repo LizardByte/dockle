@@ -173,7 +173,8 @@ td {
 }
 
 th {
-  background: var(--dockle-background-secondary);
+  background: var(--dockle-background-secondary) !important;
+  color: var(--dockle-content) !important;
 }
 
 .admonition,
@@ -808,6 +809,20 @@ html[data-dockle-framework="doxygen"] td h2.groupheader {
   padding: 0 0 0.35rem;
 }
 
+html[data-dockle-framework="doxygen"] h1.doxsection {
+  border-bottom: 1px solid var(--dockle-border);
+  font-size: 1.65rem;
+  margin: 2rem 0 1rem;
+  padding-bottom: 0.35rem;
+}
+
+html[data-dockle-framework="doxygen"] dl.note dt,
+html[data-dockle-framework="doxygen"] dl.warning dt,
+html[data-dockle-framework="doxygen"] dl.important dt,
+html[data-dockle-framework="doxygen"] dl.attention dt {
+  color: var(--dockle-content) !important;
+}
+
 html[data-dockle-framework="doxygen"] table.memberdecls tr.heading > td,
 html[data-dockle-framework="doxygen"] table.memberdecls tr.groupHeader > td,
 html[data-dockle-framework="doxygen"] table.memberdecls tr.inherit_header > td {
@@ -974,9 +989,45 @@ html[data-dockle-framework="jsdoc"] .type-signature {
   color: var(--dockle-muted) !important;
 }
 
+html[data-dockle-framework="jsdoc"] pre.prettyprint code {
+  background: transparent !important;
+  color: var(--dockle-content) !important;
+  padding: 0 !important;
+}
+
+html[data-dockle-framework="jsdoc"] pre.prettyprint .pln,
+html[data-dockle-framework="jsdoc"] pre.prettyprint .pun {
+  color: var(--dockle-content) !important;
+}
+
+html[data-dockle-framework="jsdoc"] pre.prettyprint .com {
+  color: var(--dockle-muted) !important;
+}
+
+html[data-dockle-framework="jsdoc"] pre.prettyprint .kwd,
+html[data-dockle-framework="jsdoc"] pre.prettyprint .typ {
+  color: color-mix(in srgb, var(--dockle-primary) 55%, white) !important;
+}
+
+html[data-dockle-framework="jsdoc"] pre.prettyprint .str,
+html[data-dockle-framework="jsdoc"] pre.prettyprint .lit {
+  color: #84cc16 !important;
+}
+
 /* rustdoc. */
 html[data-dockle-framework="rustdoc"] {
   --desktop-sidebar-width: var(--dockle-sidebar-width);
+  --code-block-background-color: var(--dockle-code-background);
+  --link-color: var(--dockle-primary);
+  --main-background-color: var(--dockle-background);
+  --main-color: var(--dockle-content);
+  --sidebar-background-color: var(--dockle-background-secondary);
+  --sidebar-current-link-background-color: color-mix(
+    in srgb,
+    var(--dockle-primary) 10%,
+    transparent
+  );
+  --sidebar-link-color: var(--dockle-primary);
 }
 
 html[data-dockle-framework="rustdoc"] .sidebar {
@@ -987,6 +1038,10 @@ html[data-dockle-framework="rustdoc"] .sidebar {
 }
 
 html[data-dockle-framework="rustdoc"] .search-form {
+  display: none !important;
+}
+
+html[data-dockle-framework="rustdoc"] #search-button {
   display: none !important;
 }
 

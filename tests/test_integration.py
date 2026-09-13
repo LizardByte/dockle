@@ -270,12 +270,17 @@ source = "crate"
             ).read_text(encoding="utf-8")
             self.assertGreaterEqual(results[0].themed_pages, 1)
             self.assertIn('http-equiv="refresh"', root_html)
+            self.assertIn("window.location.replace", root_html)
             self.assertIn("url=dockle_fixture/", root_html)
             self.assertIn('data-dockle-theme="rustdoc"', html)
             self.assertIn("data-dockle-brand", html)
             self.assertTrue(
                 (config.targets[0].output / "_dockle" / "dockle.css").is_file()
             )
+            portal = (config.build.output / "index.html").read_text(
+                encoding="utf-8"
+            )
+            self.assertIn('href="docs/dockle_fixture/"', portal)
 
 
 if __name__ == "__main__":

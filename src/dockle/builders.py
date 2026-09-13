@@ -366,7 +366,13 @@ class RustdocBuilder(Builder):
 
         if len(crates) == 1:
             destination = f"{crates[0].name}/"
-            head_extra = f'<meta http-equiv="refresh" content="0; url={escape(destination)}">'
+            script_destination = json.dumps(destination)
+            head_extra = (
+                '<meta http-equiv="refresh" content="0; '
+                f'url={escape(destination)}">\n'
+                "  <script>window.location.replace("
+                f"{script_destination});</script>"
+            )
             body = f'  <p>Continue to <a href="{escape(destination)}">{escape(crates[0].name)}</a>.</p>'
         else:
             head_extra = ""

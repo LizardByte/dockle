@@ -27,30 +27,30 @@ source = "examples/sphinx"
 
 [[targets]]
 name = "doxygen"
-title = "Doxygen API"
-description = "A small documented C++ API built from a Dockle-generated Doxyfile."
+title = "Doxygen example"
+description = "C++ and Markdown built from a Dockle-generated Doxyfile."
 framework = "doxygen"
 source = "examples/doxygen"
 entry = "README.md"
 
 [[targets]]
 name = "mkdocs"
-title = "MkDocs guide"
-description = "Markdown content built from a Dockle-generated MkDocs configuration."
+title = "MkDocs example"
+description = "Configuration and Markdown rendered with Dockle's MkDocs theme."
 framework = "mkdocs"
 source = "examples/mkdocs"
 
 [[targets]]
 name = "jsdoc"
-title = "JSDoc API"
-description = "A documented JavaScript module built from a Dockle-generated JSDoc configuration."
+title = "JSDoc example"
+description = "JavaScript and Markdown built from Dockle-generated JSDoc configuration."
 framework = "jsdoc"
 source = "examples/jsdoc"
 entry = "README.md"
 
 [[targets]]
 name = "rustdoc"
-title = "rustdoc API"
-description = "A dependency-free Rust crate built through Cargo and normalized by Dockle."
+title = "rustdoc example"
+description = "Rust and Markdown built through Cargo and normalized by Dockle."
 framework = "rustdoc"
 source = "examples/rustdoc"

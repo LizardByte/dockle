@@ -338,12 +338,12 @@ def write_portal(
 
     cards: list[str] = []
     for target in targets:
-        relative = target.output.relative_to(output).as_posix()
+        relative = _target_href(target, output)
         description = target.description or (
             f"Documentation generated with {target.framework}."
         )
         cards.append(
-            f"""      <a class="dockle-portal-card" href="{escape(relative)}/">
+            f"""      <a class="dockle-portal-card" href="{escape(relative)}">
         <span class="dockle-portal-framework">{escape(target.framework)}</span>
         <strong>{escape(target.title)}</strong>
         <span>{escape(description)}</span>
@@ -410,3 +410,16 @@ def write_portal(
     portal = output / "index.html"
     portal.write_text(document, encoding="utf-8")
     return portal
+
+
+def _target_href(target: TargetConfig, output: Path) -> str:
+    relative = target.output.relative_to(output).as_posix()
+    if target.framework == "rustdoc" and target.output.is_dir():
+        crates = sorted(
+            path
+            for path in target.output.iterdir()
+            if path.is_dir() and (path / "index.html").is_file()
+        )
+        if len(crates) == 1:
+            return f"{relative}/{crates[0].name}/"
+    return f"{relative}/"
