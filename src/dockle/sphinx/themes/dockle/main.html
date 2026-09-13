@@ -1,0 +1,139 @@
+{% macro render_nav(items) -%}
+  <ul>
+    {% for item in items %}
+      <li{% if item.active %} class="current"{% endif %}>
+        {% if item.is_section %}
+          <span class="dockle-tree-caption">{{ item.title }}</span>
+          {{ render_nav(item.children) }}
+        {% else %}
+          <a href="{{ item.url|url }}">{{ item.title }}</a>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+{%- endmacro %}
+
+{% macro render_toc(items) -%}
+  <ul>
+    {% for item in items %}
+      <li>
+        <a href="{{ item.url }}">{{ item.title }}</a>
+        {% if item.children %}{{ render_toc(item.children) }}{% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+{%- endmacro %}
+
+<!doctype html>
+<html lang="{{ config.theme.locale }}" data-dockle-framework="mkdocs">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="{{ config.site_description }}">
+    <title>{% if page.title %}{{ page.title }} — {% endif %}{{ config.site_name }}</title>
+    {% if page.canonical_url %}<link rel="canonical" href="{{ page.canonical_url }}">{% endif %}
+    <link rel="stylesheet" href="{{ 'static/dockle.css'|url }}" data-dockle-theme="mkdocs">
+    <script defer src="{{ 'static/dockle.js'|url }}"></script>
+    <style>
+      :root,
+      :root[data-color-scheme="light"] {
+        --dockle-primary: {{ config.theme.primary }};
+        --dockle-content: {{ config.theme.content }};
+        --dockle-background: {{ config.theme.light_background }};
+        --dockle-font: {{ config.theme.font }};
+        --dockle-code-font: {{ config.theme.code_font }};
+      }
+
+      :root[data-color-scheme="dark"] {
+        --dockle-background: {{ config.theme.dark_background }};
+        --dockle-content: #e5e7eb;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-color-scheme]) {
+          --dockle-background: {{ config.theme.dark_background }};
+          --dockle-content: #e5e7eb;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="dockle-shell">
+      <aside class="dockle-sidebar" id="dockle-sidebar" aria-label="Primary navigation">
+        <div class="dockle-brand">
+          <a href="{{ (nav.homepage.url if nav.homepage else '')|url }}">{{ config.site_name }}</a>
+          {% if config.theme.version %}<span class="dockle-version">{{ config.theme.version }}</span>{% endif %}
+        </div>
+
+        {% if 'search' in config.plugins %}
+          <div class="dockle-search" role="search">
+            <label class="visually-hidden" for="dockle-mkdocs-search">Search documentation</label>
+            <input
+              id="dockle-mkdocs-search"
+              type="search"
+              placeholder="Search"
+              autocomplete="off"
+              data-dockle-search="{{ 'search/search_index.json'|url }}"
+              data-dockle-root="{{ base_url }}"
+            >
+            <ul
+              class="dockle-search-results"
+              data-dockle-search-results="dockle-mkdocs-search"
+              aria-live="polite"
+              hidden
+            ></ul>
+          </div>
+        {% endif %}
+
+        <nav class="dockle-tree" aria-label="Documentation">
+          {{ render_nav(nav) }}
+        </nav>
+
+        {% if config.repo_url %}
+          <a class="dockle-repository" href="{{ config.repo_url }}">Source repository</a>
+        {% endif %}
+      </aside>
+
+      <div class="dockle-page">
+        <header class="dockle-mobile-header">
+          <button type="button" data-dockle-menu-toggle aria-controls="dockle-sidebar" aria-expanded="false">
+            Menu
+          </button>
+          <a href="{{ (nav.homepage.url if nav.homepage else '')|url }}">{{ config.site_name }}</a>
+        </header>
+
+        <main class="dockle-main">
+          <article class="dockle-article" role="main">
+            {{ page.content }}
+
+            {% if page.previous_page or page.next_page %}
+              <nav class="dockle-page-links" aria-label="Page navigation">
+                {% if page.previous_page %}
+                  <a href="{{ page.previous_page.url|url }}">← {{ page.previous_page.title }}</a>
+                {% endif %}
+                {% if page.next_page %}
+                  <a class="dockle-next" href="{{ page.next_page.url|url }}">{{ page.next_page.title }} →</a>
+                {% endif %}
+              </nav>
+            {% endif %}
+          </article>
+
+          {% if page.toc %}
+            <aside class="dockle-on-this-page" aria-label="On this page">
+              <strong>On this page</strong>
+              {{ render_toc(page.toc) }}
+            </aside>
+          {% endif %}
+        </main>
+
+        <footer class="dockle-footer">
+          {% if config.copyright %}{{ config.copyright }}. {% endif %}Built with Dockle and MkDocs.
+        </footer>
+      </div>
+
+      <button type="button" class="dockle-theme-toggle" data-dockle-theme-toggle aria-label="Toggle color scheme">
+        <span aria-hidden="true">◐</span>
+      </button>
+    </div>
+  </body>
+</html>

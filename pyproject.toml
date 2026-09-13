@@ -1,0 +1,52 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dockle"
+version = "0.1.0"
+description = "Build documentation with multiple frameworks and one consistent theme."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+  { name = "LizardByte" },
+]
+dependencies = []
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Environment :: Console",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Documentation",
+]
+
+[project.optional-dependencies]
+sphinx = [
+  "sphinx>=8.1",
+]
+mkdocs = [
+  "mkdocs>=1.6",
+]
+all = [
+  "mkdocs>=1.6",
+  "sphinx>=8.1",
+]
+
+[project.scripts]
+dockle = "dockle.cli:main"
+
+[project.entry-points."sphinx.html_themes"]
+dockle = "dockle.sphinx_theme"
+
+[project.entry-points."mkdocs.themes"]
+dockle = "dockle.sphinx.themes.dockle"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dockle"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]

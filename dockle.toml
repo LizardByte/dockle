@@ -1,0 +1,54 @@
+[project]
+name = "Dockle"
+version = "0.1.0"
+description = "Build documentation with multiple frameworks and one consistent theme."
+repository = "https://github.com/LizardByte/dockle"
+
+[theme]
+primary = "#2962ff"
+content = "#2e3440"
+light_background = "#ffffff"
+dark_background = "#131416"
+
+[build]
+output = "_site"
+work = ".dockle"
+strict = true
+clean = true
+
+[[targets]]
+name = "sphinx"
+title = "Sphinx guide"
+description = "Narrative reStructuredText documentation rendered by Dockle's first-party Sphinx theme."
+framework = "sphinx"
+source = "docs"
+
+[[targets]]
+name = "doxygen"
+title = "Doxygen API"
+description = "A small documented C++ API built from a Dockle-generated Doxyfile."
+framework = "doxygen"
+source = "examples/doxygen"
+entry = "README.md"
+
+[[targets]]
+name = "mkdocs"
+title = "MkDocs guide"
+description = "Markdown content built from a Dockle-generated MkDocs configuration."
+framework = "mkdocs"
+source = "examples/mkdocs"
+
+[[targets]]
+name = "jsdoc"
+title = "JSDoc API"
+description = "A documented JavaScript module built from a Dockle-generated JSDoc configuration."
+framework = "jsdoc"
+source = "examples/jsdoc"
+entry = "README.md"
+
+[[targets]]
+name = "rustdoc"
+title = "rustdoc API"
+description = "A dependency-free Rust crate built through Cargo and normalized by Dockle."
+framework = "rustdoc"
+source = "examples/rustdoc"
