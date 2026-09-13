@@ -1,13 +1,166 @@
 <div align="center">
   <img
-    src="https://raw.githubusercontent.com/LizardByte/.github/refs/heads/master/branding/logos/logo.svg"
-    alt="LizardByte icon"
-    width="256"
+    src="branding/dockle-logo.png"
+    alt="Dockle logo"
+    width="192"
   />
-  <h1 align="center">repo-name</h1>
-  <h4 align="center">Repo description. This should exactly match the description in GitHub.</h4>
+  <h1 align="center">Dockle</h1>
+  <h4 align="center">Build documentation with multiple frameworks and one consistent theme.</h4>
 </div>
 
-<div align="center">
-  <a href="https://sonarcloud.io/project/overview?id=LizardByte_template-base"><img src="https://img.shields.io/sonar/quality_gate/LizardByte_template-base?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge&logo=sonarqubecloud&label=sonarcloud" alt="SonarCloud"></a>
-</div>
+> [!IMPORTANT]
+> Dockle is pre-alpha. The configuration contract and adapters are usable for experimentation, but are not stable yet.
+
+Dockle is a configuration and presentation layer for documentation generators. A project describes itself once in
+`dockle.toml`; Dockle translates that model into temporary Sphinx, Doxygen, MkDocs, JSDoc, or rustdoc configuration,
+runs the underlying tool, and applies its own shared, Furo-inspired visual layer to the generated HTML. A full build
+also creates a landing page that connects every target into one publishable documentation site.
+
+That landing page can render project Markdown directly and keep cards to each
+framework example. Project logos and home content are configured once and then
+copied into every generated documentation set.
+
+The Sphinx integration is a first-party `dockle` theme. Furo is a design reference, not a runtime dependency or base
+theme.
+
+## Why Dockle?
+
+- Keep framework-specific configuration out of consumer repositories.
+- Build several documentation targets and a root documentation portal from one command.
+- Give prose and API references the same colors, typography, spacing, code blocks, tables, and responsive behavior.
+- Keep the generators replaceable: Dockle orchestrates them rather than attempting to parse every source format itself.
+
+## Quick start
+
+Dockle requires Python 3.11 or newer. Install the adapters needed by the project:
+
+```console
+python -m pip install -e ".[sphinx,mkdocs]"
+```
+
+Doxygen, JSDoc, and the Rust toolchain remain native tool dependencies. Their executable paths can be overridden in
+`dockle.toml` when they are not available on `PATH`.
+
+Create a single configuration file:
+
+```toml
+[project]
+name = "Example"
+version = "1.0.0"
+description = "Example project documentation"
+repository = "https://github.com/example/example"
+home = "docs/index.md"
+logo = "branding/logo.png"
+
+[theme]
+primary = "#2962ff"
+content = "#2e3440"
+light_background = "#ffffff"
+dark_background = "#131416"
+
+[build]
+output = "_site"
+work = ".dockle"
+strict = true
+
+[[targets]]
+name = "manual"
+title = "User guide"
+description = "Tutorials and configuration reference."
+framework = "sphinx"
+source = "docs"
+
+[[targets]]
+name = "cpp-api"
+framework = "doxygen"
+source = "src"
+
+[[targets]]
+name = "rust-api"
+framework = "rustdoc"
+source = "."
+```
+
+Then inspect or run the build:
+
+```console
+dockle build --dry-run
+dockle check
+dockle build
+dockle build manual cpp-api
+```
+
+The configuration path can be changed with `dockle --config path/to/dockle.toml build`. A complete build cleans the
+whole output tree so removed targets cannot leave stale pages behind; a named-target build only replaces that target.
+
+## Review all five adapters
+
+This repository is also an executable comparison suite. Every adapter has an
+overview, component showcase, GitHub-style alerts, code, tables, and an API or
+reference page. Each language fixture differs only where the underlying
+generator requires it:
+
+```console
+python -m pip install -e ".[all]"
+npm ci --ignore-scripts
+dockle check
+dockle build
+```
+
+Doxygen and Cargo must be installed separately. The JSDoc adapter finds a project-local executable in
+`node_modules/.bin`, so a global Node.js package is not required. Open `_site/index.html` to move between the generated
+Sphinx, Doxygen, MkDocs, JSDoc, and rustdoc sites.
+
+## Read the Docs
+
+The root `.readthedocs.yaml` uses a custom HTML build because Dockle, rather than Read the Docs, owns generator
+selection. A fully pinned conda environment supplies Doxygen, Graphviz, and Python while Read the Docs supplies Node.js
+and Rust. The build explicitly creates that environment and runs Dockle through `conda run`, then copies the complete
+portal to `$READTHEDOCS_OUTPUT/html/`.
+
+No Sphinx or MkDocs configuration is duplicated for the hosting service. Once this repository is imported into Read
+the Docs, each branch and pull request build will exercise the same five-target configuration used locally.
+
+## Adapter status
+
+| Framework | Configuration generated by Dockle | Shared theme path | Initial adapter |
+| --- | --- | --- | --- |
+| Sphinx | `conf.py` | Dockle's packaged Sphinx theme | Implemented |
+| Doxygen | `Doxyfile` | `HTML_EXTRA_STYLESHEET` | Implemented |
+| MkDocs | `mkdocs.yml` | Dockle's packaged MkDocs theme | Implemented |
+| JSDoc | `jsdoc.json` | Generated HTML normalization | Implemented |
+| rustdoc | Cargo command and environment | Generated HTML normalization | Implemented |
+
+Every adapter now receives Dockle's generated client-side search index and the
+same search interface, including result ranking and empty/error behavior. The
+color-scheme control sits beside search and uses a state-aware Lucide icon.
+Sphinx and MkDocs use first-party templates; Doxygen, JSDoc, and rustdoc keep
+their semantic output while Dockle normalizes their structure and visual
+primitives. Doxygen additionally receives a persistent tree, an automatically
+completed page outline, and generated previous/next navigation.
+
+Markdown GitHub alerts are enabled through MyST for Sphinx, a
+Dockle Markdown extension for MkDocs and the root portal, Doxygen's native
+parser, and a shared post-render enhancement for JSDoc and rustdoc. Dockle
+extends the same syntax with attention, danger, error, hint, see-also, and todo
+alerts. Its generated Doxyfile also supplies matching Doxygen aliases for
+admonition types that Doxygen does not provide itself. Portable tab sets use
+semantic `details` markup and are upgraded by Dockle's self-contained client
+script. Dockle does not depend on `doxygen-awesome-css` or `doxyconfig`.
+
+## Development
+
+Initialize the shared lint tooling and run the test suite:
+
+```console
+git submodule update --init third-party/lizardbyte-common
+uv run --project third-party/lizardbyte-common --locked --only-group lint-c \
+  clang-format --dry-run --Werror examples/doxygen/include/dockle_demo.hpp
+$env:PYTHONPATH = "src"  # PowerShell
+python -m unittest discover -s tests -v
+python -m compileall -q src tests
+```
+
+The root documentation source is [docs/home.md](docs/home.md). The older
+reStructuredText configuration and architecture notes remain useful design
+references while the public configuration continues to evolve.
