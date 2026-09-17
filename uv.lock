@@ -427,74 +427,6 @@ wheels = [
 ]
 
 [[package]]
-name = "dockle"
-version = "0.0.0"
-source = { editable = "." }
-dependencies = [
-    { name = "markdown" },
-]
-
-[package.optional-dependencies]
-all = [
-    { name = "mkdocs" },
-    { name = "myst-parser" },
-    { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "sphinx", version = "9.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-]
-mkdocs = [
-    { name = "mkdocs" },
-]
-sphinx = [
-    { name = "myst-parser" },
-    { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "sphinx", version = "9.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pyinstaller" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "twine" },
-]
-package = [
-    { name = "pyinstaller" },
-    { name = "twine" },
-]
-test = [
-    { name = "pytest" },
-    { name = "pytest-cov" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "markdown", specifier = ">=3.8" },
-    { name = "mkdocs", marker = "extra == 'all'", specifier = ">=1.6" },
-    { name = "mkdocs", marker = "extra == 'mkdocs'", specifier = ">=1.6" },
-    { name = "myst-parser", marker = "extra == 'all'", specifier = ">=4.0" },
-    { name = "myst-parser", marker = "extra == 'sphinx'", specifier = ">=4.0" },
-    { name = "sphinx", marker = "extra == 'all'", specifier = ">=8.1" },
-    { name = "sphinx", marker = "extra == 'sphinx'", specifier = ">=8.1" },
-]
-provides-extras = ["sphinx", "mkdocs", "all"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pyinstaller", specifier = "==6.22.3" },
-    { name = "pytest", specifier = "==9.1.1" },
-    { name = "pytest-cov", specifier = "==7.1.0" },
-    { name = "twine", specifier = "==7.0.0" },
-]
-package = [
-    { name = "pyinstaller", specifier = "==6.22.3" },
-    { name = "twine", specifier = "==7.0.0" },
-]
-test = [
-    { name = "pytest", specifier = "==9.1.1" },
-    { name = "pytest-cov", specifier = "==7.1.0" },
-]
-
-[[package]]
 name = "docutils"
 version = "0.22.4"
 source = { registry = "https://pypi.org/simple" }
@@ -639,6 +571,74 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/43/4b/674af6ef2f97d56f0ab5153bf0bfa28ccb6c3ed4d1babf4305449668807b/keyring-25.7.0.tar.gz", hash = "sha256:fe01bd85eb3f8fb3dd0405defdeac9a5b4f6f0439edbb3149577f244a2e8245b", size = 63516, upload-time = "2025-11-16T16:26:09.482Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/81/db/e655086b7f3a705df045bf0933bdd9c2f79bb3c97bfef1384598bb79a217/keyring-25.7.0-py3-none-any.whl", hash = "sha256:be4a0b195f149690c166e850609a477c532ddbfbaed96a404d4e43f8d5e2689f", size = 39160, upload-time = "2025-11-16T16:26:08.402Z" },
+]
+
+[[package]]
+name = "lizardbyte-dockle"
+version = "0.0.0"
+source = { editable = "." }
+dependencies = [
+    { name = "markdown" },
+]
+
+[package.optional-dependencies]
+all = [
+    { name = "mkdocs" },
+    { name = "myst-parser" },
+    { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "sphinx", version = "9.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+]
+mkdocs = [
+    { name = "mkdocs" },
+]
+sphinx = [
+    { name = "myst-parser" },
+    { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "sphinx", version = "9.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pyinstaller" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "twine" },
+]
+package = [
+    { name = "pyinstaller" },
+    { name = "twine" },
+]
+test = [
+    { name = "pytest" },
+    { name = "pytest-cov" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "markdown", specifier = ">=3.8" },
+    { name = "mkdocs", marker = "extra == 'all'", specifier = ">=1.6" },
+    { name = "mkdocs", marker = "extra == 'mkdocs'", specifier = ">=1.6" },
+    { name = "myst-parser", marker = "extra == 'all'", specifier = ">=4.0" },
+    { name = "myst-parser", marker = "extra == 'sphinx'", specifier = ">=4.0" },
+    { name = "sphinx", marker = "extra == 'all'", specifier = ">=8.1" },
+    { name = "sphinx", marker = "extra == 'sphinx'", specifier = ">=8.1" },
+]
+provides-extras = ["sphinx", "mkdocs", "all"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pyinstaller", specifier = "==6.22.3" },
+    { name = "pytest", specifier = "==9.1.1" },
+    { name = "pytest-cov", specifier = "==7.1.0" },
+    { name = "twine", specifier = "==7.0.0" },
+]
+package = [
+    { name = "pyinstaller", specifier = "==6.22.3" },
+    { name = "twine", specifier = "==7.0.0" },
+]
+test = [
+    { name = "pytest", specifier = "==9.1.1" },
+    { name = "pytest-cov", specifier = "==7.1.0" },
 ]
 
 [[package]]

@@ -22,7 +22,7 @@ Dockle generate and invoke the native configuration:
 
 .. code-block:: console
 
-   python -m pip install "dockle[all]"
+   python -m pip install "lizardbyte-dockle[all]"
    dockle check
    dockle build
 

@@ -156,6 +156,7 @@ class ProjectDogfoodTests(unittest.TestCase):
         with (PROJECT_ROOT / "pyproject.toml").open("rb") as stream:
             project = tomllib.load(stream)
 
+        self.assertEqual(project["project"]["name"], "lizardbyte-dockle")
         self.assertEqual(project["project"]["version"], "0.0.0")
         self.assertEqual(
             project["project"]["authors"], [{"name": "LizardByte"}]
@@ -216,6 +217,9 @@ class ProjectDogfoodTests(unittest.TestCase):
         self.assertIn("github.event.release.draft == false", workflow)
         self.assertIn("github.event.release.prerelease == false", workflow)
         self.assertIn("gh release download", workflow)
+        self.assertIn("https://pypi.org/p/lizardbyte-dockle", workflow)
+        self.assertIn('"lizardbyte_dockle-*.whl"', workflow)
+        self.assertIn('"lizardbyte_dockle-*.tar.gz"', workflow)
         self.assertIn("gh-action-pypi-publish@", workflow)
 
     def test_ci_builds_all_requested_standalone_executables(self) -> None:
@@ -272,7 +276,7 @@ class ProjectDogfoodTests(unittest.TestCase):
         self.assertIn("dockle-${{ matrix.artifact }}.zip", workflow)
         self.assertNotIn("SHA256SUMS", workflow)
         self.assertIn("--onefile", workflow)
-        self.assertIn("--copy-metadata dockle", workflow)
+        self.assertIn("--copy-metadata lizardbyte-dockle", workflow)
 
 
 if __name__ == "__main__":

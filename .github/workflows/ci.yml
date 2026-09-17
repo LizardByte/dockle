@@ -301,7 +301,7 @@ jobs:
             --collect-all myst_parser
             --collect-all sphinx
             --collect-all dockle
-            --copy-metadata dockle
+            --copy-metadata lizardbyte-dockle
             --copy-metadata mkdocs
             --copy-metadata Sphinx
             --name dockle

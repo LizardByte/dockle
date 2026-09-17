@@ -1,8 +1,9 @@
 Installation and distribution
 =============================
 
-Dockle has one implementation: the Python package. Every installation route should expose the same ``dockle`` command
-rather than reimplementing configuration or adapter behavior in another language.
+Dockle has one implementation: the ``lizardbyte-dockle`` Python distribution, which installs the ``dockle`` Python
+package and command. Every installation route should expose the same ``dockle`` command rather than reimplementing
+configuration or adapter behavior in another language.
 
 Python projects
 ---------------
@@ -12,13 +13,14 @@ Python-backed adapters that the project needs:
 
 .. code-block:: console
 
-   python -m pip install dockle
-   python -m pip install "dockle[sphinx]"
-   python -m pip install "dockle[mkdocs]"
-   python -m pip install "dockle[all]"
+   python -m pip install lizardbyte-dockle
+   python -m pip install "lizardbyte-dockle[sphinx]"
+   python -m pip install "lizardbyte-dockle[mkdocs]"
+   python -m pip install "lizardbyte-dockle[all]"
 
-``pipx install "dockle[all]"`` is a good fit for developers who want a globally available command in an isolated
-environment. Doxygen, Node.js/JSDoc, Cargo, and Graphviz remain native tool dependencies when their adapters are used.
+``pipx install "lizardbyte-dockle[all]"`` is a good fit for developers who want a globally available command in an
+isolated environment. Doxygen, Node.js/JSDoc, Cargo, and Graphviz remain native tool dependencies when their adapters
+are used.
 
 Tested compatibility
 --------------------
@@ -83,6 +85,5 @@ attached Python distributions and publishes them through PyPI OpenID Connect tru
 ordinary pushes, drafts, and prereleases never publish to PyPI. GitHub provides artifact digests in its API and user
 interface.
 
-Before the first registry release, configure a pending PyPI trusted publisher for the ``LizardByte/dockle`` repository,
-the ``ci-release.yml`` workflow, and the ``pypi`` environment. Dockle also needs a documented compatibility matrix for
-the native generators.
+The PyPI trusted publisher targets the ``lizardbyte-dockle`` project from the ``LizardByte/dockle`` repository,
+``ci-release.yml`` workflow, and ``pypi`` environment.

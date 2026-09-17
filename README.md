@@ -32,11 +32,12 @@ theme.
 Dockle requires Python 3.11 or newer. Install the adapters needed by the project:
 
 ```console
-python -m pip install "dockle[sphinx,mkdocs]"
+python -m pip install "lizardbyte-dockle[sphinx,mkdocs]"
 ```
 
-Doxygen, JSDoc, and the Rust toolchain remain native tool dependencies. Their executable paths can be overridden in
-`dockle.toml` when they are not available on `PATH`.
+The PyPI distribution uses the organization-qualified name `lizardbyte-dockle`; the project, Python package, and
+command remain `dockle`. Doxygen, JSDoc, and the Rust toolchain remain native tool dependencies. Their executable paths
+can be overridden in `dockle.toml` when they are not available on `PATH`.
 
 Create a single configuration file:
 

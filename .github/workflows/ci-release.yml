@@ -21,7 +21,7 @@ jobs:
       github.event.release.prerelease == false
     environment:
       name: pypi
-      url: https://pypi.org/p/dockle
+      url: https://pypi.org/p/lizardbyte-dockle
     permissions:
       contents: read
       id-token: write
@@ -35,8 +35,8 @@ jobs:
           gh release download "${RELEASE_TAG}"
           --repo "${GITHUB_REPOSITORY}"
           --dir dist
-          --pattern "dockle-*.whl"
-          --pattern "dockle-*.tar.gz"
+          --pattern "lizardbyte_dockle-*.whl"
+          --pattern "lizardbyte_dockle-*.tar.gz"
 
       - name: Publish Python distributions
         uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33  # v1.14.2
