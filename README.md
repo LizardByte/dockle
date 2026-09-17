@@ -8,9 +8,6 @@
   <h4 align="center">Build documentation with multiple frameworks and one consistent theme.</h4>
 </div>
 
-> [!IMPORTANT]
-> Dockle is pre-alpha. The configuration contract and adapters are usable for experimentation, but are not stable yet.
-
 Dockle is a configuration and presentation layer for documentation generators. A project describes itself once in
 `dockle.toml`; Dockle translates that model into temporary Sphinx, Doxygen, MkDocs, JSDoc, or rustdoc configuration,
 runs the underlying tool, and applies its own shared, Furo-inspired visual layer to the generated HTML. A full build
