@@ -18,5 +18,7 @@ dist/
 
 # Test and tooling caches
 .coverage
+coverage/
+junit-python.xml
 .pytest_cache/
 .ruff_cache/

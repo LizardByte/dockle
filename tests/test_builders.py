@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from dockle import __version__
 from dockle.builders import BuildManager, Command
 from dockle.config import load_config
 
@@ -118,7 +119,7 @@ class BuilderTests(unittest.TestCase):
         self.assertIn("name: dockle", native)
         self.assertIn('primary: "#7c4dff"', native)
         self.assertIn("- dockle.markdown", native)
-        self.assertIn('dockle_version: "0.1.0"', native)
+        self.assertIn(f'dockle_version: "{__version__}"', native)
         self.assertIn("--strict", plan.command.args)
 
     def test_jsdoc_plan_generates_json(self) -> None:

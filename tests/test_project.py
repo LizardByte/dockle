@@ -146,6 +146,63 @@ class ProjectDogfoodTests(unittest.TestCase):
         self.assertIn("include(Dockle)", example)
         self.assertIn("TARGETS doxygen", example)
 
+    def test_python_packaging_uses_locked_uv_dependencies(self) -> None:
+        with (PROJECT_ROOT / "pyproject.toml").open("rb") as stream:
+            project = tomllib.load(stream)
+
+        self.assertEqual(project["project"]["version"], "0.0.0")
+        self.assertIn("test", project["dependency-groups"])
+        self.assertIn("package", project["dependency-groups"])
+        self.assertTrue((PROJECT_ROOT / "uv.lock").is_file())
+
+    def test_ci_uses_release_version_and_uploads_codecov_reports(self) -> None:
+        workflow = (
+            PROJECT_ROOT / ".github" / "workflows" / "ci.yml"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("actions/release_setup@", workflow)
+        self.assertIn("uv version", workflow)
+        self.assertIn("uv sync --locked", workflow)
+        self.assertIn("report_type: coverage", workflow)
+        self.assertIn("report_type: test_results", workflow)
+        self.assertIn("github.event_name == 'push'", workflow)
+        self.assertIn("publish_release == 'true'", workflow)
+        self.assertIn("virustotal_api_key:", workflow)
+        self.assertNotIn("gh-action-pypi-publish@", workflow)
+
+    def test_pypi_publish_requires_a_stable_release_event(self) -> None:
+        workflow = (
+            PROJECT_ROOT / ".github" / "workflows" / "ci-release.yml"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("release:", workflow)
+        self.assertIn("- released", workflow)
+        self.assertIn("github.event.action == 'released'", workflow)
+        self.assertIn("github.event.release.draft == false", workflow)
+        self.assertIn("github.event.release.prerelease == false", workflow)
+        self.assertIn("gh release download", workflow)
+        self.assertIn("gh-action-pypi-publish@", workflow)
+
+    def test_ci_builds_all_requested_standalone_executables(self) -> None:
+        workflow = (
+            PROJECT_ROOT / ".github" / "workflows" / "ci.yml"
+        ).read_text(encoding="utf-8")
+
+        for runner in (
+            "windows-latest",
+            "windows-11-arm",
+            "ubuntu-latest",
+            "ubuntu-24.04-arm",
+            "macos-latest",
+            "macos-26-intel",
+        ):
+            self.assertIn(f"os: {runner}", workflow)
+        self.assertIn("dockle-windows-amd64.exe", workflow)
+        self.assertIn("dockle-windows-arm64.exe", workflow)
+        self.assertNotIn("SHA256SUMS", workflow)
+        self.assertIn("--onefile", workflow)
+        self.assertIn("--copy-metadata dockle", workflow)
+
 
 if __name__ == "__main__":
     unittest.main()

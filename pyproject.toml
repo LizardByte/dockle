@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dockle"
-version = "0.1.0"
+version = "0.0.0"
 description = "Build documentation with multiple frameworks and one consistent theme."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -42,6 +42,20 @@ all = [
   "sphinx>=8.1",
 ]
 
+[dependency-groups]
+test = [
+  "pytest==9.1.1",
+  "pytest-cov==7.1.0",
+]
+package = [
+  "pyinstaller==6.22.3",
+  "twine==7.0.0",
+]
+dev = [
+  { include-group = "package" },
+  { include-group = "test" },
+]
+
 [project.scripts]
 dockle = "dockle.cli:main"
 
@@ -53,6 +67,43 @@ dockle = "dockle.sphinx.themes.dockle"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/dockle"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+  "-rxXs",
+  "--tb=native",
+  "--verbose",
+  "--color=yes",
+  "-p", "no:cacheprovider",
+  "--cov=src/dockle",
+  "--cov-report=term-missing",
+  "--cov-report=xml:coverage/python-coverage.xml",
+  "--junitxml=junit-python.xml",
+  "-o", "junit_family=legacy",
+]
+
+[tool.coverage.run]
+source = ["src/dockle"]
+omit = [
+  "*/tests/*",
+  "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "def __repr__",
+  "raise AssertionError",
+  "raise NotImplementedError",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+  "@abstractmethod",
+]
 
 [tool.ruff]
 line-length = 120

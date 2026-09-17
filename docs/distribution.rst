@@ -23,9 +23,9 @@ environment. Doxygen, Node.js/JSDoc, Cargo, and Graphviz remain native tool depe
 Standalone executables
 ----------------------
 
-Planned release artifacts will package the same Python command as a standalone executable for each supported operating
-system and architecture. These binaries make Dockle usable from C++, JavaScript, and Rust repositories without asking
-contributors to manage a Python environment. They do not bundle the upstream documentation generators.
+Release artifacts package the same Python command as a standalone executable for Windows, Linux, and macOS on Intel
+and ARM64. These binaries make Dockle usable from C++, JavaScript, and Rust repositories without asking contributors
+to manage a Python environment. They do not bundle the upstream documentation generators.
 
 An npm package can be a small launcher that downloads and verifies the matching standalone executable. A future Cargo
 package should follow the same model unless Dockle gains a useful Rust-native API; publishing a second implementation
@@ -50,7 +50,14 @@ Set ``DOCKLE_EXECUTABLE`` when a project keeps a standalone binary in a tools di
 Release requirements
 --------------------
 
-Before the first registry release, Dockle needs reproducible multi-platform executable builds, checksums, provenance,
-smoke tests for every installation route, a real project license to replace the repository's current placeholder, and
-a documented compatibility matrix for the native generators. Registry publishing should happen from one trusted
-release workflow after all artifacts pass those checks.
+The CI workflow obtains its build version from LizardByte's ``release_setup`` action, updates the Python project
+metadata only inside the runner, builds the source archive, wheel, and six native executables, and smoke-tests every
+executable. A selected ``master`` build creates a draft prerelease containing the Python distributions and native
+executables. Changing that release to a stable release triggers the separate release workflow, which downloads the
+attached Python distributions and publishes them through PyPI OpenID Connect trusted publishing. Pull requests,
+ordinary pushes, drafts, and prereleases never publish to PyPI. GitHub provides artifact digests in its API and user
+interface.
+
+Before the first registry release, configure a pending PyPI trusted publisher for the ``LizardByte/dockle`` repository,
+the ``ci-release.yml`` workflow, and the ``pypi`` environment. Dockle also needs a real project license to replace the
+current placeholder and a documented compatibility matrix for the native generators.
