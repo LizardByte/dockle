@@ -41,10 +41,6 @@ _TARGET_CARDS_START = re.compile(
     re.IGNORECASE,
 )
 _FIRST_H1_END = re.compile(r"</h1\s*>", re.IGNORECASE)
-_FAVICON_LINK = re.compile(
-    r'<link\b(?=[^>]*\brel=["\'][^"\']*icon[^"\']*["\'])[^>]*>\s*',
-    re.IGNORECASE,
-)
 _DOCKLE_URL = "https://github.com/LizardByte/dockle"
 _CSS_ASSET = "dockle.css"
 _SCRIPT_ASSET = "dockle.js"
@@ -110,6 +106,30 @@ class _SearchDocumentParser(HTMLParser):
         self.text.append(cleaned)
         if self._in_title:
             self.title.append(cleaned)
+
+
+class _LinkRelationshipParser(HTMLParser):
+    """Identify icon relationships on one link element."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.has_icon_relationship = False
+
+    def handle_starttag(
+        self,
+        tag: str,
+        attrs: list[tuple[str, str | None]],
+    ) -> None:
+        if tag != "link":
+            return
+        relationship = next(
+            (value for name, value in attrs if name == "rel"),
+            None,
+        )
+        if relationship is not None:
+            self.has_icon_relationship = any(
+                "icon" in token.casefold() for token in relationship.split()
+            )
 
 
 def _theme_asset(name: str) -> Path:
@@ -383,13 +403,59 @@ def _inject_favicon(
 ) -> str:
     if favicon_asset is None:
         return document
-    document = _FAVICON_LINK.sub("", document)
+    document = _remove_favicon_links(document)
     relative_favicon = _relative(favicon_asset, html_file)
     link = (
         f'<link rel="icon" href="{relative_favicon}" '
         "data-dockle-favicon>\n"
     )
     return _insert_before_head_end(document, link, html_file)
+
+
+def _remove_favicon_links(document: str) -> str:
+    """Remove existing icon link elements without regex backtracking."""
+
+    folded = document.casefold()
+    fragments: list[str] = []
+    retained_from = 0
+    search_from = 0
+    while (start := folded.find("<link", search_from)) >= 0:
+        name_end = start + len("<link")
+        if name_end < len(document) and document[name_end] not in " />\t\r\n":
+            search_from = name_end
+            continue
+        end = _find_tag_end(document, name_end)
+        if end is None:
+            break
+        tag = document[start:end + 1]
+        parser = _LinkRelationshipParser()
+        parser.feed(tag)
+        search_from = end + 1
+        if not parser.has_icon_relationship:
+            continue
+        while search_from < len(document) and document[search_from].isspace():
+            search_from += 1
+        fragments.append(document[retained_from:start])
+        retained_from = search_from
+    fragments.append(document[retained_from:])
+    return "".join(fragments)
+
+
+def _find_tag_end(document: str, start: int) -> int | None:
+    """Find a tag terminator while respecting quoted attribute values."""
+
+    quote: str | None = None
+    for index in range(start, len(document)):
+        character = document[index]
+        if quote is not None:
+            if character == quote:
+                quote = None
+            continue
+        if character in {'"', "'"}:
+            quote = character
+        elif character == ">":
+            return index
+    return None
 
 
 def _build_search_documents(

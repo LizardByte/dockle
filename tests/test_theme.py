@@ -143,7 +143,9 @@ class ThemeTests(unittest.TestCase):
                 output.mkdir()
                 html = output / "index.html"
                 html.write_text(
-                    '<html><head><link rel="icon" href="native.ico"></head>'
+                    '<html><head><link rel="stylesheet" href="keep.css">'
+                    '<link href="native>icon.ico" rel="shortcut icon">'
+                    '<link REL="apple-touch-icon" href="touch.png"></head>'
                     "<body></body></html>",
                     encoding="utf-8",
                 )
@@ -156,7 +158,9 @@ class ThemeTests(unittest.TestCase):
                 )
 
                 document = html.read_text(encoding="utf-8")
-                self.assertNotIn("native.ico", document)
+                self.assertNotIn("native>icon.ico", document)
+                self.assertNotIn("touch.png", document)
+                self.assertIn('rel="stylesheet" href="keep.css"', document)
                 self.assertIn(
                     'rel="icon" href="_dockle/favicon.svg" '
                     "data-dockle-favicon",

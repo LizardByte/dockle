@@ -617,7 +617,7 @@ def _generator_command(
     config: DockleConfig,
     framework: str,
     executable: str,
-) -> tuple[str, ...]:
+) -> list[str]:
     if _uses_bundled_generator(config, framework):
-        return (sys.executable, f"_run-{framework}")
-    return (executable,)
+        return [sys.executable, f"_run-{framework}"]
+    return [executable]
