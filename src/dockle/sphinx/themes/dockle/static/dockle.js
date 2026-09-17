@@ -81,6 +81,11 @@
       ["path", { d: "M12 8v4" }],
       ["path", { d: "M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z" }],
     ],
+    pilcrow: [
+      ["path", { d: "M13 4v16" }],
+      ["path", { d: "M17 4v16" }],
+      ["path", { d: "M19 4H9.5a4.5 4.5 0 0 0 0 9H13" }],
+    ],
     search: [
       ["path", { d: "m21 21-4.34-4.34" }],
       ["circle", { cx: "11", cy: "11", r: "8" }],
@@ -555,6 +560,73 @@
     });
   };
 
+  const addHeadingPermalinks = () => {
+    const contentSelectors = {
+      doxygen: "#doc-content .contents",
+      jsdoc: "#main",
+      mkdocs: ".dockle-article",
+      rustdoc: "#main-content",
+      sphinx: ".dockle-article",
+    };
+    const content = document.querySelector(
+      contentSelectors[root.dataset.dockleFramework],
+    );
+    if (!content) {
+      return;
+    }
+    const uniqueHeadingId = (title) => {
+      const base = title
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLocaleLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "") || "section";
+      let candidate = base;
+      let suffix = 2;
+      while (document.getElementById(candidate)) {
+        candidate = `${base}-${suffix}`;
+        suffix += 1;
+      }
+      return candidate;
+    };
+    content.querySelectorAll("h1, h2, h3, h4, h5, h6").forEach((heading) => {
+      if (!heading.getClientRects().length
+          || heading.querySelector(":scope > .dockle-heading-anchor")) {
+        return;
+      }
+      const nativeLink = heading.querySelector(
+        ":scope > .headerlink, :scope > .doc-anchor",
+      );
+      const nativeTarget = heading.querySelector(":scope > .anchor[id]");
+      const nativeHref = nativeLink?.getAttribute("href") || "";
+      let target = heading.id || nativeTarget?.id || "";
+      if (!target && nativeHref.startsWith("#") && nativeHref.length > 1) {
+        target = nativeHref.slice(1);
+      }
+      const title = heading.cloneNode(true);
+      title.querySelectorAll(
+        ".anchor, .doc-anchor, .headerlink, .dockle-heading-anchor, button",
+      ).forEach((element) => element.remove());
+      const headingTitle = title.textContent.trim();
+      if (!headingTitle) {
+        return;
+      }
+      if (!target) {
+        target = uniqueHeadingId(headingTitle);
+        heading.id = target;
+      }
+      heading.querySelectorAll(":scope > .headerlink, :scope > .doc-anchor")
+        .forEach((anchor) => anchor.remove());
+      const link = document.createElement("a");
+      link.className = "dockle-heading-anchor";
+      link.href = `#${target}`;
+      link.title = "Link to this heading";
+      link.setAttribute("aria-label", `Link to ${headingTitle}`);
+      link.innerHTML = '<i data-lucide="pilcrow" aria-hidden="true"></i>';
+      heading.append(link);
+    });
+  };
+
   const placeBuiltWithFooter = () => {
     const footer = document.querySelector("[data-dockle-built-with]");
     const destinations = {
@@ -592,6 +664,9 @@
         document.body.append(pageNav);
       }
     }
+    pageNav.querySelectorAll(".dockle-heading-anchor").forEach(
+      (anchor) => anchor.remove(),
+    );
     pageNav.classList.add("dockle-page-toc");
     let contents = framework === "doxygen"
       ? pageNav.querySelector("#page-nav-contents")
@@ -646,7 +721,9 @@
         const link = document.createElement("a");
         link.href = `#${heading.id}`;
         const title = heading.cloneNode(true);
-        title.querySelectorAll(".anchor, .doc-anchor, .headerlink").forEach(
+        title.querySelectorAll(
+          ".anchor, .doc-anchor, .headerlink, .dockle-heading-anchor",
+        ).forEach(
           (anchor) => anchor.remove(),
         );
         link.textContent = title.textContent.trim();
@@ -814,6 +891,7 @@
   } else {
     ensureCompatibilityPageToc();
   }
+  addHeadingPermalinks();
   renderIcons();
   updateThemeButtons();
 })();

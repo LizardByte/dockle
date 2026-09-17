@@ -127,6 +127,57 @@ h6:hover > .headerlink,
   visibility: visible;
 }
 
+.dockle-heading-anchor {
+  align-items: center;
+  background: transparent;
+  border-radius: 0.25rem;
+  color: var(--dockle-muted) !important;
+  display: inline-flex;
+  font-size: 0.65em;
+  line-height: 1;
+  margin-left: 0.3em;
+  opacity: 0;
+  padding: 0.15em;
+  text-decoration: none !important;
+  transform: translateY(0.08em);
+  transition:
+    background-color 120ms ease,
+    color 120ms ease,
+    opacity 120ms ease;
+  visibility: hidden;
+}
+
+:where(h1, h2, h3, h4, h5, h6):hover > .dockle-heading-anchor,
+:where(h1, h2, h3, h4, h5, h6):focus-within > .dockle-heading-anchor {
+  opacity: 0.72;
+  visibility: visible;
+}
+
+.dockle-heading-anchor:hover,
+.dockle-heading-anchor:focus-visible {
+  background: var(--dockle-background-secondary);
+  color: var(--dockle-primary) !important;
+  opacity: 1;
+  visibility: visible;
+}
+
+.dockle-heading-anchor:focus-visible {
+  outline: 2px solid var(--dockle-primary);
+  outline-offset: 2px;
+}
+
+.dockle-heading-anchor .lucide {
+  height: 1em;
+  width: 1em;
+}
+
+@media (hover: none) {
+  .dockle-heading-anchor {
+    opacity: 0.72;
+    visibility: visible;
+  }
+}
+
 code,
 kbd,
 pre,

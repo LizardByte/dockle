@@ -164,6 +164,28 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertIn('rustdoc: "#main-content"', script)
         self.assertIn('sphinx: ".dockle-article"', script)
 
+    def test_headings_receive_shared_lucide_permalinks(self) -> None:
+        stylesheet = (
+            THEME_DIRECTORY / "static" / "dockle.css"
+        ).read_text(encoding="utf-8")
+        script = (THEME_DIRECTORY / "static" / "dockle.js").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("addHeadingPermalinks", script)
+        self.assertIn("pilcrow: [", script)
+        self.assertIn('link.className = "dockle-heading-anchor"', script)
+        self.assertIn('data-lucide="pilcrow"', script)
+        self.assertIn(".headerlink, :scope > .doc-anchor", script)
+        self.assertIn(
+            'pageNav.querySelectorAll(".dockle-heading-anchor")', script
+        )
+        self.assertIn(".dockle-heading-anchor", stylesheet)
+        self.assertIn(
+            ":where(h1, h2, h3, h4, h5, h6):hover", stylesheet
+        )
+        self.assertIn(".dockle-heading-anchor:focus-visible", stylesheet)
+
 
 if __name__ == "__main__":
     unittest.main()
