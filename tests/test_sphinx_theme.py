@@ -116,6 +116,10 @@ class SphinxThemeTests(unittest.TestCase):
             stylesheet,
         )
         self.assertIn("div.fragment .clipboard", stylesheet)
+        self.assertIn(
+            '#nav-tree a:hover {\n  background-image: none !important;',
+            stylesheet,
+        )
         self.assertIn("font-size: 1rem !important", stylesheet)
         self.assertIn("text-indent: 0 !important", stylesheet)
 
@@ -137,6 +141,12 @@ class SphinxThemeTests(unittest.TestCase):
         )
         self.assertIn(".dockle-rustdoc-icon", stylesheet)
         self.assertIn("#copy-path::before", stylesheet)
+        self.assertIn(
+            '.dockle-code-block > pre > code {\n'
+            "  background: transparent !important;\n"
+            "  border-radius: 0 !important;",
+            stylesheet,
+        )
 
     def test_footer_moves_into_each_framework_content_column(self) -> None:
         script = (THEME_DIRECTORY / "static" / "dockle.js").read_text(

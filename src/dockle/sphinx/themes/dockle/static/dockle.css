@@ -995,7 +995,9 @@ html[data-dockle-framework="doxygen"] #nav-tree .selected {
 }
 
 html[data-dockle-framework="doxygen"] #nav-tree .selected a,
-html[data-dockle-framework="doxygen"] #nav-tree .item:hover a {
+html[data-dockle-framework="doxygen"] #nav-tree .item:hover a,
+html[data-dockle-framework="doxygen"] #nav-tree a:hover {
+  background-image: none !important;
   color: var(--dockle-primary) !important;
   text-decoration: none !important;
 }
@@ -1517,10 +1519,19 @@ html[data-dockle-framework="rustdoc"] .rustdoc .item-table {
   border-color: var(--dockle-border) !important;
 }
 
-html[data-dockle-framework="rustdoc"] .dockle-code-block > pre,
-html[data-dockle-framework="rustdoc"] .dockle-code-block > pre > code {
+html[data-dockle-framework="rustdoc"] .dockle-code-block > pre {
+  box-sizing: border-box;
   font-size: 1rem !important;
   line-height: 1.5 !important;
+  width: 100%;
+}
+
+html[data-dockle-framework="rustdoc"] .dockle-code-block > pre > code {
+  background: transparent !important;
+  border-radius: 0 !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+  padding: 0 !important;
 }
 
 html[data-dockle-framework="rustdoc"] #copy-path::before,
