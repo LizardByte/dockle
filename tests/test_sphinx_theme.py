@@ -28,6 +28,9 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertTrue((THEME_DIRECTORY / "static" / "dockle.css").is_file())
         self.assertTrue((THEME_DIRECTORY / "static" / "dockle.js").is_file())
         self.assertTrue(
+            (THEME_DIRECTORY / "static" / "lucide.min.js").is_file()
+        )
+        self.assertTrue(
             (THEME_DIRECTORY / "static" / "LUCIDE_LICENSE.txt").is_file()
         )
         self.assertTrue((THEME_DIRECTORY / "main.html").is_file())
@@ -173,7 +176,9 @@ class SphinxThemeTests(unittest.TestCase):
         )
 
         self.assertIn("addHeadingPermalinks", script)
-        self.assertIn("pilcrow: [", script)
+        self.assertIn("globalThis.lucide", script)
+        self.assertIn("lucide.createIcons", script)
+        self.assertNotIn("const iconNodes", script)
         self.assertIn('link.className = "dockle-heading-anchor"', script)
         self.assertIn('data-lucide="pilcrow"', script)
         self.assertIn(".headerlink, :scope > .doc-anchor", script)

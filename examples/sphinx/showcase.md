@@ -1,4 +1,4 @@
-# Component reference
+# Markdown component reference
 
 Each component shows the Markdown source followed by the rendered result. The
 same reference is available in every example so framework output can be

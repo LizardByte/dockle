@@ -116,6 +116,13 @@ class Builder(ABC):
 class SphinxBuilder(Builder):
     """Build Sphinx with Dockle's packaged theme and no consumer ``conf.py``."""
 
+    def _output(self) -> Path:
+        """Keep the root site isolated until Sphinx finishes successfully."""
+
+        if self.target.home:
+            return self.work / "site"
+        return self.target.output
+
     def plan(self) -> BuildPlan:
         config_file = self.work / "conf.py"
         doctrees = self.work / "doctrees"
@@ -152,6 +159,10 @@ class SphinxBuilder(Builder):
             "exclude_patterns = []",
             "",
         ]
+        if self.config.project.logo is not None:
+            lines.insert(
+                -2, f"html_logo = {str(self.config.project.logo)!r}"
+            )
         args = [
             self.executable,
             "-b",
@@ -163,13 +174,33 @@ class SphinxBuilder(Builder):
         ]
         if self.config.build.strict:
             args.extend(["-W", "--keep-going"])
-        args.extend([str(self.target.source), str(self.target.output)])
+        args.extend([str(self.target.source), str(self._output())])
         return BuildPlan(
             target=self.target,
             command=Command(tuple(args), self.config.root),
             work=self.work,
             generated_files={config_file: "\n".join(lines)},
         )
+
+    def finalize(self, stylesheet: str) -> int:
+        """Theme and publish an optional root Sphinx site."""
+
+        if not self.target.home:
+            return super().finalize(stylesheet)
+
+        staging = self._output()
+        themed_pages = apply_theme(
+            staging,
+            self.target.framework,
+            stylesheet,
+            portal=None,
+            project_name=self.config.project.name,
+            project_version=self.config.project.version,
+            target_title=self.target.title,
+            logo=self.config.project.logo,
+        )
+        shutil.copytree(staging, self.target.output, dirs_exist_ok=True)
+        return themed_pages
 
 
 class DoxygenBuilder(Builder):
@@ -495,9 +526,10 @@ class BuildManager:
             )
             plan = builder.plan()
             self._prepare_directory(plan.work, clean=True)
-            self._prepare_directory(
-                target.output, clean=self.config.build.clean
-            )
+            if not target.home:
+                self._prepare_directory(
+                    target.output, clean=self.config.build.clean
+                )
             for path, contents in plan.generated_files.items():
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(contents, encoding="utf-8")

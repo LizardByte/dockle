@@ -10,6 +10,16 @@ from dockle.cli import main
 
 
 class CliTests(unittest.TestCase):
+    def test_cmake_dir_points_to_packaged_module(self) -> None:
+        output = io.StringIO()
+
+        with contextlib.redirect_stdout(output):
+            status = main(["cmake-dir"])
+
+        directory = Path(output.getvalue().strip())
+        self.assertEqual(status, 0)
+        self.assertTrue((directory / "Dockle.cmake").is_file())
+
     def test_dry_run_does_not_create_build_directories(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

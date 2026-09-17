@@ -1,146 +1,20 @@
 (() => {
   "use strict";
 
-  /*
-   * Icons are adapted from Lucide 1.43.0 (ISC). Only the paths used by
-   * Dockle are embedded so generated documentation remains self-contained.
-   */
-  const iconNodes = {
-    "arrow-left": [
-      ["path", { d: "m12 19-7-7 7-7" }],
-      ["path", { d: "M19 12H5" }],
-    ],
-    "arrow-right": [
-      ["path", { d: "M5 12h14" }],
-      ["path", { d: "m12 5 7 7-7 7" }],
-    ],
-    "circle-alert": [
-      ["circle", { cx: "12", cy: "12", r: "10" }],
-      ["line", { x1: "12", x2: "12", y1: "8", y2: "12" }],
-      ["line", { x1: "12", x2: "12.01", y1: "16", y2: "16" }],
-    ],
-    "circle-x": [
-      ["circle", { cx: "12", cy: "12", r: "10" }],
-      ["path", { d: "m15 9-6 6" }],
-      ["path", { d: "m9 9 6 6" }],
-    ],
-    check: [["path", { d: "m20 6-11 11-5-5" }]],
-    "chevrons-down": [
-      ["path", { d: "m7 6 5 5 5-5" }],
-      ["path", { d: "m7 13 5 5 5-5" }],
-    ],
-    "circle-help": [
-      ["circle", { cx: "12", cy: "12", r: "10" }],
-      ["path", { d: "M9.09 9a3 3 0 1 1 5.83 1c0 2-3 3-3 3" }],
-      ["path", { d: "M12 17h.01" }],
-    ],
-    copy: [
-      ["rect", { width: "14", height: "14", x: "8", y: "8", rx: "2" }],
-      ["path", { d: "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" }],
-    ],
-    "external-link": [
-      ["path", { d: "M15 3h6v6" }],
-      ["path", { d: "M10 14 21 3" }],
-      ["path", { d: "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" }],
-    ],
-    eye: [
-      ["path", { d: "M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" }],
-      ["circle", { cx: "12", cy: "12", r: "3" }],
-    ],
-    flame: [["path", { d: "M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4" }]],
-    info: [
-      ["circle", { cx: "12", cy: "12", r: "10" }],
-      ["path", { d: "M12 16v-4" }],
-      ["path", { d: "M12 8h.01" }],
-    ],
-    lightbulb: [
-      ["path", { d: "M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 1.5 2.5" }],
-      ["path", { d: "M9 18h6" }],
-      ["path", { d: "M10 22h4" }],
-    ],
-    "list-todo": [
-      ["path", { d: "M13 5h8" }],
-      ["path", { d: "M13 12h8" }],
-      ["path", { d: "M13 19h8" }],
-      ["path", { d: "m3 17 2 2 4-4" }],
-      ["rect", { x: "3", y: "4", width: "6", height: "6", rx: "1" }],
-    ],
-    menu: [
-      ["path", { d: "M4 5h16" }],
-      ["path", { d: "M4 12h16" }],
-      ["path", { d: "M4 19h16" }],
-    ],
-    monitor: [
-      ["rect", { width: "20", height: "14", x: "2", y: "3", rx: "2" }],
-      ["line", { x1: "8", x2: "16", y1: "21", y2: "21" }],
-      ["line", { x1: "12", x2: "12", y1: "17", y2: "21" }],
-    ],
-    moon: [["path", { d: "M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401" }]],
-    "octagon-alert": [
-      ["path", { d: "M12 16h.01" }],
-      ["path", { d: "M12 8v4" }],
-      ["path", { d: "M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z" }],
-    ],
-    pilcrow: [
-      ["path", { d: "M13 4v16" }],
-      ["path", { d: "M17 4v16" }],
-      ["path", { d: "M19 4H9.5a4.5 4.5 0 0 0 0 9H13" }],
-    ],
-    search: [
-      ["path", { d: "m21 21-4.34-4.34" }],
-      ["circle", { cx: "11", cy: "11", r: "8" }],
-    ],
-    settings: [
-      ["path", { d: "M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" }],
-      ["circle", { cx: "12", cy: "12", r: "3" }],
-    ],
-    sun: [
-      ["circle", { cx: "12", cy: "12", r: "4" }],
-      ["path", { d: "M12 2v2" }],
-      ["path", { d: "M12 20v2" }],
-      ["path", { d: "m4.93 4.93 1.41 1.41" }],
-      ["path", { d: "m17.66 17.66 1.41 1.41" }],
-      ["path", { d: "M2 12h2" }],
-      ["path", { d: "M20 12h2" }],
-      ["path", { d: "m6.34 17.66-1.41 1.41" }],
-      ["path", { d: "m19.07 4.93-1.41 1.41" }],
-    ],
-    "triangle-alert": [
-      ["path", { d: "m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" }],
-      ["path", { d: "M12 9v4" }],
-      ["path", { d: "M12 17h.01" }],
-    ],
+  const renderIcons = (scope = document) => {
+    const lucide = globalThis.lucide;
+    if (!lucide?.createIcons || !lucide.icons) {
+      return;
+    }
+    scope.querySelectorAll("[data-lucide]").forEach((host) => {
+      host.dataset.lucide = host.dataset.lucide.trim();
+    });
+    lucide.createIcons({ icons: lucide.icons });
   };
 
   const renderIcon = (host) => {
-    const iconName = host.dataset.lucide.trim();
-    const nodes = iconNodes[iconName];
-    if (!nodes) {
-      return;
-    }
-    host.dataset.lucide = iconName;
-    const namespace = "http://www.w3.org/2000/svg";
-    const svg = document.createElementNS(namespace, "svg");
-    svg.setAttribute("viewBox", "0 0 24 24");
-    svg.setAttribute("fill", "none");
-    svg.setAttribute("stroke", "currentColor");
-    svg.setAttribute("stroke-width", "2");
-    svg.setAttribute("stroke-linecap", "round");
-    svg.setAttribute("stroke-linejoin", "round");
-    svg.setAttribute("aria-hidden", "true");
-    svg.classList.add("lucide", `lucide-${iconName}`);
-    for (const [tag, attributes] of nodes) {
-      const child = document.createElementNS(namespace, tag);
-      for (const [name, value] of Object.entries(attributes)) {
-        child.setAttribute(name, value);
-      }
-      svg.append(child);
-    }
-    host.replaceChildren(svg);
-  };
-
-  const renderIcons = (scope = document) => {
-    scope.querySelectorAll("[data-lucide]").forEach(renderIcon);
+    host.dataset.lucide = host.dataset.lucide.trim();
+    renderIcons(host.ownerDocument);
   };
 
   const root = document.documentElement;

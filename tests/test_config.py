@@ -142,6 +142,63 @@ output = "reference/api"
             with self.assertRaisesRegex(ConfigError, "output overlaps"):
                 load_config(path)
 
+    def test_sphinx_home_target_owns_build_root(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "dockle.toml"
+            path.write_text(
+                MINIMAL_CONFIG.replace(
+                    'source = "docs"', 'source = "docs"\nhome = true'
+                )
+                + """
+[[targets]]
+name = "api"
+framework = "doxygen"
+source = "src"
+""",
+                encoding="utf-8",
+            )
+
+            config = load_config(path)
+
+            self.assertTrue(config.targets[0].home)
+            self.assertEqual(config.targets[0].output, config.build.output)
+            self.assertEqual(
+                config.targets[1].output, config.build.output / "api"
+            )
+
+    def test_rejects_non_sphinx_home_target(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "dockle.toml"
+            path.write_text(
+                MINIMAL_CONFIG.replace(
+                    'framework = "sphinx"', 'framework = "mkdocs"'
+                ).replace('source = "docs"', 'source = "docs"\nhome = true'),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ConfigError, "home requires"):
+                load_config(path)
+
+    def test_rejects_multiple_home_targets(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "dockle.toml"
+            path.write_text(
+                MINIMAL_CONFIG.replace(
+                    'source = "docs"', 'source = "docs"\nhome = true'
+                )
+                + """
+[[targets]]
+name = "second"
+framework = "sphinx"
+source = "other-docs"
+home = true
+""",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ConfigError, "only one home target"):
+                load_config(path)
+
     def test_rejects_entry_outside_source(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "dockle.toml"

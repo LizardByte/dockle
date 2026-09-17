@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import tomllib
 import unittest
 from pathlib import Path
@@ -15,11 +16,13 @@ class ProjectDogfoodTests(unittest.TestCase):
 
         self.assertEqual(
             [target.framework for target in config.targets],
-            ["sphinx", "doxygen", "mkdocs", "jsdoc", "rustdoc"],
+            ["sphinx", "sphinx", "doxygen", "mkdocs", "jsdoc", "rustdoc"],
         )
         for target in config.targets:
             self.assertTrue(target.source.exists(), target.source)
-        self.assertEqual(config.project.home, PROJECT_ROOT / "docs" / "home.md")
+        self.assertIsNone(config.project.home)
+        self.assertTrue(config.targets[0].home)
+        self.assertEqual(config.targets[0].output, config.build.output)
         self.assertEqual(
             config.project.logo,
             PROJECT_ROOT / "branding" / "dockle-logo.png",
@@ -95,6 +98,27 @@ class ProjectDogfoodTests(unittest.TestCase):
 
         self.assertNotIn("furo", " ".join(declared).lower())
 
+    def test_lucide_runtime_is_managed_by_npm(self) -> None:
+        with (PROJECT_ROOT / "package.json").open(encoding="utf-8") as stream:
+            package = json.load(stream)
+        version = package["dependencies"]["lucide"]
+        runtime = (
+            PROJECT_ROOT
+            / "src"
+            / "dockle"
+            / "sphinx"
+            / "themes"
+            / "dockle"
+            / "static"
+            / "lucide.min.js"
+        ).read_text(encoding="utf-8")
+
+        self.assertRegex(version, r"^\d+\.\d+\.\d+$")
+        self.assertTrue(
+            runtime.startswith(f"/*! Lucide {version} | ISC |"),
+            "run npm run sync:lucide after changing the Lucide dependency",
+        )
+
     def test_reference_doxygen_projects_are_not_dependencies(self) -> None:
         dependency_files = [
             PROJECT_ROOT / "pyproject.toml",
@@ -107,6 +131,20 @@ class ProjectDogfoodTests(unittest.TestCase):
         ).lower()
         self.assertNotIn("doxygen-awesome-css", declared)
         self.assertNotIn("doxyconfig", declared)
+
+    def test_cmake_module_invokes_the_canonical_cli(self) -> None:
+        module = (
+            PROJECT_ROOT / "src" / "dockle" / "cmake" / "Dockle.cmake"
+        ).read_text(encoding="utf-8")
+        example = (
+            PROJECT_ROOT / "examples" / "doxygen" / "CMakeLists.txt"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("function(dockle_add_docs target)", module)
+        self.assertIn("find_program(dockle_program", module)
+        self.assertIn("-m dockle", module)
+        self.assertIn("include(Dockle)", example)
+        self.assertIn("TARGETS doxygen", example)
 
 
 if __name__ == "__main__":

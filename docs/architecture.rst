@@ -38,7 +38,7 @@ Build pipeline
    Dockle compatibility theme --> publishable target directories
        |
        v
-   root portal and cross-target links --> one hosted documentation site
+   Sphinx home target, comparison cards, and cross-target links --> one hosted documentation site
 
 Configuration boundary
 ----------------------
@@ -49,7 +49,7 @@ deleted before each build. The first schema deliberately exposes only concepts s
 * project name, version, description, repository, author, and copyright;
 * theme colors and font stacks;
 * output/work directories and strict/clean behavior; and
-* named targets with a title, description, framework, source, output, and entry document.
+* named targets with a title, description, framework, source, output, entry document, and optional Sphinx home role.
 
 Framework-specific passthrough dictionaries are intentionally absent. They make an integration quick to ship but turn
 the wrapper into five native configuration files hidden inside TOML. New settings should first be evaluated for a
@@ -68,8 +68,10 @@ The compatibility layer normalizes design tokens and common content components. 
 its framework, attaches subpath-safe relative assets, adds common search and color-scheme controls, renders Lucide
 icons, and links back to the root portal. Sphinx and MkDocs use maintained native templates. Doxygen keeps its semantic
 HTML while Dockle completes missing page outlines and derives previous/next links from Doxygen's generated navigation
-tree. The other adapters receive the same controls through generated-HTML enhancement. These implementations are
-first-party Dockle code; ``doxygen-awesome-css`` and ``doxyconfig`` are design references, not dependencies.
+tree. The other adapters receive the same controls through generated-HTML enhancement. Icons come from the pinned
+``lucide`` npm package; Dockle packages its official browser runtime so built sites remain self-contained. These
+implementations are first-party Dockle code; ``doxygen-awesome-css`` and ``doxyconfig`` are design references, not
+dependencies.
 
 Milestones
 ----------
@@ -96,7 +98,7 @@ Milestone 1: theme fidelity (in progress)
 Milestone 2: multi-target documentation sites (in progress)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* A generated root landing page and cross-target return links are implemented.
+* A root Sphinx target with injected comparison cards and cross-target return links is implemented.
 * Theme and portal URLs are relative and safe under hosted, versioned subpaths.
 * Build a combined search index without replacing framework-local search prematurely.
 * Add ``serve`` with file watching and incremental rebuilds.
@@ -114,7 +116,8 @@ Milestone 3: ecosystem and distribution
 
 * Define a typed third-party adapter interface.
 * Add adapters based on demand, with TypeDoc and Dokka as likely candidates.
-* Publish reproducible Python packages and a supported CI action.
+* Publish reproducible Python packages, standalone platform executables, and a supported CI action.
+* Add thin npm and CMake installation paths around the canonical command; publish a crate only when it adds Rust value.
 * Add machine-readable schema documentation and configuration migration tooling before stabilizing version 1.
 
 Known risks

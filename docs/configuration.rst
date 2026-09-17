@@ -34,6 +34,13 @@ Complete example
    doxygen = "/opt/doxygen/bin/doxygen"
 
    [[targets]]
+   name = "docs"
+   title = "Project documentation"
+   framework = "sphinx"
+   source = "docs"
+   home = true
+
+   [[targets]]
    name = "guide"
    title = "User guide"
    description = "Tutorials and configuration reference."
@@ -81,6 +88,10 @@ lowercase letters, numbers, hyphens, and underscores and become output directory
 ``description`` label the target on the generated portal. ``output`` can select another directory below
 ``build.output``.
 
+One Sphinx target may set ``home = true``. Dockle publishes that target at ``build.output`` and injects the comparison
+cards after its first heading. To control their exact location, add ``<div data-dockle-target-cards></div>`` in a raw
+HTML block. A home target cannot set ``output``; all other targets remain in their own directories below it.
+
 The supported framework names and ``entry`` behavior are:
 
 ==========  =======================  =============================================================
@@ -93,8 +104,8 @@ JSDoc       ``jsdoc`` executable      Existing README or Markdown landing page.
 rustdoc     Cargo and Rust            Reserved; ``source`` names a crate directory or ``Cargo.toml``.
 ==========  =======================  =============================================================
 
-Each output directory must be unique and must remain below ``build.output``. Entry paths cannot be absolute or escape
-the source directory.
+Each non-home output directory must be unique and must remain below ``build.output``. Entry paths cannot be absolute
+or escape the source directory.
 
 Tool resolution
 ---------------

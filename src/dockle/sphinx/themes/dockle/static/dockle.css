@@ -1630,6 +1630,16 @@ html[data-dockle-framework="rustdoc"] rustdoc-topbar {
   color: var(--dockle-content);
 }
 
+@media (min-width: 801px) and (max-width: 1100px) {
+  .dockle-main {
+    grid-template-columns: minmax(0, var(--dockle-content-width));
+  }
+
+  .dockle-on-this-page {
+    display: none;
+  }
+}
+
 @media (max-width: 800px) {
   .dockle-toolbar {
     left: auto;

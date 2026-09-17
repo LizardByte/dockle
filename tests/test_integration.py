@@ -128,6 +128,54 @@ source = "docs"
     @unittest.skipUnless(
         _tool_available("sphinx-build"), "Sphinx is not installed"
     )
+    def test_sphinx_home_target_publishes_root_and_comparison_cards(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            docs = root / "docs"
+            docs.mkdir()
+            (docs / "index.rst").write_text(
+                "Example\n=======\n\n.. raw:: html\n\n"
+                "   <div data-dockle-target-cards></div>\n",
+                encoding="utf-8",
+            )
+            (root / "api").mkdir()
+            config_path = root / "dockle.toml"
+            config_path.write_text(
+                """
+[project]
+name = "Example"
+
+[[targets]]
+name = "docs"
+framework = "sphinx"
+source = "docs"
+home = true
+
+[[targets]]
+name = "api"
+title = "API example"
+framework = "doxygen"
+source = "api"
+""",
+                encoding="utf-8",
+            )
+            config = load_config(config_path)
+
+            results = BuildManager(config).build(config.targets[:1])
+
+            html = (config.build.output / "index.html").read_text(
+                encoding="utf-8"
+            )
+            self.assertGreaterEqual(results[0].themed_pages, 1)
+            self.assertIn('data-dockle-framework="sphinx"', html)
+            self.assertIn('class="dockle-portal-card" href="api/"', html)
+            self.assertNotIn("data-dockle-home", html)
+
+    @unittest.skipUnless(
+        _tool_available("sphinx-build"), "Sphinx is not installed"
+    )
     def test_sphinx_can_discover_dockle_as_a_standalone_theme(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

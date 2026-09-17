@@ -4,6 +4,12 @@
   "private": true,
   "description": "Node dependencies used to build Dockle's JSDoc review fixture.",
   "license": "UNLICENSED",
+  "scripts": {
+    "sync:lucide": "node scripts/sync-lucide.mjs"
+  },
+  "dependencies": {
+    "lucide": "1.46.0"
+  },
   "devDependencies": {
     "jsdoc": "4.0.5"
   }

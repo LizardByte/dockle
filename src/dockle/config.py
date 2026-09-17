@@ -67,6 +67,7 @@ class TargetConfig:
     source: Path
     output: Path
     entry: str = "index"
+    home: bool = False
 
 
 @dataclass(frozen=True)
@@ -235,6 +236,7 @@ def _load_targets(
     targets: list[TargetConfig] = []
     names: set[str] = set()
     outputs: set[Path] = set()
+    home_target: str | None = None
     for index, item in enumerate(raw):
         where = f"targets[{index}]"
         if not isinstance(item, dict):
@@ -249,6 +251,7 @@ def _load_targets(
                 "source",
                 "output",
                 "entry",
+                "home",
             },
             where,
         )
@@ -271,22 +274,39 @@ def _load_targets(
         source = _path_within_root(
             root, _required_string(item, "source", where), f"{where}.source"
         )
-        output_name = _optional_string(item, "output", where, name)
-        output = _path_within_root(
-            build.output, output_name, f"{where}.output"
-        )
-        if output == build.output:
-            raise ConfigError(
-                f"{where}.output must name a directory below build.output"
+        home = _optional_bool(item, "home", where, False)
+        if home:
+            if framework != "sphinx":
+                raise ConfigError(f"{where}.home requires framework = 'sphinx'")
+            if "output" in item:
+                raise ConfigError(
+                    f"{where}.output cannot be set for the home target"
+                )
+            if home_target is not None:
+                raise ConfigError(
+                    f"only one home target is allowed: {home_target}, {name}"
+                )
+            home_target = name
+            output_name = "."
+            output = build.output
+        else:
+            output_name = _optional_string(item, "output", where, name)
+            output = _path_within_root(
+                build.output, output_name, f"{where}.output"
             )
-        if any(
-            output.is_relative_to(existing) or existing.is_relative_to(output)
-            for existing in outputs
-        ):
-            raise ConfigError(
-                f"target output overlaps another target: {output_name}"
-            )
-        outputs.add(output)
+            if output == build.output:
+                raise ConfigError(
+                    f"{where}.output must name a directory below build.output"
+                )
+            if any(
+                output.is_relative_to(existing)
+                or existing.is_relative_to(output)
+                for existing in outputs
+            ):
+                raise ConfigError(
+                    f"target output overlaps another target: {output_name}"
+                )
+            outputs.add(output)
         if source == output or source.is_relative_to(output):
             raise ConfigError(
                 f"{where}.source must not be inside its generated output"
@@ -310,6 +330,7 @@ def _load_targets(
                 source=source,
                 output=output,
                 entry=entry,
+                home=home,
             )
         )
     return tuple(targets)

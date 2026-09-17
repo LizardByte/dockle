@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Build documentation with multiple frameworks and one consistent theme."
 readme = "README.md"
 requires-python = ">=3.11"
+keywords = ["documentation", "doxygen", "jsdoc", "mkdocs", "rustdoc", "sphinx"]
 authors = [
   { name = "LizardByte" },
 ]
@@ -21,6 +22,11 @@ classifiers = [
   "Programming Language :: Python :: 3 :: Only",
   "Topic :: Documentation",
 ]
+
+[project.urls]
+Documentation = "https://dockle.readthedocs.io/"
+Issues = "https://github.com/LizardByte/dockle/issues"
+Repository = "https://github.com/LizardByte/dockle"
 
 [project.optional-dependencies]
 sphinx = [

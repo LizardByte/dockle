@@ -11,7 +11,8 @@ first-party Sphinx theme.
 
 | Page | Purpose |
 | --- | --- |
-| [Component reference](showcase.md) | Authoring syntax beside rendered results |
+| [Markdown component reference](showcase.md) | MyST Markdown syntax beside rendered results |
+| [reStructuredText component reference](showcase-rst.rst) | Native RST syntax beside rendered results |
 | [API reference](api.md) | Framework-native Python API output |
 
 ## Use Dockle with Sphinx
@@ -42,5 +43,6 @@ come from the generator integration rather than unrelated prose.
 :hidden:
 
 showcase
+showcase-rst
 api
 ```

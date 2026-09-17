@@ -50,6 +50,10 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="print generated commands without writing or running them",
     )
+    subparsers.add_parser(
+        "cmake-dir",
+        help="print the directory containing Dockle.cmake",
+    )
     return parser
 
 
@@ -57,6 +61,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     """Run the Dockle CLI and return a process exit code."""
 
     arguments = build_parser().parse_args(argv)
+    if arguments.command == "cmake-dir":
+        print(Path(__file__).with_name("cmake"))
+        return 0
+
     try:
         config = load_config(arguments.config)
         targets = config.select_targets(arguments.targets)

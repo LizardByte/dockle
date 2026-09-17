@@ -16,9 +16,9 @@ Dockle is a configuration and presentation layer for documentation generators. A
 runs the underlying tool, and applies its own shared, Furo-inspired visual layer to the generated HTML. A full build
 also creates a landing page that connects every target into one publishable documentation site.
 
-That landing page can render project Markdown directly and keep cards to each
-framework example. Project logos and home content are configured once and then
-copied into every generated documentation set.
+The root can itself be a Sphinx target, with cards to every framework example
+injected into its landing page. Project logos and metadata are configured once
+and then copied into every generated documentation set.
 
 The Sphinx integration is a first-party `dockle` theme. Furo is a design reference, not a runtime dependency or base
 theme.
@@ -49,7 +49,6 @@ name = "Example"
 version = "1.0.0"
 description = "Example project documentation"
 repository = "https://github.com/example/example"
-home = "docs/index.md"
 logo = "branding/logo.png"
 
 [theme]
@@ -64,11 +63,11 @@ work = ".dockle"
 strict = true
 
 [[targets]]
-name = "manual"
-title = "User guide"
-description = "Tutorials and configuration reference."
+name = "docs"
+title = "Project documentation"
 framework = "sphinx"
 source = "docs"
+home = true
 
 [[targets]]
 name = "cpp-api"
@@ -119,7 +118,18 @@ and Rust. The build explicitly creates that environment and runs Dockle through 
 portal to `$READTHEDOCS_OUTPUT/html/`.
 
 No Sphinx or MkDocs configuration is duplicated for the hosting service. Once this repository is imported into Read
-the Docs, each branch and pull request build will exercise the same five-target configuration used locally.
+the Docs, each branch and pull request build will exercise the root Sphinx documentation and all five adapters used
+locally.
+
+## Distribution direction
+
+The Python package is the canonical implementation. PyPI will provide the normal install path, while standalone
+per-platform executables can make the same command available to C++, JavaScript, and Rust projects without requiring a
+managed Python environment. The npm package should be a verified launcher for those binaries; a crates.io package only
+makes sense if it provides similar installation value or a real Rust API rather than a second implementation.
+
+For CMake projects, [`cmake/Dockle.cmake`](cmake/Dockle.cmake) already exposes `dockle_add_docs()`. It finds an installed
+or standalone Dockle command and falls back to `Python3 -m dockle`.
 
 ## Adapter status
 
@@ -161,6 +171,6 @@ python -m unittest discover -s tests -v
 python -m compileall -q src tests
 ```
 
-The root documentation source is [docs/home.md](docs/home.md). The older
-reStructuredText configuration and architecture notes remain useful design
-references while the public configuration continues to evolve.
+The root documentation is built from [docs/index.rst](docs/index.rst) with the
+same first-party Sphinx theme used by the example. The Sphinx fixture includes
+both MyST Markdown and reStructuredText component references.

@@ -37,6 +37,12 @@ _DOCKLE_FOOTER = re.compile(
     r"<footer\b(?=[^>]*data-dockle-built-with)[^>]*>.*?</footer>",
     re.IGNORECASE | re.DOTALL,
 )
+_TARGET_CARDS = re.compile(
+    r'<div\s+data-dockle-target-cards(?:=["\'][^"\']*["\'])?[^>]*>'
+    r".*?</div>",
+    re.IGNORECASE | re.DOTALL,
+)
+_FIRST_H1_END = re.compile(r"</h1\s*>", re.IGNORECASE)
 _DOCKLE_URL = "https://github.com/LizardByte/dockle"
 _FRAMEWORKS = {
     "doxygen": ("Doxygen", "https://www.doxygen.nl/"),
@@ -163,6 +169,9 @@ def apply_theme(
     asset_dir = output / "_dockle"
     asset_dir.mkdir(parents=True, exist_ok=True)
     (asset_dir / "dockle.css").write_text(stylesheet, encoding="utf-8")
+    shutil.copyfile(
+        _theme_asset("lucide.min.js"), asset_dir / "lucide.min.js"
+    )
     shutil.copyfile(_theme_asset("dockle.js"), asset_dir / "dockle.js")
     logo_asset = _copy_logo(logo, asset_dir)
     search_documents = _build_search_documents(html_files, output)
@@ -205,6 +214,17 @@ def apply_theme(
                 f'data-dockle-theme="{framework}">\n'
             )
             document = _insert_before_head_end(document, link, html_file)
+            changed = True
+
+        if "lucide.min.js" not in document:
+            relative_lucide = _relative(
+                asset_dir / "lucide.min.js", html_file
+            )
+            script = (
+                f'<script defer src="{relative_lucide}" '
+                "data-dockle-lucide></script>\n"
+            )
+            document = _insert_before_head_end(document, script, html_file)
             changed = True
 
         if "dockle.js" not in document:
@@ -458,25 +478,46 @@ def write_portal(
 
     output = config.build.output
     output.mkdir(parents=True, exist_ok=True)
+    home_target = next((target for target in config.targets if target.home), None)
+    card_targets = (
+        tuple(target for target in config.targets if not target.home)
+        if home_target is not None
+        else targets
+    )
+    cards = _portal_cards(card_targets, output)
+    portal = output / "index.html"
+    if home_target is not None and portal.is_file():
+        document = portal.read_text(encoding="utf-8")
+        cards_markup = (
+            '<div data-dockle-target-cards class="dockle-portal-grid" '
+            'aria-label="Documentation examples">\n'
+            f"{cards}\n"
+            "</div>"
+        )
+        document, replacements = _TARGET_CARDS.subn(
+            cards_markup, document, count=1
+        )
+        if not replacements:
+            heading = _FIRST_H1_END.search(document)
+            if heading is None:
+                raise ThemeError(
+                    f"home target has no heading for comparison cards: {portal}"
+                )
+            document = (
+                f"{document[:heading.end()]}\n{cards_markup}"
+                f"{document[heading.end():]}"
+            )
+        portal.write_text(document, encoding="utf-8")
+        return portal
+
     asset_dir = output / "_dockle"
     asset_dir.mkdir(parents=True, exist_ok=True)
     (asset_dir / "dockle.css").write_text(stylesheet, encoding="utf-8")
+    shutil.copyfile(
+        _theme_asset("lucide.min.js"), asset_dir / "lucide.min.js"
+    )
     shutil.copyfile(_theme_asset("dockle.js"), asset_dir / "dockle.js")
     logo_asset = _copy_logo(config.project.logo, asset_dir)
-
-    cards: list[str] = []
-    for target in targets:
-        relative = _target_href(target, output)
-        description = target.description or (
-            f"Documentation generated with {target.framework}."
-        )
-        cards.append(
-            f"""      <a class="dockle-portal-card" href="{escape(relative)}">
-        <span class="dockle-portal-framework">{escape(target.framework)}</span>
-        <strong>{escape(target.title)}</strong>
-        <span>{escape(description)}</span>
-      </a>"""
-        )
 
     version = (
         f" <span>{escape(config.project.version)}</span>"
@@ -514,6 +555,7 @@ def write_portal(
   <meta name="description" content="{escape(config.project.description)}">
   <title>{escape(config.project.name)} documentation</title>
   <link rel="stylesheet" href="_dockle/dockle.css" data-dockle-theme="portal">
+  <script defer src="_dockle/lucide.min.js" data-dockle-lucide></script>
   <script defer src="_dockle/dockle.js" data-dockle-script></script>
 </head>
 <body class="dockle-portal">
@@ -526,7 +568,7 @@ def write_portal(
       </div>
     </header>
     <section class="dockle-portal-grid" aria-label="Documentation examples">
-{chr(10).join(cards)}
+{cards}
     </section>
 {project_docs}{repository}  </main>
   <footer class="dockle-footer dockle-built-with dockle-portal-built-with"
@@ -541,9 +583,29 @@ def write_portal(
 </body>
 </html>
 """
-    portal = output / "index.html"
     portal.write_text(document, encoding="utf-8")
     return portal
+
+
+def _portal_cards(
+    targets: tuple[TargetConfig, ...], output: Path
+) -> str:
+    """Render the shared comparison cards for portal or Sphinx home pages."""
+
+    cards: list[str] = []
+    for target in targets:
+        relative = _target_href(target, output)
+        description = target.description or (
+            f"Documentation generated with {target.framework}."
+        )
+        cards.append(
+            f"""      <a class="dockle-portal-card" href="{escape(relative)}">
+        <span class="dockle-portal-framework">{escape(target.framework)}</span>
+        <strong>{escape(target.title)}</strong>
+        <span>{escape(description)}</span>
+      </a>"""
+        )
+    return "\n".join(cards)
 
 
 def _target_href(target: TargetConfig, output: Path) -> str:

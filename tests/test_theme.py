@@ -37,6 +37,11 @@ class ThemeTests(unittest.TestCase):
             document = html.read_text(encoding="utf-8")
             self.assertEqual(count, 1)
             self.assertIn("../../_dockle/dockle.css", document)
+            self.assertIn("../../_dockle/lucide.min.js", document)
+            self.assertLess(
+                document.index("lucide.min.js"),
+                document.index("dockle.js"),
+            )
             self.assertIn('data-dockle-framework="rustdoc"', document)
             self.assertIn("../../../index.html", document)
             self.assertIn("data-dockle-home", document)
@@ -54,6 +59,9 @@ class ThemeTests(unittest.TestCase):
             )
             self.assertIn("../../_dockle/search.json", document)
             self.assertTrue((output / "_dockle" / "search.json").is_file())
+            self.assertTrue(
+                (output / "_dockle" / "lucide.min.js").is_file()
+            )
 
     def test_apply_theme_is_idempotent(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
