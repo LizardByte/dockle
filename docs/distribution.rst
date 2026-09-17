@@ -59,5 +59,5 @@ ordinary pushes, drafts, and prereleases never publish to PyPI. GitHub provides 
 interface.
 
 Before the first registry release, configure a pending PyPI trusted publisher for the ``LizardByte/dockle`` repository,
-the ``ci-release.yml`` workflow, and the ``pypi`` environment. Dockle also needs a real project license to replace the
-current placeholder and a documented compatibility matrix for the native generators.
+the ``ci-release.yml`` workflow, and the ``pypi`` environment. Dockle also needs a documented compatibility matrix for
+the native generators.
