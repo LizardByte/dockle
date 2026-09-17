@@ -107,6 +107,7 @@ class Builder(ABC):
             project_version=self.config.project.version,
             target_title=self.target.title,
             logo=self.config.project.logo,
+            favicon=self.config.project.favicon,
         )
 
     def _theme_file(self) -> Path:
@@ -164,7 +165,7 @@ class SphinxBuilder(Builder):
                 -2, f"html_logo = {str(self.config.project.logo)!r}"
             )
         args = [
-            self.executable,
+            *_generator_command(self.config, "sphinx", self.executable),
             "-b",
             "html",
             "-c",
@@ -198,6 +199,7 @@ class SphinxBuilder(Builder):
             project_version=self.config.project.version,
             target_title=self.target.title,
             logo=self.config.project.logo,
+            favicon=self.config.project.favicon,
         )
         shutil.copytree(staging, self.target.output, dirs_exist_ok=True)
         return themed_pages
@@ -323,7 +325,12 @@ class MkDocsBuilder(Builder):
             lines.append(
                 f"repo_url: {_yaml_string(self.config.project.repository)}"
             )
-        args = [self.executable, "build", "--config-file", str(config_file)]
+        args = [
+            *_generator_command(self.config, "mkdocs", self.executable),
+            "build",
+            "--config-file",
+            str(config_file),
+        ]
         if self.config.build.strict:
             args.append("--strict")
         return BuildPlan(
@@ -542,6 +549,8 @@ class BuildManager:
         return tuple(results)
 
     def _resolve_tool(self, framework: str, *, required: bool) -> str:
+        if _uses_bundled_generator(self.config, framework):
+            return sys.executable
         configured = self.config.tool(framework)
         candidate = Path(configured)
         resolved: str | None
@@ -594,3 +603,21 @@ def _posix(path: Path) -> str:
 
 def _yaml_string(value: str) -> str:
     return json.dumps(value, ensure_ascii=False)
+
+
+def _uses_bundled_generator(config: DockleConfig, framework: str) -> bool:
+    return (
+        bool(getattr(sys, "frozen", False))
+        and framework in {"mkdocs", "sphinx"}
+        and framework not in config.tools
+    )
+
+
+def _generator_command(
+    config: DockleConfig,
+    framework: str,
+    executable: str,
+) -> tuple[str, ...]:
+    if _uses_bundled_generator(config, framework):
+        return (sys.executable, f"_run-{framework}")
+    return (executable,)

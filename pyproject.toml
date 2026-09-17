@@ -17,7 +17,6 @@ dependencies = [
   "Markdown>=3.8",
 ]
 classifiers = [
-  "Development Status :: 2 - Pre-Alpha",
   "Environment :: Console",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
@@ -68,6 +67,14 @@ dockle = "dockle.sphinx.themes.dockle"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/dockle"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/LICENSE",
+  "/README.md",
+  "/pyproject.toml",
+  "/src",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "description": "Node dependencies used to build Dockle's JSDoc review fixture.",
-  "license": "UNLICENSED",
+  "author": "LizardByte",
+  "license": "MIT",
   "scripts": {
     "sync:lucide": "node scripts/sync-lucide.mjs"
   },

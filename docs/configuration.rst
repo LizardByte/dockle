@@ -17,6 +17,8 @@ Complete example
    repository = "https://github.com/example/example"
    author = "Example maintainers"
    copyright = "2026, Example maintainers"
+   logo = "branding/logo.png"
+   favicon = "branding/favicon.svg"
 
    [theme]
    primary = "#2962ff"
@@ -52,8 +54,9 @@ Project metadata
 ----------------
 
 ``project.name`` is required. The optional ``version``, ``description``, ``repository``, ``author``, and ``copyright``
-values are translated into native metadata where a generator supports them. The portal always uses the name,
-description, version, and repository.
+values are translated into native metadata where a generator supports them. The optional ``logo`` and ``favicon``
+paths must name files within the project. Dockle copies the favicon into every generated backend and the portal. The
+portal always uses the name, description, version, and repository.
 
 Theme tokens
 ------------

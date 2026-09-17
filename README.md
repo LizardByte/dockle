@@ -32,7 +32,7 @@ theme.
 Dockle requires Python 3.11 or newer. Install the adapters needed by the project:
 
 ```console
-python -m pip install -e ".[sphinx,mkdocs]"
+python -m pip install "dockle[sphinx,mkdocs]"
 ```
 
 Doxygen, JSDoc, and the Rust toolchain remain native tool dependencies. Their executable paths can be overridden in
@@ -161,6 +161,7 @@ Initialize the shared lint tooling and run the test suite:
 
 ```console
 git submodule update --init third-party/lizardbyte-common
+uv sync --locked --all-extras
 uv run --project third-party/lizardbyte-common --locked --only-group lint-c \
   clang-format --dry-run --Werror examples/doxygen/include/dockle_demo.hpp
 $env:PYTHONPATH = "src"  # PowerShell

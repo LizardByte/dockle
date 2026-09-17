@@ -133,6 +133,39 @@ class ThemeTests(unittest.TestCase):
             self.assertTrue((output / "_dockle" / "logo.png").is_file())
             self.assertIn('data-dockle-logo-url="_dockle/logo.png"', document)
 
+    def test_apply_theme_replaces_favicon_for_every_framework(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            favicon = root / "favicon.svg"
+            favicon.write_text("<svg/>", encoding="utf-8")
+            for framework in ("doxygen", "jsdoc", "mkdocs", "rustdoc", "sphinx"):
+                output = root / framework
+                output.mkdir()
+                html = output / "index.html"
+                html.write_text(
+                    '<html><head><link rel="icon" href="native.ico"></head>'
+                    "<body></body></html>",
+                    encoding="utf-8",
+                )
+
+                apply_theme(
+                    output,
+                    framework,
+                    "body {}",
+                    favicon=favicon,
+                )
+
+                document = html.read_text(encoding="utf-8")
+                self.assertNotIn("native.ico", document)
+                self.assertIn(
+                    'rel="icon" href="_dockle/favicon.svg" '
+                    "data-dockle-favicon",
+                    document,
+                )
+                self.assertTrue(
+                    (output / "_dockle" / "favicon.svg").is_file()
+                )
+
     def test_apply_theme_combines_jsdoc_and_dockle_attribution(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory)

@@ -43,6 +43,84 @@ def _jsdoc_path() -> Path | None:
 
 
 class AdapterIntegrationTests(unittest.TestCase):
+    @unittest.skipUnless(
+        _tool_available("cmake") and _tool_available("sphinx-build"),
+        "CMake and Sphinx are required",
+    )
+    def test_installed_cmake_module_builds_consumer_docs(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            docs = root / "docs"
+            docs.mkdir()
+            (docs / "index.rst").write_text(
+                "Consumer\n========\n\nBuilt through CMake.\n",
+                encoding="utf-8",
+            )
+            scripts = Path(sys.executable).resolve().parent
+            dockle = scripts / (
+                "dockle.exe" if sys.platform == "win32" else "dockle"
+            )
+            sphinx = scripts / (
+                "sphinx-build.exe"
+                if sys.platform == "win32"
+                else "sphinx-build"
+            )
+            self.assertTrue(dockle.is_file(), dockle)
+            self.assertTrue(sphinx.is_file(), sphinx)
+            module_result = subprocess.run(
+                [str(dockle), "cmake-dir"],
+                cwd=root,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(module_result.returncode, 0, module_result.stderr)
+            module_dir = Path(module_result.stdout.strip())
+            self.assertTrue((module_dir / "Dockle.cmake").is_file())
+
+            config_path = root / "dockle.toml"
+            config_path.write_text(
+                f"""
+[project]
+name = "CMake consumer"
+
+[tools]
+sphinx = "{sphinx.as_posix()}"
+
+[[targets]]
+name = "docs"
+framework = "sphinx"
+source = "docs"
+""",
+                encoding="utf-8",
+            )
+            (root / "CMakeLists.txt").write_text(
+                f"""cmake_minimum_required(VERSION 3.24)
+project(dockle_consumer LANGUAGES NONE)
+list(APPEND CMAKE_MODULE_PATH "{module_dir.as_posix()}")
+set(DOCKLE_EXECUTABLE "{dockle.as_posix()}")
+include(Dockle)
+dockle_add_docs(docs CONFIG "{config_path.as_posix()}")
+""",
+                encoding="utf-8",
+            )
+            build = root / "build"
+            configure = subprocess.run(
+                ["cmake", "-S", str(root), "-B", str(build)],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(configure.returncode, 0, configure.stderr)
+            built = subprocess.run(
+                ["cmake", "--build", str(build), "--target", "docs"],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(built.returncode, 0, built.stderr)
+            self.assertTrue((root / "_site" / "docs" / "index.html").is_file())
+
     @unittest.skipUnless(_doxygen_path(), "Doxygen is not installed")
     def test_doxygen_builds_with_native_theme_hook(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

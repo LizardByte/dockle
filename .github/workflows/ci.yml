@@ -40,7 +40,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
   pytest:
-    name: Pytest (${{ matrix.os }})
+    name: Pytest (${{ matrix.os }}, Python ${{ matrix.python-version }})
     permissions:
       contents: read
     runs-on: ${{ matrix.os }}
@@ -51,6 +51,9 @@ jobs:
           - macos-latest
           - ubuntu-latest
           - windows-latest
+        python-version:
+          - '3.11'
+          - '3.14'
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -59,7 +62,7 @@ jobs:
         id: setup-python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: ${{ matrix.python-version }}
 
       - name: Set up uv
         uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4  # v10.1.0
@@ -99,6 +102,15 @@ jobs:
           }
           uv pip install --no-deps --no-build $wheel.FullName
 
+      - name: Smoke test installed wheel
+        shell: bash
+        run: |
+          uv run --locked --no-default-groups --group test --all-extras \
+            --no-build --no-sync python -I -c \
+            "import dockle; print(dockle.__version__)"
+          uv run --locked --no-default-groups --group test --all-extras \
+            --no-build --no-sync dockle cmake-dir
+
       - name: Test with pytest
         id: test
         shell: bash
@@ -123,7 +135,7 @@ jobs:
           disable_search: true
           fail_ci_if_error: true
           files: ./coverage/python-coverage.xml
-          flags: ${{ runner.os }}-python
+          flags: ${{ runner.os }}-python-${{ matrix.python-version }}
           report_type: coverage
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
@@ -138,7 +150,7 @@ jobs:
           disable_search: true
           fail_ci_if_error: true
           files: ./junit-python.xml
-          flags: ${{ runner.os }}-python
+          flags: ${{ runner.os }}-python-${{ matrix.python-version }}
           report_type: test_results
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
@@ -252,6 +264,7 @@ jobs:
             --locked
             --no-default-groups
             --group package
+            --all-extras
             --no-install-project
           )
           # uv.lock pins external artifacts; source builds keep the standalone matrix portable across architectures.
@@ -283,8 +296,14 @@ jobs:
         run: |
           pyinstaller_args=(
             --clean
-            --collect-data dockle
+            --collect-all markdown
+            --collect-all mkdocs
+            --collect-all myst_parser
+            --collect-all sphinx
+            --collect-all dockle
             --copy-metadata dockle
+            --copy-metadata mkdocs
+            --copy-metadata Sphinx
             --name dockle
             --noconfirm
             --onefile
@@ -327,6 +346,39 @@ jobs:
           if ($actualVersion -ne "dockle $env:EXPECTED_VERSION") {
             throw "Unexpected version: $actualVersion"
           }
+
+      - name: Smoke test bundled Python adapters
+        shell: bash
+        run: ./dist/${{ matrix.executable }} build sphinx mkdocs
+
+      - name: Notarize macOS executable
+        if: >-
+          runner.os == 'macOS' &&
+          needs.release-setup.outputs.publish_release == 'true'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_NOTARYTOOL_PASSWORD: ${{ secrets.APPLE_NOTARYTOOL_PASSWORD }}
+        run: |
+          ditto -c -k --keepParent dist/dockle dist/dockle-notarization.zip
+          submission=$(xcrun notarytool submit dist/dockle-notarization.zip \
+            --apple-id "${APPLE_ID}" \
+            --team-id "${APPLE_TEAM_ID}" \
+            --password "${APPLE_NOTARYTOOL_PASSWORD}" \
+            --wait \
+            --timeout 30m \
+            --output-format json)
+          echo "${submission}"
+          status=$(jq -r '.status' <<< "${submission}")
+          if [[ "${status}" != "Accepted" ]]; then
+            submission_id=$(jq -r '.id' <<< "${submission}")
+            xcrun notarytool log "${submission_id}" \
+              --apple-id "${APPLE_ID}" \
+              --team-id "${APPLE_TEAM_ID}" \
+              --password "${APPLE_NOTARYTOOL_PASSWORD}"
+            exit 1
+          fi
+          rm dist/dockle-notarization.zip
 
       - name: Upload Windows executable for signing
         if: >-

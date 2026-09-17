@@ -48,15 +48,17 @@ class ConfigTests(unittest.TestCase):
             with self.assertRaisesRegex(ConfigError, "unknown key.*colour"):
                 load_config(path)
 
-    def test_resolves_project_home_and_logo(self) -> None:
+    def test_resolves_project_assets(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "home.md").write_text("# Home\n", encoding="utf-8")
             (root / "logo.png").write_bytes(b"logo")
+            (root / "favicon.svg").write_text("<svg/>", encoding="utf-8")
             path = root / "dockle.toml"
             contents = MINIMAL_CONFIG.replace(
                 'name = "Example"',
-                'name = "Example"\nhome = "home.md"\nlogo = "logo.png"',
+                'name = "Example"\nhome = "home.md"\nlogo = "logo.png"\n'
+                'favicon = "favicon.svg"',
             )
             path.write_text(contents, encoding="utf-8")
 
@@ -64,6 +66,10 @@ class ConfigTests(unittest.TestCase):
 
             self.assertEqual(config.project.home, (root / "home.md").resolve())
             self.assertEqual(config.project.logo, (root / "logo.png").resolve())
+            self.assertEqual(
+                config.project.favicon,
+                (root / "favicon.svg").resolve(),
+            )
 
     def test_rejects_missing_project_asset(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -75,6 +81,16 @@ class ConfigTests(unittest.TestCase):
             path.write_text(contents, encoding="utf-8")
 
             with self.assertRaisesRegex(ConfigError, "project.logo"):
+                load_config(path)
+
+            path.write_text(
+                MINIMAL_CONFIG.replace(
+                    'name = "Example"',
+                    'name = "Example"\nfavicon = "missing.svg"',
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ConfigError, "project.favicon"):
                 load_config(path)
 
     def test_rejects_theme_values_that_could_escape_css(self) -> None:

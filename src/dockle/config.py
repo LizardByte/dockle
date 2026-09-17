@@ -42,6 +42,7 @@ class ProjectConfig:
     copyright: str = ""
     home: Path | None = None
     logo: Path | None = None
+    favicon: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -168,6 +169,7 @@ def _load_project(raw: dict[str, Any], root: Path) -> ProjectConfig:
         "copyright",
         "home",
         "logo",
+        "favicon",
     }
     _reject_unknown(raw, allowed, "project")
     return ProjectConfig(
@@ -179,6 +181,7 @@ def _load_project(raw: dict[str, Any], root: Path) -> ProjectConfig:
         copyright=_optional_string(raw, "copyright", "project"),
         home=_optional_project_path(raw, "home", root),
         logo=_optional_project_path(raw, "logo", root),
+        favicon=_optional_project_path(raw, "favicon", root),
     )
 
 

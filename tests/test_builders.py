@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from stat import S_IXUSR
+from unittest.mock import patch
 
 from dockle import __version__
 from dockle.builders import BuildManager, Command
@@ -16,6 +17,7 @@ name = "Example API"
 version = "2.4.0"
 description = "Example documentation"
 repository = "https://example.invalid/project"
+favicon = "favicon.svg"
 
 [theme]
 primary = "#7c4dff"
@@ -70,6 +72,7 @@ class BuilderTests(unittest.TestCase):
         self.root = Path(self.temp_directory.name)
         for name in ("sphinx-docs", "cpp", "markdown", "javascript", "rust"):
             (self.root / name).mkdir()
+        (self.root / "favicon.svg").write_text("<svg/>", encoding="utf-8")
         self.config_path = self.root / "dockle.toml"
         self.config_path.write_text(ALL_TARGETS_CONFIG, encoding="utf-8")
         self.config = load_config(self.config_path)
@@ -122,6 +125,14 @@ class BuilderTests(unittest.TestCase):
         self.assertIn("- dockle.markdown", native)
         self.assertIn(f'dockle_version: "{__version__}"', native)
         self.assertIn("--strict", plan.command.args)
+
+    def test_frozen_build_uses_bundled_python_generators(self) -> None:
+        with patch.object(sys, "frozen", True, create=True):
+            sphinx = self.manager.plan(self.config.targets[0])
+            mkdocs = self.manager.plan(self.config.targets[2])
+
+        self.assertEqual(sphinx.command.args[:2], (sys.executable, "_run-sphinx"))
+        self.assertEqual(mkdocs.command.args[:2], (sys.executable, "_run-mkdocs"))
 
     def test_jsdoc_plan_generates_json(self) -> None:
         (self.config.targets[3].source / "index").write_text(
@@ -176,11 +187,14 @@ class BuilderTests(unittest.TestCase):
         self.assertIn('data-dockle-theme="jsdoc"', html)
         self.assertIn('data-dockle-framework="jsdoc"', html)
         self.assertTrue((target.output / "_dockle" / "dockle.css").is_file())
+        self.assertTrue((target.output / "_dockle" / "favicon.svg").is_file())
+        self.assertIn("data-dockle-favicon", html)
         portal = (config.build.output / "index.html").read_text(
             encoding="utf-8"
         )
         self.assertIn('data-dockle-framework="portal"', portal)
         self.assertIn('href="jsdoc/"', portal)
+        self.assertIn("data-dockle-favicon", portal)
 
     def test_resolves_project_local_node_tool(self) -> None:
         executable = (

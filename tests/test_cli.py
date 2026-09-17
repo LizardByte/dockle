@@ -5,6 +5,7 @@ import io
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from dockle import __version__
 from dockle.cli import main
@@ -85,6 +86,26 @@ source = "docs"
 
             self.assertEqual(status, 2)
             self.assertIn("unknown target", error.getvalue())
+
+    def test_internal_sphinx_runner_forwards_arguments(self) -> None:
+        with patch("sphinx.cmd.build.main", return_value=0) as sphinx_main:
+            status = main(["_run-sphinx", "-b", "html", "docs", "site"])
+
+        self.assertEqual(status, 0)
+        sphinx_main.assert_called_once_with(
+            ["-b", "html", "docs", "site"]
+        )
+
+    def test_internal_mkdocs_runner_forwards_arguments(self) -> None:
+        with patch("mkdocs.__main__.cli.main", return_value=None) as mkdocs_main:
+            status = main(["_run-mkdocs", "build", "--strict"])
+
+        self.assertEqual(status, 0)
+        mkdocs_main.assert_called_once_with(
+            args=["build", "--strict"],
+            prog_name="mkdocs",
+            standalone_mode=False,
+        )
 
 
 if __name__ == "__main__":

@@ -91,7 +91,7 @@ Milestone 1: theme fidelity (in progress)
 * Representative visual fixtures for every supported generator are implemented and built together.
 * The native MkDocs theme now shares Dockle's sidebar/page structure and assets with Sphinx.
 * Evaluate whether a native JSDoc template is preferable to the compatibility layer.
-* Define supported-version ranges and visual regression baselines.
+* Keep the documented supported-version matrix current and add visual regression baselines.
 * Add accessible color contrast, keyboard navigation, and mobile-layout checks.
 * Decide whether rustdoc needs a maintained template or a deliberately narrower compatibility promise.
 

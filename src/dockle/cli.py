@@ -60,7 +60,12 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the Dockle CLI and return a process exit code."""
 
-    arguments = build_parser().parse_args(argv)
+    raw_arguments = list(sys.argv[1:] if argv is None else argv)
+    internal_status = _run_internal_generator(raw_arguments)
+    if internal_status is not None:
+        return internal_status
+
+    arguments = build_parser().parse_args(raw_arguments)
     if arguments.command == "cmake-dir":
         print(Path(__file__).with_name("cmake"))
         return 0
@@ -77,6 +82,35 @@ def main(argv: Sequence[str] | None = None) -> int:
     except (BuildError, ConfigError, ThemeError) as error:
         print(f"dockle: error: {error}", file=sys.stderr)
         return 2
+
+
+def _run_internal_generator(arguments: list[str]) -> int | None:
+    """Run a bundled Python generator for a frozen standalone executable."""
+
+    if not arguments or arguments[0] not in {"_run-sphinx", "_run-mkdocs"}:
+        return None
+    generator, generator_arguments = arguments[0], arguments[1:]
+    if generator == "_run-sphinx":
+        from sphinx.cmd.build import main as sphinx_main
+
+        return sphinx_main(generator_arguments)
+
+    import click
+    from mkdocs.__main__ import cli as mkdocs_cli
+
+    try:
+        result = mkdocs_cli.main(
+            args=generator_arguments,
+            prog_name="mkdocs",
+            standalone_mode=False,
+        )
+    except click.ClickException as error:
+        error.show()
+        return error.exit_code
+    except click.Abort:
+        print("Aborted!", file=sys.stderr)
+        return 1
+    return int(result or 0)
 
 
 def _run_check(

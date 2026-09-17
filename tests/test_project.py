@@ -27,6 +27,10 @@ class ProjectDogfoodTests(unittest.TestCase):
             config.project.logo,
             PROJECT_ROOT / "branding" / "dockle-logo.png",
         )
+        self.assertEqual(
+            config.project.favicon,
+            PROJECT_ROOT / "branding" / "dockle-logo.png",
+        )
 
     def test_common_cpp_lint_submodule_is_configured(self) -> None:
         modules = (PROJECT_ROOT / ".gitmodules").read_text(encoding="utf-8")
@@ -101,6 +105,8 @@ class ProjectDogfoodTests(unittest.TestCase):
     def test_lucide_runtime_is_managed_by_npm(self) -> None:
         with (PROJECT_ROOT / "package.json").open(encoding="utf-8") as stream:
             package = json.load(stream)
+        self.assertEqual(package["author"], "LizardByte")
+        self.assertEqual(package["license"], "MIT")
         version = package["dependencies"]["lucide"]
         runtime = (
             PROJECT_ROOT
@@ -151,8 +157,20 @@ class ProjectDogfoodTests(unittest.TestCase):
             project = tomllib.load(stream)
 
         self.assertEqual(project["project"]["version"], "0.0.0")
+        self.assertEqual(
+            project["project"]["authors"], [{"name": "LizardByte"}]
+        )
+        self.assertEqual(project["project"]["license"], "MIT")
+        self.assertNotIn(
+            "Development Status :: 2 - Pre-Alpha",
+            project["project"]["classifiers"],
+        )
         self.assertIn("test", project["dependency-groups"])
         self.assertIn("package", project["dependency-groups"])
+        self.assertEqual(
+            project["tool"]["hatch"]["build"]["targets"]["sdist"]["include"],
+            ["/LICENSE", "/README.md", "/pyproject.toml", "/src"],
+        )
         self.assertTrue((PROJECT_ROOT / "uv.lock").is_file())
 
     def test_ci_uses_release_version_and_uploads_codecov_reports(self) -> None:
@@ -163,6 +181,8 @@ class ProjectDogfoodTests(unittest.TestCase):
         self.assertIn("actions/release_setup@", workflow)
         self.assertIn("uv version", workflow)
         self.assertIn("uv sync --locked", workflow)
+        self.assertIn("python-version:\n          - '3.11'", workflow)
+        self.assertIn("Smoke test installed wheel", workflow)
         self.assertIn("report_type: coverage", workflow)
         self.assertIn("report_type: test_results", workflow)
         self.assertIn(
@@ -218,6 +238,10 @@ class ProjectDogfoodTests(unittest.TestCase):
         self.assertIn("azure/trusted-signing-action@", workflow)
         self.assertIn("apple-actions/import-codesign-certs@", workflow)
         self.assertIn("--codesign-identity", workflow)
+        self.assertIn("--collect-all sphinx", workflow)
+        self.assertIn("--collect-all dockle", workflow)
+        self.assertIn("Smoke test bundled Python adapters", workflow)
+        self.assertIn("xcrun notarytool submit", workflow)
         self.assertEqual(
             workflow.count("- name: Build standalone executable\n"), 1
         )

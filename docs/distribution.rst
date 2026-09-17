@@ -20,16 +20,41 @@ Python-backed adapters that the project needs:
 ``pipx install "dockle[all]"`` is a good fit for developers who want a globally available command in an isolated
 environment. Doxygen, Node.js/JSDoc, Cargo, and Graphviz remain native tool dependencies when their adapters are used.
 
+Tested compatibility
+--------------------
+
+The release workflows and hosted dogfood build exercise the following compatibility baseline. Python dependencies are
+resolved by ``uv.lock``; native tools are pinned in the Read the Docs environment or selected by the hosted runner.
+
+================  =======================  ================================================
+Component         Tested versions          Compatibility promise
+================  =======================  ================================================
+Python            3.11 and 3.14            Supported range starts at Python 3.11.
+Sphinx            9.0.4 and 9.1.0          ``sphinx>=8.1``; both locked Python resolutions.
+MyST Parser       5.1.0                    Markdown support for Sphinx.
+MkDocs            1.6.1                    ``mkdocs>=1.6``.
+Doxygen           1.18.0                   Pinned hosted end-to-end build.
+Graphviz          14.1.2                   Pinned with Doxygen for graph generation.
+JSDoc             4.0.5                    Pinned npm fixture and hosted build.
+Node.js           22                       Read the Docs JSDoc runtime.
+Rust and rustdoc  1.91                     Read the Docs rustdoc runtime.
+================  =======================  ================================================
+
+Newer native generator versions are expected to work but are not part of the initial compatibility promise until the
+dogfood build and visual fixtures exercise them.
+
 Standalone executables
 ----------------------
 
 Release artifacts package the same Python command as a standalone executable for Windows, Linux, and macOS on Intel
 and ARM64. These binaries make Dockle usable from C++, JavaScript, and Rust repositories without asking contributors
-to manage a Python environment. They do not bundle the upstream documentation generators.
+to manage a Python environment. Sphinx, MyST, MkDocs, and Markdown are bundled because they run in Python. Doxygen,
+Graphviz, Node.js/JSDoc, and Cargo/rustdoc remain external native toolchains.
 
-An npm package can be a small launcher that downloads and verifies the matching standalone executable. A future Cargo
-package should follow the same model unless Dockle gains a useful Rust-native API; publishing a second implementation
-would make behavior drift between ecosystems.
+A scoped npm package can expose the standalone executable through platform-specific optional packages, following the
+same model as other native Node.js tools without creating a second implementation. A crates.io package is less useful:
+Cargo expects source that it can compile, while Dockle has no Rust API. Cargo users can consume the standalone release
+asset directly; a crate should wait for a Rust-native API or a supported ``cargo-binstall`` contract.
 
 CMake projects
 --------------

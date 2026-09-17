@@ -41,6 +41,10 @@ _TARGET_CARDS_START = re.compile(
     re.IGNORECASE,
 )
 _FIRST_H1_END = re.compile(r"</h1\s*>", re.IGNORECASE)
+_FAVICON_LINK = re.compile(
+    r'<link\b(?=[^>]*\brel=["\'][^"\']*icon[^"\']*["\'])[^>]*>\s*',
+    re.IGNORECASE,
+)
 _DOCKLE_URL = "https://github.com/LizardByte/dockle"
 _CSS_ASSET = "dockle.css"
 _SCRIPT_ASSET = "dockle.js"
@@ -155,6 +159,7 @@ def apply_theme(
     project_version: str = "",
     target_title: str = "",
     logo: Path | None = None,
+    favicon: Path | None = None,
 ) -> int:
     """Inject shared assets, navigation, branding, and client search."""
 
@@ -166,6 +171,7 @@ def apply_theme(
 
     asset_dir = _write_theme_assets(output, stylesheet)
     logo_asset = _copy_logo(logo, asset_dir)
+    favicon_asset = _copy_favicon(favicon, asset_dir)
     search_documents = _build_search_documents(html_files, output)
     (asset_dir / "search.json").write_text(
         json.dumps({"docs": search_documents}, ensure_ascii=False),
@@ -185,6 +191,7 @@ def apply_theme(
         document = _inject_theme_assets(
             document, html_file, asset_dir, framework, native_theme
         )
+        document = _inject_favicon(document, html_file, favicon_asset)
         document = _mark_framework(document, html_file, framework)
 
         decorations = _page_decorations(
@@ -359,6 +366,30 @@ def _copy_logo(logo: Path | None, asset_dir: Path) -> Path | None:
     destination = asset_dir / f"logo{logo.suffix.lower()}"
     shutil.copyfile(logo, destination)
     return destination
+
+
+def _copy_favicon(favicon: Path | None, asset_dir: Path) -> Path | None:
+    if favicon is None:
+        return None
+    destination = asset_dir / f"favicon{favicon.suffix.lower()}"
+    shutil.copyfile(favicon, destination)
+    return destination
+
+
+def _inject_favicon(
+    document: str,
+    html_file: Path,
+    favicon_asset: Path | None,
+) -> str:
+    if favicon_asset is None:
+        return document
+    document = _FAVICON_LINK.sub("", document)
+    relative_favicon = _relative(favicon_asset, html_file)
+    link = (
+        f'<link rel="icon" href="{relative_favicon}" '
+        "data-dockle-favicon>\n"
+    )
+    return _insert_before_head_end(document, link, html_file)
 
 
 def _build_search_documents(
@@ -558,6 +589,7 @@ def write_portal(
 
     asset_dir = _write_theme_assets(output, stylesheet)
     logo_asset = _copy_logo(config.project.logo, asset_dir)
+    favicon_asset = _copy_favicon(config.project.favicon, asset_dir)
 
     version = (
         f" <span>{escape(config.project.version)}</span>"
@@ -578,6 +610,12 @@ def write_portal(
             f'      <img class="dockle-portal-logo" '
             f'src="_dockle/{escape(logo_asset.name)}" alt="">\n'
         )
+    favicon = ""
+    if favicon_asset is not None:
+        favicon = (
+            f'  <link rel="icon" href="_dockle/{escape(favicon_asset.name)}" '
+            "data-dockle-favicon>\n"
+        )
     project_docs = ""
     if config.project.home is not None:
         source = config.project.home.read_text(encoding="utf-8")
@@ -594,7 +632,7 @@ def write_portal(
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="{escape(config.project.description)}">
   <title>{escape(config.project.name)} documentation</title>
-  <link rel="stylesheet" href="_dockle/dockle.css" data-dockle-theme="portal">
+{favicon}  <link rel="stylesheet" href="_dockle/dockle.css" data-dockle-theme="portal">
   <script defer src="_dockle/lucide.min.js" data-dockle-lucide></script>
   <script defer src="_dockle/dockle.js" data-dockle-script></script>
 </head>
