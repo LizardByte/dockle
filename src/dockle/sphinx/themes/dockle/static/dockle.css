@@ -148,6 +148,8 @@ div.fragment,
   border: 1px solid var(--dockle-border) !important;
   border-radius: var(--dockle-radius);
   box-shadow: none !important;
+  font-size: 1rem;
+  line-height: 1.5;
   overflow-x: auto;
   padding: 1rem;
 }
@@ -201,12 +203,11 @@ div.fragment.dockle-code-block {
   z-index: 4;
 }
 
-.dockle-code-block:hover > .dockle-copy-button,
 .dockle-copy-button:hover,
 .dockle-copy-button:focus-visible {
-  background: var(--dockle-background-secondary);
-  color: var(--dockle-primary);
-  opacity: 1;
+  background: var(--dockle-background-secondary) !important;
+  color: var(--dockle-primary) !important;
+  opacity: 1 !important;
 }
 
 .dockle-copy-button:focus-visible {
@@ -996,6 +997,25 @@ html[data-dockle-framework="doxygen"] #nav-tree .selected {
 html[data-dockle-framework="doxygen"] #nav-tree .selected a,
 html[data-dockle-framework="doxygen"] #nav-tree .item:hover a {
   color: var(--dockle-primary) !important;
+  text-decoration: none !important;
+}
+
+html[data-dockle-framework="doxygen"] div.fragment .clipboard {
+  display: none !important;
+}
+
+html[data-dockle-framework="doxygen"] div.fragment.dockle-code-block,
+html[data-dockle-framework="doxygen"] div.fragment.dockle-code-block > .line {
+  font-family: var(--dockle-code-font) !important;
+  font-size: 1rem !important;
+  line-height: 1.5 !important;
+}
+
+html[data-dockle-framework="doxygen"]
+  div.fragment.dockle-code-block
+  > .line:not(:has(.lineno)) {
+  padding-left: 0 !important;
+  text-indent: 0 !important;
 }
 
 html[data-dockle-framework="doxygen"] #nav-sync,
@@ -1472,6 +1492,10 @@ html[data-dockle-framework="rustdoc"].dockle-component-reference .top-doc .docbl
   display: none;
 }
 
+html[data-dockle-framework="rustdoc"].dockle-component-reference .top-doc .docblock {
+  margin-left: 0;
+}
+
 html[data-dockle-framework="rustdoc"].dockle-component-reference #component-reference {
   border-bottom: 0;
   font-size: clamp(2rem, 5vw, 2.75rem);
@@ -1491,6 +1515,45 @@ html[data-dockle-framework="rustdoc"] .rustdoc .main-heading,
 html[data-dockle-framework="rustdoc"] .rustdoc .sub-heading,
 html[data-dockle-framework="rustdoc"] .rustdoc .item-table {
   border-color: var(--dockle-border) !important;
+}
+
+html[data-dockle-framework="rustdoc"] .dockle-code-block > pre,
+html[data-dockle-framework="rustdoc"] .dockle-code-block > pre > code {
+  font-size: 1rem !important;
+  line-height: 1.5 !important;
+}
+
+html[data-dockle-framework="rustdoc"] #copy-path::before,
+html[data-dockle-framework="rustdoc"] .settings-menu > a::before,
+html[data-dockle-framework="rustdoc"] .help-menu > a::before,
+html[data-dockle-framework="rustdoc"] button#toggle-all-docs::before {
+  content: none !important;
+}
+
+html[data-dockle-framework="rustdoc"] #copy-path {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+}
+
+html[data-dockle-framework="rustdoc"] .dockle-rustdoc-icon {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 1.125rem;
+  justify-content: center;
+  margin: 0.5rem;
+  width: 1.125rem;
+}
+
+html[data-dockle-framework="rustdoc"] #copy-path .dockle-rustdoc-icon,
+html[data-dockle-framework="rustdoc"] rustdoc-toolbar .dockle-rustdoc-icon {
+  margin: 0;
+}
+
+html[data-dockle-framework="rustdoc"] .dockle-rustdoc-icon .lucide {
+  height: 100%;
+  width: 100%;
 }
 
 html[data-dockle-framework="rustdoc"] rustdoc-topbar {

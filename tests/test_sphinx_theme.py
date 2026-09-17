@@ -111,6 +111,32 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertIn('button.className = "dockle-copy-button"', script)
         self.assertIn('data-lucide="copy"', script)
         self.assertIn(".dockle-copy-button", stylesheet)
+        self.assertNotIn(
+            ".dockle-code-block:hover > .dockle-copy-button",
+            stylesheet,
+        )
+        self.assertIn("div.fragment .clipboard", stylesheet)
+        self.assertIn("font-size: 1rem !important", stylesheet)
+        self.assertIn("text-indent: 0 !important", stylesheet)
+
+    def test_rustdoc_uses_shared_lucide_toolbar_icons(self) -> None:
+        stylesheet = (
+            THEME_DIRECTORY / "static" / "dockle.css"
+        ).read_text(encoding="utf-8")
+        script = (THEME_DIRECTORY / "static" / "dockle.js").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("replaceRustdocIcons", script)
+        self.assertIn('["#copy-path", "copy"]', script)
+        self.assertIn('[".settings-menu > a", "settings"]', script)
+        self.assertIn('[".help-menu > a", "circle-help"]', script)
+        self.assertIn(
+            '["button#toggle-all-docs", "chevrons-down"]',
+            script,
+        )
+        self.assertIn(".dockle-rustdoc-icon", stylesheet)
+        self.assertIn("#copy-path::before", stylesheet)
 
     def test_footer_moves_into_each_framework_content_column(self) -> None:
         script = (THEME_DIRECTORY / "static" / "dockle.js").read_text(

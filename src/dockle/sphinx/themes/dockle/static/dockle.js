@@ -25,6 +25,15 @@
       ["path", { d: "m9 9 6 6" }],
     ],
     check: [["path", { d: "m20 6-11 11-5-5" }]],
+    "chevrons-down": [
+      ["path", { d: "m7 6 5 5 5-5" }],
+      ["path", { d: "m7 13 5 5 5-5" }],
+    ],
+    "circle-help": [
+      ["circle", { cx: "12", cy: "12", r: "10" }],
+      ["path", { d: "M9.09 9a3 3 0 1 1 5.83 1c0 2-3 3-3 3" }],
+      ["path", { d: "M12 17h.01" }],
+    ],
     copy: [
       ["rect", { width: "14", height: "14", x: "8", y: "8", rx: "2" }],
       ["path", { d: "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" }],
@@ -75,6 +84,10 @@
     search: [
       ["path", { d: "m21 21-4.34-4.34" }],
       ["circle", { cx: "11", cy: "11", r: "8" }],
+    ],
+    settings: [
+      ["path", { d: "M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" }],
+      ["circle", { cx: "12", cy: "12", r: "3" }],
     ],
     sun: [
       ["circle", { cx: "12", cy: "12", r: "4" }],
@@ -506,6 +519,42 @@
     });
   };
 
+  const replaceRustdocIcons = () => {
+    if (root.dataset.dockleFramework !== "rustdoc") {
+      return;
+    }
+    const controls = [
+      ["#copy-path", "copy"],
+      [".settings-menu > a", "settings"],
+      [".help-menu > a", "circle-help"],
+      ["button#toggle-all-docs", "chevrons-down"],
+    ];
+    controls.forEach(([selector, iconName]) => {
+      document.querySelectorAll(selector).forEach((control) => {
+        if (control.querySelector(":scope > .dockle-rustdoc-icon")) {
+          return;
+        }
+        const icon = document.createElement("i");
+        icon.className = "dockle-rustdoc-icon";
+        icon.dataset.lucide = iconName;
+        icon.setAttribute("aria-hidden", "true");
+        control.prepend(icon);
+        if (control.id === "copy-path") {
+          const updateCopyPathIcon = () => {
+            icon.dataset.lucide = control.classList.contains("clicked")
+              ? "check"
+              : "copy";
+            renderIcon(icon);
+          };
+          new MutationObserver(updateCopyPathIcon).observe(control, {
+            attributeFilter: ["class"],
+            attributes: true,
+          });
+        }
+      });
+    });
+  };
+
   const placeBuiltWithFooter = () => {
     const footer = document.querySelector("[data-dockle-built-with]");
     const destinations = {
@@ -758,6 +807,7 @@
 
   addDoxygenNavigation();
   addCodeCopyButtons();
+  replaceRustdocIcons();
   placeBuiltWithFooter();
   if (root.dataset.dockleFramework === "doxygen") {
     window.addEventListener("load", ensureCompatibilityPageToc);
