@@ -13,11 +13,16 @@ from dockle.config import load_config
 
 
 def _tool_available(name: str) -> bool:
+    return _tool_path(name) is not None
+
+
+def _tool_path(name: str) -> Path | None:
+    discovered = shutil.which(name)
+    if discovered is not None:
+        return Path(discovered)
     scripts = Path(sys.executable).resolve().parent
-    return (
-        shutil.which(name, path=str(scripts)) is not None
-        or shutil.which(name) is not None
-    )
+    discovered = shutil.which(name, path=str(scripts))
+    return Path(discovered) if discovered is not None else None
 
 
 def _doxygen_path() -> Path | None:
@@ -56,17 +61,12 @@ class AdapterIntegrationTests(unittest.TestCase):
                 "Consumer\n========\n\nBuilt through CMake.\n",
                 encoding="utf-8",
             )
-            scripts = Path(sys.executable).resolve().parent
-            dockle = scripts / (
-                "dockle.exe" if sys.platform == "win32" else "dockle"
-            )
-            sphinx = scripts / (
-                "sphinx-build.exe"
-                if sys.platform == "win32"
-                else "sphinx-build"
-            )
-            self.assertTrue(dockle.is_file(), dockle)
-            self.assertTrue(sphinx.is_file(), sphinx)
+            dockle = _tool_path("dockle")
+            sphinx = _tool_path("sphinx-build")
+            if dockle is None:
+                self.fail("dockle is not installed on PATH")
+            if sphinx is None:
+                self.fail("sphinx-build is not installed on PATH")
             module_result = subprocess.run(
                 [str(dockle), "cmake-dir"],
                 cwd=root,
