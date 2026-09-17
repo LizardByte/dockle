@@ -85,6 +85,44 @@ class SphinxThemeTests(unittest.TestCase):
 
         self.assertIn("font-style: normal", attribution)
 
+    def test_compatibility_adapters_receive_right_page_navigation(self) -> None:
+        stylesheet = (
+            THEME_DIRECTORY / "static" / "dockle.css"
+        ).read_text(encoding="utf-8")
+        script = (THEME_DIRECTORY / "static" / "dockle.js").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("ensureCompatibilityPageToc", script)
+        self.assertIn('["doxygen", "jsdoc", "rustdoc"]', script)
+        self.assertIn("dockle-compat-toc", script)
+        self.assertIn(".dockle-compat-toc", stylesheet)
+        self.assertIn("border-left: 0 !important", stylesheet)
+
+    def test_code_blocks_receive_shared_copy_controls(self) -> None:
+        stylesheet = (
+            THEME_DIRECTORY / "static" / "dockle.css"
+        ).read_text(encoding="utf-8")
+        script = (THEME_DIRECTORY / "static" / "dockle.js").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("addCodeCopyButtons", script)
+        self.assertIn('button.className = "dockle-copy-button"', script)
+        self.assertIn('data-lucide="copy"', script)
+        self.assertIn(".dockle-copy-button", stylesheet)
+
+    def test_footer_moves_into_each_framework_content_column(self) -> None:
+        script = (THEME_DIRECTORY / "static" / "dockle.js").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn('doxygen: "#doc-content .contents"', script)
+        self.assertIn('jsdoc: "#main"', script)
+        self.assertIn('mkdocs: ".dockle-article"', script)
+        self.assertIn('rustdoc: "#main-content"', script)
+        self.assertIn('sphinx: ".dockle-article"', script)
+
 
 if __name__ == "__main__":
     unittest.main()

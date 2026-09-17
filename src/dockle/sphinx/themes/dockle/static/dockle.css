@@ -13,8 +13,11 @@
   --dockle-border: color-mix(in srgb, var(--dockle-content) 18%, transparent);
   --dockle-code-background: color-mix(in srgb, var(--dockle-background) 92%, var(--dockle-content));
   --dockle-muted: color-mix(in srgb, var(--dockle-content) 68%, transparent);
+  --dockle-sidebar-padding: 1.25rem;
   --dockle-sidebar-width: 18rem;
+  --dockle-sidebar-nav-top: 9rem;
   --dockle-content-width: 52rem;
+  --dockle-content-gutter: clamp(1.25rem, 4vw, 4rem);
   --dockle-page-toc-width: 14rem;
   --dockle-radius: 0.35rem;
 }
@@ -161,6 +164,54 @@ pre code {
 .highlight pre {
   border: 0 !important;
   margin: 0;
+}
+
+.dockle-code-block {
+  position: relative;
+}
+
+.dockle-code-block > pre {
+  margin-bottom: 0;
+  margin-top: 0;
+  padding-right: 3.25rem;
+}
+
+div.fragment.dockle-code-block {
+  padding-right: 3.25rem;
+}
+
+.dockle-copy-button {
+  align-items: center;
+  background: color-mix(in srgb, var(--dockle-background-secondary) 88%, transparent);
+  border: 1px solid var(--dockle-border);
+  border-radius: var(--dockle-radius);
+  color: var(--dockle-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  height: 2rem;
+  justify-content: center;
+  opacity: 0.8;
+  padding: 0;
+  position: absolute;
+  right: 0.55rem;
+  top: 0.55rem;
+  transition: background 120ms ease, color 120ms ease, opacity 120ms ease;
+  width: 2rem;
+  z-index: 4;
+}
+
+.dockle-code-block:hover > .dockle-copy-button,
+.dockle-copy-button:hover,
+.dockle-copy-button:focus-visible {
+  background: var(--dockle-background-secondary);
+  color: var(--dockle-primary);
+  opacity: 1;
+}
+
+.dockle-copy-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--dockle-primary) 35%, transparent);
+  outline-offset: 1px;
 }
 
 blockquote {
@@ -333,15 +384,16 @@ dl.dockle-alert > dd {
 
 .dockle-compat-brand,
 .dockle-compat-brand:visited {
-  align-items: baseline;
+  align-items: center;
   color: var(--dockle-content);
   display: flex;
-  gap: 0.4rem;
-  left: 1.25rem;
+  gap: 0.5rem;
+  left: var(--dockle-sidebar-padding);
+  min-height: 2rem;
   position: fixed;
   text-decoration: none;
   top: 1.5rem;
-  width: calc(var(--dockle-sidebar-width) - 2.5rem);
+  width: calc(var(--dockle-sidebar-width) - (2 * var(--dockle-sidebar-padding)));
   z-index: 120;
 }
 
@@ -368,7 +420,7 @@ dl.dockle-alert > dd {
   gap: 1rem;
   left: 0;
   overflow-y: auto;
-  padding: 1.5rem 1.25rem 4.25rem;
+  padding: 1.5rem var(--dockle-sidebar-padding) 4.25rem;
   position: fixed;
   top: 0;
   width: var(--dockle-sidebar-width);
@@ -376,10 +428,11 @@ dl.dockle-alert > dd {
 }
 
 .dockle-brand {
-  align-items: baseline;
+  align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
+  min-height: 2rem;
 }
 
 .dockle-brand a,
@@ -389,13 +442,14 @@ dl.dockle-alert > dd {
   display: inline-flex;
   font-size: 1.25rem;
   font-weight: 700;
+  gap: 0.5rem;
   text-decoration: none;
 }
 
 .dockle-logo {
   flex: 0 0 auto;
   height: 2rem;
-  margin-right: 0.5rem;
+  margin-right: 0;
   object-fit: contain;
   width: 2rem;
 }
@@ -408,10 +462,10 @@ dl.dockle-alert > dd {
   align-items: stretch;
   display: flex;
   gap: 0.5rem;
-  left: 1.25rem;
+  left: var(--dockle-sidebar-padding);
   position: fixed;
   top: 4.75rem;
-  width: calc(var(--dockle-sidebar-width) - 2.5rem);
+  width: calc(var(--dockle-sidebar-width) - (2 * var(--dockle-sidebar-padding)));
   z-index: 130;
 }
 
@@ -506,7 +560,8 @@ dl.dockle-alert > dd {
   border-radius: 0.2rem;
   color: var(--dockle-muted);
   display: block;
-  padding: 0.18rem 0.35rem;
+  font-size: 0.95rem;
+  padding: 0.25rem 0.35rem;
   text-decoration: none;
 }
 
@@ -548,7 +603,7 @@ dl.dockle-alert > dd {
   gap: clamp(1.5rem, 4vw, 4rem);
   grid-template-columns: minmax(0, var(--dockle-content-width)) minmax(10rem, 14rem);
   justify-content: center;
-  padding: 2rem clamp(1.25rem, 4vw, 4rem);
+  padding: 2rem var(--dockle-content-gutter);
 }
 
 .dockle-article {
@@ -584,6 +639,37 @@ dl.dockle-alert > dd {
 
 .dockle-on-this-page a:hover {
   color: var(--dockle-primary);
+}
+
+.dockle-compat-toc {
+  background: var(--dockle-background);
+  bottom: 2rem;
+  max-height: none;
+  overflow-y: auto;
+  padding: 0;
+  position: fixed;
+  right: var(--dockle-content-gutter);
+  top: 2rem;
+  width: var(--dockle-page-toc-width);
+  z-index: 10;
+}
+
+.dockle-compat-toc > ul {
+  margin: 0;
+  padding: 0;
+}
+
+.dockle-compat-toc li {
+  line-height: 1.35;
+  margin: 0.4rem 0;
+}
+
+.dockle-compat-toc .dockle-toc-depth-1 {
+  padding-left: 0.75rem;
+}
+
+.dockle-compat-toc .dockle-toc-depth-2 {
+  padding-left: 1.5rem;
 }
 
 .dockle-page-links {
@@ -640,9 +726,9 @@ dl.dockle-alert > dd {
   color: var(--dockle-muted);
   font-size: 0.8rem;
   font-style: normal;
-  margin: 0 auto;
+  margin: 3rem 0 0;
   max-width: var(--dockle-content-width);
-  padding: 1rem 1.25rem 2rem;
+  padding: 1rem 0 2rem;
   position: static;
   right: auto;
   width: 100%;
@@ -821,9 +907,7 @@ html[data-dockle-framework="doxygen"] #top {
 }
 
 html[data-dockle-framework="doxygen"] #titlearea {
-  border: 0;
-  padding: 1.5rem 1.25rem 0;
-  width: auto !important;
+  display: none;
 }
 
 html[data-dockle-framework="doxygen"] #titlearea table,
@@ -859,7 +943,7 @@ html[data-dockle-framework="doxygen"] #nav-tree {
   border: 0;
   height: calc(100vh - 8.5rem) !important;
   overflow: auto;
-  padding: 4.75rem 0.75rem 4.25rem;
+  padding: var(--dockle-sidebar-nav-top) var(--dockle-sidebar-padding) 4.25rem;
 }
 
 html[data-dockle-framework="doxygen"] #nav-tree-contents {
@@ -870,6 +954,7 @@ html[data-dockle-framework="doxygen"] #nav-tree .item {
   border-radius: 0.2rem;
   height: auto;
   line-height: 1.4;
+  margin: 0;
   min-height: 1.9rem;
   padding: 0.25rem 0;
 }
@@ -902,13 +987,14 @@ html[data-dockle-framework="doxygen"] #page-nav ul.page-outline ul {
   padding-left: 1rem;
 }
 
+html[data-dockle-framework="doxygen"] #nav-tree .item:hover,
 html[data-dockle-framework="doxygen"] #nav-tree .selected {
   background: color-mix(in srgb, var(--dockle-primary) 10%, transparent);
   text-shadow: none;
 }
 
 html[data-dockle-framework="doxygen"] #nav-tree .selected a,
-html[data-dockle-framework="doxygen"] #nav-tree a:hover {
+html[data-dockle-framework="doxygen"] #nav-tree .item:hover a {
   color: var(--dockle-primary) !important;
 }
 
@@ -939,7 +1025,7 @@ html[data-dockle-framework="doxygen"] #doc-content .headertitle {
 html[data-dockle-framework="doxygen"] div.contents {
   margin: 0;
   max-width: calc(var(--dockle-content-width) + 8rem);
-  padding: 2rem clamp(1.25rem, 4vw, 4rem);
+  padding: 2rem var(--dockle-content-gutter);
 }
 
 html[data-dockle-framework="doxygen"] div.header .title {
@@ -950,7 +1036,7 @@ html[data-dockle-framework="doxygen"] div.header .title {
   line-height: 1.25;
   margin: 0;
   max-width: calc(var(--dockle-content-width) + 8rem);
-  padding: 2rem clamp(1.25rem, 4vw, 4rem);
+  padding: 2rem var(--dockle-content-gutter);
 }
 
 html[data-dockle-framework="doxygen"] #doc-content .contents,
@@ -963,15 +1049,15 @@ html[data-dockle-framework="doxygen"] #doc-content .contents table {
 
 html[data-dockle-framework="doxygen"] #page-nav {
   background: var(--dockle-background) !important;
-  border-left: 1px solid var(--dockle-border) !important;
-  bottom: 0;
+  border-left: 0 !important;
+  bottom: 2rem;
   color: var(--dockle-muted);
   display: block !important;
   overflow-x: hidden !important;
   overflow-y: auto !important;
   position: fixed !important;
-  right: 0;
-  top: 0;
+  right: var(--dockle-content-gutter);
+  top: 2rem;
   width: var(--dockle-page-toc-width) !important;
   z-index: 10;
 }
@@ -989,7 +1075,7 @@ html[data-dockle-framework="doxygen"] #page-nav-resize-handle {
 }
 
 html[data-dockle-framework="doxygen"] #page-nav-contents {
-  padding: 1.5rem 0.75rem;
+  padding: 0;
 }
 
 html[data-dockle-framework="doxygen"] .dockle-toc-title {
@@ -1082,7 +1168,7 @@ html[data-dockle-framework="doxygen"] .dockle-home {
 }
 
 html[data-dockle-framework="doxygen"] .dockle-compat-brand {
-  display: none;
+  display: flex;
 }
 
 html[data-dockle-framework="doxygen"] #nav-path {
@@ -1149,7 +1235,7 @@ html[data-dockle-framework="jsdoc"] body > nav {
   bottom: 0;
   margin: 0;
   overflow-y: auto;
-  padding: 9rem 1.25rem 4.25rem;
+  padding: var(--dockle-sidebar-nav-top) var(--dockle-sidebar-padding) 4.25rem;
   position: fixed;
   top: 0;
   width: var(--dockle-sidebar-width);
@@ -1179,6 +1265,7 @@ html[data-dockle-framework="jsdoc"] body > nav a {
   border-radius: 0.2rem;
   color: var(--dockle-muted);
   display: block;
+  font-size: 0.95rem;
   overflow-wrap: anywhere;
   padding: 0.25rem 0.35rem;
   text-decoration: none;
@@ -1195,8 +1282,16 @@ html[data-dockle-framework="jsdoc"] body > main,
 html[data-dockle-framework="jsdoc"] body > #main {
   margin-left: var(--dockle-sidebar-width);
   max-width: none;
-  padding: 2rem clamp(1.25rem, 4vw, 4rem);
+  padding: 2rem var(--dockle-content-gutter);
   width: auto;
+}
+
+html[data-dockle-framework="jsdoc"].dockle-has-page-toc body > main,
+html[data-dockle-framework="jsdoc"].dockle-has-page-toc body > #main {
+  margin-right: 0;
+  width: calc(
+    100% - var(--dockle-sidebar-width) - var(--dockle-page-toc-width) - var(--dockle-content-gutter)
+  );
 }
 
 html[data-dockle-framework="jsdoc"] #main > h1,
@@ -1287,7 +1382,7 @@ html[data-dockle-framework="rustdoc"] .sidebar {
   background: var(--dockle-background-secondary) !important;
   border-right: 1px solid var(--dockle-border);
   padding-bottom: 4.25rem !important;
-  padding-top: 9rem !important;
+  padding-top: var(--dockle-sidebar-nav-top) !important;
 }
 
 html[data-dockle-framework="rustdoc"] .sidebar-resizer {
@@ -1298,11 +1393,11 @@ html[data-dockle-framework="rustdoc"] .sidebar .sidebar-crate,
 html[data-dockle-framework="rustdoc"] .sidebar .sidebar-elems {
   box-sizing: border-box;
   margin: 0;
-  padding: 0 0.75rem;
+  padding: 0 var(--dockle-sidebar-padding);
   width: 100%;
 }
 
-html[data-dockle-framework="rustdoc"] .sidebar .sidebar-crate h2,
+html[data-dockle-framework="rustdoc"] .sidebar h2,
 html[data-dockle-framework="rustdoc"] .sidebar h3 {
   border: 0;
   color: var(--dockle-content);
@@ -1310,6 +1405,12 @@ html[data-dockle-framework="rustdoc"] .sidebar h3 {
   font-size: 0.95rem;
   margin: 1rem 0 0.25rem;
   padding: 0;
+}
+
+html[data-dockle-framework="rustdoc"].dockle-has-page-toc body > main {
+  margin-right: calc(var(--dockle-page-toc-width) + var(--dockle-content-gutter));
+  padding-left: var(--dockle-content-gutter);
+  padding-right: var(--dockle-content-gutter);
 }
 
 html[data-dockle-framework="rustdoc"] .sidebar .sidebar-crate h2 {
@@ -1337,6 +1438,8 @@ html[data-dockle-framework="rustdoc"] .sidebar a:visited {
   color: var(--dockle-muted) !important;
   display: block;
   font-family: var(--dockle-font);
+  font-size: 0.95rem;
+  margin: 0 !important;
   overflow-wrap: anywhere;
   padding: 0.25rem 0.35rem;
   text-decoration: none;
@@ -1516,6 +1619,17 @@ html[data-dockle-framework="rustdoc"] rustdoc-topbar {
   html[data-dockle-framework="jsdoc"] body > #main,
   html[data-dockle-framework="doxygen"] #doc-content {
     margin-left: 0 !important;
+  }
+
+  html[data-dockle-framework="jsdoc"].dockle-has-page-toc body > main,
+  html[data-dockle-framework="jsdoc"].dockle-has-page-toc body > #main,
+  html[data-dockle-framework="rustdoc"].dockle-has-page-toc body > main {
+    margin-right: 0;
+  }
+
+  html[data-dockle-framework="jsdoc"].dockle-has-page-toc body > main,
+  html[data-dockle-framework="jsdoc"].dockle-has-page-toc body > #main {
+    width: auto;
   }
 
   html[data-dockle-framework="jsdoc"] body > main,

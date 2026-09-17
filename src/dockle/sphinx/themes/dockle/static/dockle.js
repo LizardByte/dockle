@@ -24,6 +24,11 @@
       ["path", { d: "m15 9-6 6" }],
       ["path", { d: "m9 9 6 6" }],
     ],
+    check: [["path", { d: "m20 6-11 11-5-5" }]],
+    copy: [
+      ["rect", { width: "14", height: "14", x: "8", y: "8", rx: "2" }],
+      ["path", { d: "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" }],
+    ],
     "external-link": [
       ["path", { d: "M15 3h6v6" }],
       ["path", { d: "M10 14 21 3" }],
@@ -419,12 +424,96 @@
     tabSet.prepend(tabList);
   });
 
+  const copyText = async (text) => {
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return;
+      } catch {
+        // Fall through for local files and hardened browser policies.
+      }
+    }
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.append(textarea);
+    textarea.select();
+    const copied = document.execCommand("copy");
+    textarea.remove();
+    if (!copied) {
+      throw new Error("The browser rejected the copy operation");
+    }
+  };
+
+  const codeText = (container) => {
+    const lines = [...container.querySelectorAll(":scope > .line")];
+    if (lines.length) {
+      return lines.map((line) => line.textContent).join("\n");
+    }
+    const source = container.matches("pre")
+      ? container
+      : container.querySelector("pre code, pre, code");
+    return source?.innerText.replace(/\n$/, "") || "";
+  };
+
+  const addCodeCopyButtons = () => {
+    const containers = [
+      ...document.querySelectorAll(".highlight, div.fragment, .example-wrap"),
+      ...[...document.querySelectorAll("pre")].filter(
+        (pre) => !pre.closest(".highlight, div.fragment, .example-wrap"),
+      ),
+    ];
+    containers.forEach((sourceContainer) => {
+      let container = sourceContainer;
+      if (sourceContainer.matches("pre")) {
+        container = document.createElement("div");
+        sourceContainer.before(container);
+        container.append(sourceContainer);
+      }
+      if (container.classList.contains("dockle-code-block")) {
+        return;
+      }
+      container.classList.add("dockle-code-block");
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "dockle-copy-button";
+      button.setAttribute("aria-label", "Copy code");
+      button.title = "Copy code";
+      button.innerHTML = '<i data-lucide="copy" aria-hidden="true"></i>';
+      button.addEventListener("click", async () => {
+        try {
+          await copyText(codeText(container));
+          const icon = button.querySelector("[data-lucide]");
+          icon.dataset.lucide = "check";
+          renderIcon(icon);
+          button.setAttribute("aria-label", "Code copied");
+          button.title = "Code copied";
+          window.setTimeout(() => {
+            const currentIcon = button.querySelector("[data-lucide]");
+            currentIcon.dataset.lucide = "copy";
+            renderIcon(currentIcon);
+            button.setAttribute("aria-label", "Copy code");
+            button.title = "Copy code";
+          }, 1600);
+        } catch {
+          button.setAttribute("aria-label", "Unable to copy code");
+          button.title = "Unable to copy code";
+        }
+      });
+      container.append(button);
+    });
+  };
+
   const placeBuiltWithFooter = () => {
     const footer = document.querySelector("[data-dockle-built-with]");
     const destinations = {
-      doxygen: "#doc-content",
+      doxygen: "#doc-content .contents",
       jsdoc: "#main",
-      rustdoc: "main .width-limiter",
+      mkdocs: ".dockle-article",
+      rustdoc: "#main-content",
+      sphinx: ".dockle-article",
     };
     const selector = destinations[root.dataset.dockleFramework];
     const destination = selector ? document.querySelector(selector) : null;
@@ -433,19 +522,31 @@
     }
   };
 
-  const ensureDoxygenPageToc = () => {
-    if (root.dataset.dockleFramework !== "doxygen") {
+  const ensureCompatibilityPageToc = () => {
+    const framework = root.dataset.dockleFramework;
+    if (!["doxygen", "jsdoc", "rustdoc"].includes(framework)) {
       return;
     }
-    let pageNav = document.querySelector("#page-nav");
-    const usesNativePageToc = pageNav?.classList.contains("page-nav-panel") ?? false;
+    let pageNav = framework === "doxygen"
+      ? document.querySelector("#page-nav")
+      : document.querySelector(".dockle-compat-toc");
+    const usesNativePageToc = framework === "doxygen"
+      && (pageNav?.classList.contains("page-nav-panel") ?? false);
     if (!pageNav) {
       pageNav = document.createElement("aside");
-      pageNav.id = "page-nav";
-      document.querySelector("#container")?.append(pageNav);
+      if (framework === "doxygen") {
+        pageNav.id = "page-nav";
+        document.querySelector("#container")?.append(pageNav);
+      } else {
+        pageNav.className = "dockle-on-this-page dockle-compat-toc";
+        pageNav.setAttribute("aria-label", "On this page");
+        document.body.append(pageNav);
+      }
     }
     pageNav.classList.add("dockle-page-toc");
-    let contents = pageNav.querySelector("#page-nav-contents");
+    let contents = framework === "doxygen"
+      ? pageNav.querySelector("#page-nav-contents")
+      : pageNav;
     if (!contents) {
       contents = document.createElement("div");
       contents.id = "page-nav-contents";
@@ -458,11 +559,26 @@
       contents.prepend(title);
     }
     if (!contents.querySelector("a")) {
-      const headings = [...document.querySelectorAll(
-        "#doc-content .contents h1.doxsection, #doc-content .contents h2.groupheader, #doc-content .contents h2.memtitle, #doc-content .contents h3",
-      )];
+      const headingSelectors = {
+        doxygen: "#doc-content .contents h1.doxsection, "
+          + "#doc-content .contents h2.groupheader, "
+          + "#doc-content .contents h2.memtitle, "
+          + "#doc-content .contents h3",
+        jsdoc: "#main article h2, #main article h3",
+        rustdoc: "#main-content .docblock h2, "
+          + "#main-content .docblock h3, "
+          + "#main-content .docblock h4, "
+          + "#main-content > h2.section-header",
+      };
+      const headings = [...document.querySelectorAll(headingSelectors[framework])]
+        .filter((heading) => getComputedStyle(heading).display !== "none");
       if (!headings.length) {
-        const heading = document.querySelector("#doc-content div.header .title");
+        const fallbackSelectors = {
+          doxygen: "#doc-content div.header .title",
+          jsdoc: "#main h1",
+          rustdoc: "#main-content h1",
+        };
+        const heading = document.querySelector(fallbackSelectors[framework]);
         if (heading) {
           heading.id ||= "dockle-page-start";
           headings.push(heading);
@@ -470,13 +586,21 @@
       }
       const list = document.createElement("ul");
       list.className = "page-outline";
+      const levels = headings.map((heading) => Number(heading.tagName.slice(1)));
+      const baseLevel = Math.min(...levels);
       headings.forEach((heading, index) => {
         const anchor = heading.querySelector(".anchor[id]");
         heading.id ||= anchor?.id || `dockle-section-${index + 1}`;
         const item = document.createElement("li");
+        const depth = Math.min(Number(heading.tagName.slice(1)) - baseLevel, 2);
+        item.classList.add(`dockle-toc-depth-${depth}`);
         const link = document.createElement("a");
         link.href = `#${heading.id}`;
-        link.textContent = heading.textContent.trim();
+        const title = heading.cloneNode(true);
+        title.querySelectorAll(".anchor, .doc-anchor, .headerlink").forEach(
+          (anchor) => anchor.remove(),
+        );
+        link.textContent = title.textContent.trim();
         item.append(link);
         list.append(item);
       });
@@ -633,8 +757,13 @@
   });
 
   addDoxygenNavigation();
+  addCodeCopyButtons();
   placeBuiltWithFooter();
+  if (root.dataset.dockleFramework === "doxygen") {
+    window.addEventListener("load", ensureCompatibilityPageToc);
+  } else {
+    ensureCompatibilityPageToc();
+  }
   renderIcons();
   updateThemeButtons();
-  window.addEventListener("load", ensureDoxygenPageToc);
 })();
