@@ -1534,6 +1534,12 @@ html[data-dockle-framework="rustdoc"] .dockle-code-block > pre > code {
   padding: 0 !important;
 }
 
+html[data-dockle-framework="rustdoc"]
+  .dockle-code-block
+  > .button-holder {
+  display: none !important;
+}
+
 html[data-dockle-framework="rustdoc"] #copy-path::before,
 html[data-dockle-framework="rustdoc"] .settings-menu > a::before,
 html[data-dockle-framework="rustdoc"] .help-menu > a::before,

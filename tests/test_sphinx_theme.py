@@ -147,6 +147,11 @@ class SphinxThemeTests(unittest.TestCase):
             "  border-radius: 0 !important;",
             stylesheet,
         )
+        self.assertIn(
+            '.dockle-code-block\n  > .button-holder {\n'
+            "  display: none !important;",
+            stylesheet,
+        )
 
     def test_footer_moves_into_each_framework_content_column(self) -> None:
         script = (THEME_DIRECTORY / "static" / "dockle.js").read_text(
