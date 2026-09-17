@@ -9,21 +9,21 @@
   <style>
     :root,
     :root[data-color-scheme="light"] {
-      --dockle-primary: {{ theme_primary|safe }};
-      --dockle-content: {{ theme_content|safe }};
-      --dockle-background: {{ theme_light_background|safe }};
-      --dockle-font: {{ theme_font|safe }};
-      --dockle-code-font: {{ theme_code_font|safe }};
+      --dockle-primary: {{ theme_primary }};
+      --dockle-content: {{ theme_content }};
+      --dockle-background: {{ theme_light_background }};
+      --dockle-font: {{ theme_font }};
+      --dockle-code-font: {{ theme_code_font }};
     }
 
     :root[data-color-scheme="dark"] {
-      --dockle-background: {{ theme_dark_background|safe }};
+      --dockle-background: {{ theme_dark_background }};
       --dockle-content: #e5e7eb;
     }
 
     @media (prefers-color-scheme: dark) {
       :root:not([data-color-scheme]) {
-        --dockle-background: {{ theme_dark_background|safe }};
+        --dockle-background: {{ theme_dark_background }};
         --dockle-content: #e5e7eb;
       }
     }
@@ -71,7 +71,7 @@
       </header>
 
       <main class="dockle-main">
-        <article class="dockle-article" role="main">
+        <article class="dockle-article">
           {% block body %}{{ body }}{% endblock %}
 
           {% if prev or next %}

@@ -14,6 +14,16 @@ SUPPORTED_FRAMEWORKS = frozenset(
     {"doxygen", "jsdoc", "mkdocs", "rustdoc", "sphinx"}
 )
 _TARGET_NAME = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
+_TARGET_KEYS = {
+    "name",
+    "title",
+    "description",
+    "framework",
+    "source",
+    "output",
+    "entry",
+    "home",
+}
 
 
 class ConfigError(ValueError):
@@ -241,99 +251,131 @@ def _load_targets(
         where = f"targets[{index}]"
         if not isinstance(item, dict):
             raise ConfigError(f"{where} must be a table")
-        _reject_unknown(
+        target, home_target = _load_target(
             item,
-            {
-                "name",
-                "title",
-                "description",
-                "framework",
-                "source",
-                "output",
-                "entry",
-                "home",
-            },
             where,
+            root,
+            build,
+            names,
+            outputs,
+            home_target,
         )
-        name = _required_string(item, "name", where)
-        if not _TARGET_NAME.fullmatch(name):
-            raise ConfigError(
-                f"{where}.name must use lowercase letters, numbers, hyphens, or underscores"
-            )
-        if name in names:
-            raise ConfigError(f"duplicate target name: {name}")
-        names.add(name)
-
-        framework = _required_string(item, "framework", where).lower()
-        if framework not in SUPPORTED_FRAMEWORKS:
-            supported = ", ".join(sorted(SUPPORTED_FRAMEWORKS))
-            raise ConfigError(
-                f"unsupported framework {framework!r}; choose one of: {supported}"
-            )
-
-        source = _path_within_root(
-            root, _required_string(item, "source", where), f"{where}.source"
-        )
-        home = _optional_bool(item, "home", where, False)
-        if home:
-            if framework != "sphinx":
-                raise ConfigError(f"{where}.home requires framework = 'sphinx'")
-            if "output" in item:
-                raise ConfigError(
-                    f"{where}.output cannot be set for the home target"
-                )
-            if home_target is not None:
-                raise ConfigError(
-                    f"only one home target is allowed: {home_target}, {name}"
-                )
-            home_target = name
-            output_name = "."
-            output = build.output
-        else:
-            output_name = _optional_string(item, "output", where, name)
-            output = _path_within_root(
-                build.output, output_name, f"{where}.output"
-            )
-            if output == build.output:
-                raise ConfigError(
-                    f"{where}.output must name a directory below build.output"
-                )
-            if any(
-                output.is_relative_to(existing)
-                or existing.is_relative_to(output)
-                for existing in outputs
-            ):
-                raise ConfigError(
-                    f"target output overlaps another target: {output_name}"
-                )
-            outputs.add(output)
-        if source == output or source.is_relative_to(output):
-            raise ConfigError(
-                f"{where}.source must not be inside its generated output"
-            )
-
-        entry = _optional_string(item, "entry", where, "index")
-        entry_path = Path(entry)
-        if entry_path.is_absolute() or ".." in entry_path.parts:
-            raise ConfigError(
-                f"{where}.entry must be a relative path within the target source"
-            )
-
-        targets.append(
-            TargetConfig(
-                name=name,
-                title=_optional_string(
-                    item, "title", where, name.replace("-", " ").title()
-                ),
-                description=_optional_string(item, "description", where),
-                framework=framework,
-                source=source,
-                output=output,
-                entry=entry,
-                home=home,
-            )
-        )
+        targets.append(target)
     return tuple(targets)
+
+
+def _load_target(
+    item: dict[str, Any],
+    where: str,
+    root: Path,
+    build: BuildConfig,
+    names: set[str],
+    outputs: set[Path],
+    home_target: str | None,
+) -> tuple[TargetConfig, str | None]:
+    _reject_unknown(item, _TARGET_KEYS, where)
+    name = _target_name(item, where, names)
+    framework = _target_framework(item, where)
+    source = _path_within_root(
+        root, _required_string(item, "source", where), f"{where}.source"
+    )
+    home = _optional_bool(item, "home", where, False)
+    output, home_target = _target_output(
+        item, where, name, framework, home, build, outputs, home_target
+    )
+    if source == output or source.is_relative_to(output):
+        raise ConfigError(
+            f"{where}.source must not be inside its generated output"
+        )
+    return (
+        TargetConfig(
+            name=name,
+            title=_optional_string(
+                item, "title", where, name.replace("-", " ").title()
+            ),
+            description=_optional_string(item, "description", where),
+            framework=framework,
+            source=source,
+            output=output,
+            entry=_target_entry(item, where),
+            home=home,
+        ),
+        home_target,
+    )
+
+
+def _target_name(
+    item: dict[str, Any], where: str, names: set[str]
+) -> str:
+    name = _required_string(item, "name", where)
+    if not _TARGET_NAME.fullmatch(name):
+        raise ConfigError(
+            f"{where}.name must use lowercase letters, numbers, hyphens, or underscores"
+        )
+    if name in names:
+        raise ConfigError(f"duplicate target name: {name}")
+    names.add(name)
+    return name
+
+
+def _target_framework(item: dict[str, Any], where: str) -> str:
+    framework = _required_string(item, "framework", where).lower()
+    if framework not in SUPPORTED_FRAMEWORKS:
+        supported = ", ".join(sorted(SUPPORTED_FRAMEWORKS))
+        raise ConfigError(
+            f"unsupported framework {framework!r}; choose one of: {supported}"
+        )
+    return framework
+
+
+def _target_output(
+    item: dict[str, Any],
+    where: str,
+    name: str,
+    framework: str,
+    home: bool,
+    build: BuildConfig,
+    outputs: set[Path],
+    home_target: str | None,
+) -> tuple[Path, str | None]:
+    if home:
+        if framework != "sphinx":
+            raise ConfigError(f"{where}.home requires framework = 'sphinx'")
+        if "output" in item:
+            raise ConfigError(f"{where}.output cannot be set for the home target")
+        if home_target is not None:
+            raise ConfigError(
+                f"only one home target is allowed: {home_target}, {name}"
+            )
+        return build.output, name
+
+    output_name = _optional_string(item, "output", where, name)
+    output = _path_within_root(build.output, output_name, f"{where}.output")
+    if output == build.output:
+        raise ConfigError(
+            f"{where}.output must name a directory below build.output"
+        )
+    if _overlaps_any(output, outputs):
+        raise ConfigError(f"target output overlaps another target: {output_name}")
+    outputs.add(output)
+    return output, home_target
+
+
+def _overlaps_any(output: Path, existing_outputs: set[Path]) -> bool:
+    return any(
+        output.is_relative_to(existing) or existing.is_relative_to(output)
+        for existing in existing_outputs
+    )
+
+
+def _target_entry(item: dict[str, Any], where: str) -> str:
+    entry = _optional_string(item, "entry", where, "index")
+    entry_path = Path(entry)
+    if entry_path.is_absolute() or ".." in entry_path.parts:
+        raise ConfigError(
+            f"{where}.entry must be a relative path within the target source"
+        )
+    return entry
 
 
 def _load_tools(raw: dict[str, Any]) -> dict[str, str]:

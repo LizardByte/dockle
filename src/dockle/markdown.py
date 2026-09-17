@@ -27,20 +27,15 @@ def normalize_github_alerts(source: str) -> str:
         line = lines[index]
         if fence_character:
             normalized.append(line)
-            closing_fence = re.match(
-                rf"^ {{0,3}}{re.escape(fence_character)}{{{fence_length},}}\s*$",
-                line,
-            )
-            if closing_fence:
+            if _closes_fence(line, fence_character, fence_length):
                 fence_character = ""
                 fence_length = 0
             index += 1
             continue
 
-        opening_fence = _FENCE_START.match(line)
-        if opening_fence:
-            fence_character = opening_fence.group(1)[0]
-            fence_length = len(opening_fence.group(1))
+        opening_fence = _opening_fence(line)
+        if opening_fence is not None:
+            fence_character, fence_length = opening_fence
             normalized.append(line)
             index += 1
             continue
@@ -51,19 +46,43 @@ def normalize_github_alerts(source: str) -> str:
             index += 1
             continue
 
-        normalized.append(f"!!! {match.group(1).lower()}")
-        index += 1
-        while index < len(lines):
-            line = lines[index]
-            if not line.startswith(">"):
-                break
-            content = line[1:]
-            if content.startswith(" "):
-                content = content[1:]
-            normalized.append(f"    {content}" if content else "")
-            index += 1
-        normalized.append("")
+        index = _append_alert(lines, index, match.group(1), normalized)
     return "\n".join(normalized)
+
+
+def _opening_fence(line: str) -> tuple[str, int] | None:
+    match = _FENCE_START.match(line)
+    if match is None:
+        return None
+    fence = match.group(1)
+    return fence[0], len(fence)
+
+
+def _closes_fence(line: str, character: str, length: int) -> bool:
+    stripped = line.lstrip(" ")
+    indentation = len(line) - len(stripped)
+    fence = stripped.rstrip()
+    return (
+        indentation <= 3
+        and len(fence) >= length
+        and set(fence) == {character}
+    )
+
+
+def _append_alert(
+    lines: list[str],
+    index: int,
+    alert_type: str,
+    normalized: list[str],
+) -> int:
+    normalized.append(f"!!! {alert_type.lower()}")
+    index += 1
+    while index < len(lines) and lines[index].startswith(">"):
+        content = lines[index][1:].removeprefix(" ")
+        normalized.append(f"    {content}" if content else "")
+        index += 1
+    normalized.append("")
+    return index
 
 
 class GithubAlertPreprocessor(Preprocessor):
@@ -85,7 +104,7 @@ class GithubAlertsExtension(Extension):
         md.preprocessors.register(processor, "dockle_github_alerts", 35)
 
 
-def makeExtension(**kwargs: object) -> GithubAlertsExtension:  # noqa: N802
+def makeExtension(**kwargs: object) -> GithubAlertsExtension:  # noqa: N802  # NOSONAR
     """Return the extension for Python-Markdown and MkDocs."""
 
     return GithubAlertsExtension(**kwargs)

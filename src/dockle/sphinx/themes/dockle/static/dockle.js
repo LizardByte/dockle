@@ -23,25 +23,35 @@
   const themeModes = ["auto", "light", "dark"];
   let storedScheme = null;
 
-  const isComponentReference = Boolean(document.querySelector("#component-reference"))
-    || [...document.querySelectorAll("h1, h2")]
-      .some((heading) => heading.textContent.trim() === "Component reference");
-  if (isComponentReference) {
+  const configureComponentReference = () => {
+    const isReference = Boolean(document.querySelector("#component-reference"))
+      || [...document.querySelectorAll("h1, h2")]
+        .some((heading) => heading.textContent.trim() === "Component reference");
+    if (!isReference) {
+      return;
+    }
     root.classList.add("dockle-component-reference");
-  }
-  if (isComponentReference && root.dataset.dockleFramework === "jsdoc") {
+    if (root.dataset.dockleFramework !== "jsdoc") {
+      return;
+    }
     document.querySelectorAll("body > nav a").forEach((link) => {
       if (link.textContent.trim().toLocaleLowerCase() === "showcase") {
         link.textContent = "Component reference";
       }
     });
-  }
+  };
 
-  try {
-    storedScheme = localStorage.getItem(storageKey);
-  } catch {
-    // Storage can be unavailable for local files or hardened browser policies.
-  }
+  const loadStoredScheme = () => {
+    try {
+      return localStorage.getItem(storageKey);
+    } catch {
+      // Storage can be unavailable for local files or hardened browser policies.
+      return null;
+    }
+  };
+
+  configureComponentReference();
+  storedScheme = loadStoredScheme();
 
   if (storedScheme === "light" || storedScheme === "dark") {
     root.dataset.colorScheme = storedScheme;
@@ -204,7 +214,7 @@
     if (!first) {
       return;
     }
-    const match = first.textContent.trim().match(/^\[!(\w+)\]/i);
+    const match = /^\[!(\w+)\]/i.exec(first.textContent.trim());
     const type = match?.[1].toLocaleLowerCase();
     if (!type || !alertConfig[type]) {
       return;
@@ -253,7 +263,7 @@
     }
     if (!type) {
       type = [...alert.classList]
-        .map((name) => name.match(/^dockle-alert-(\w+)$/)?.[1])
+        .map((name) => /^dockle-alert-(\w+)$/.exec(name)?.[1])
         .find((name) => alertConfig[name]);
     }
     if (!type) {
@@ -317,26 +327,10 @@
   });
 
   const copyText = async (text) => {
-    if (navigator.clipboard?.writeText) {
-      try {
-        await navigator.clipboard.writeText(text);
-        return;
-      } catch {
-        // Fall through for local files and hardened browser policies.
-      }
+    if (!navigator.clipboard?.writeText) {
+      throw new Error("The Clipboard API is unavailable");
     }
-    const textarea = document.createElement("textarea");
-    textarea.value = text;
-    textarea.setAttribute("readonly", "");
-    textarea.style.position = "fixed";
-    textarea.style.opacity = "0";
-    document.body.append(textarea);
-    textarea.select();
-    const copied = document.execCommand("copy");
-    textarea.remove();
-    if (!copied) {
-      throw new Error("The browser rejected the copy operation");
-    }
+    await navigator.clipboard.writeText(text);
   };
 
   const codeText = (container) => {
@@ -517,95 +511,123 @@
     }
   };
 
+  const createCompatibilityPageNav = (framework) => {
+    const pageNav = document.createElement("aside");
+    if (framework === "doxygen") {
+      pageNav.id = "page-nav";
+      document.querySelector("#container")?.append(pageNav);
+      return pageNav;
+    }
+    pageNav.className = "dockle-on-this-page dockle-compat-toc";
+    pageNav.setAttribute("aria-label", "On this page");
+    document.body.append(pageNav);
+    return pageNav;
+  };
+
+  const compatibilityPageNav = (framework) => {
+    const selector = framework === "doxygen"
+      ? "#page-nav"
+      : ".dockle-compat-toc";
+    return document.querySelector(selector)
+      || createCompatibilityPageNav(framework);
+  };
+
+  const compatibilityHeadings = (framework) => {
+    const headingSelectors = {
+      doxygen: "#doc-content .contents h1.doxsection, "
+        + "#doc-content .contents h2.groupheader, "
+        + "#doc-content .contents h2.memtitle, "
+        + "#doc-content .contents h3",
+      jsdoc: "#main article h2, #main article h3",
+      rustdoc: "#main-content .docblock h2, "
+        + "#main-content .docblock h3, "
+        + "#main-content .docblock h4, "
+        + "#main-content > h2.section-header",
+    };
+    const headings = [...document.querySelectorAll(headingSelectors[framework])]
+      .filter((heading) => getComputedStyle(heading).display !== "none");
+    if (headings.length) {
+      return headings;
+    }
+    const fallbackSelectors = {
+      doxygen: "#doc-content div.header .title",
+      jsdoc: "#main h1",
+      rustdoc: "#main-content h1",
+    };
+    const heading = document.querySelector(fallbackSelectors[framework]);
+    if (!heading) {
+      return headings;
+    }
+    heading.id ||= "dockle-page-start";
+    return [heading];
+  };
+
+  const pageTocContents = (pageNav, framework) => {
+    let contents = framework === "doxygen"
+      ? pageNav.querySelector("#page-nav-contents")
+      : pageNav;
+    if (contents) {
+      return contents;
+    }
+    contents = document.createElement("div");
+    contents.id = "page-nav-contents";
+    pageNav.append(contents);
+    return contents;
+  };
+
+  const addPageTocTitle = (contents) => {
+    if (contents.querySelector(".dockle-toc-title")) {
+      return;
+    }
+    const title = document.createElement("strong");
+    title.className = "dockle-toc-title";
+    title.textContent = "On this page";
+    contents.prepend(title);
+  };
+
+  const populatePageToc = (contents, framework) => {
+    if (contents.querySelector("a")) {
+      return;
+    }
+    const headings = compatibilityHeadings(framework);
+    const list = document.createElement("ul");
+    list.className = "page-outline";
+    const levels = headings.map((heading) => Number(heading.tagName.slice(1)));
+    const baseLevel = Math.min(...levels);
+    headings.forEach((heading, index) => {
+      const anchor = heading.querySelector(".anchor[id]");
+      heading.id ||= anchor?.id || `dockle-section-${index + 1}`;
+      const item = document.createElement("li");
+      const depth = Math.min(Number(heading.tagName.slice(1)) - baseLevel, 2);
+      item.classList.add(`dockle-toc-depth-${depth}`);
+      const link = document.createElement("a");
+      link.href = `#${heading.id}`;
+      const title = heading.cloneNode(true);
+      title.querySelectorAll(
+        ".anchor, .doc-anchor, .headerlink, .dockle-heading-anchor",
+      ).forEach((anchor) => anchor.remove());
+      link.textContent = title.textContent.trim();
+      item.append(link);
+      list.append(item);
+    });
+    contents.append(list);
+  };
+
   const ensureCompatibilityPageToc = () => {
     const framework = root.dataset.dockleFramework;
     if (!["doxygen", "jsdoc", "rustdoc"].includes(framework)) {
       return;
     }
-    let pageNav = framework === "doxygen"
-      ? document.querySelector("#page-nav")
-      : document.querySelector(".dockle-compat-toc");
+    const pageNav = compatibilityPageNav(framework);
     const usesNativePageToc = framework === "doxygen"
-      && (pageNav?.classList.contains("page-nav-panel") ?? false);
-    if (!pageNav) {
-      pageNav = document.createElement("aside");
-      if (framework === "doxygen") {
-        pageNav.id = "page-nav";
-        document.querySelector("#container")?.append(pageNav);
-      } else {
-        pageNav.className = "dockle-on-this-page dockle-compat-toc";
-        pageNav.setAttribute("aria-label", "On this page");
-        document.body.append(pageNav);
-      }
-    }
+      && pageNav.classList.contains("page-nav-panel");
     pageNav.querySelectorAll(".dockle-heading-anchor").forEach(
       (anchor) => anchor.remove(),
     );
     pageNav.classList.add("dockle-page-toc");
-    let contents = framework === "doxygen"
-      ? pageNav.querySelector("#page-nav-contents")
-      : pageNav;
-    if (!contents) {
-      contents = document.createElement("div");
-      contents.id = "page-nav-contents";
-      pageNav.append(contents);
-    }
-    if (!contents.querySelector(".dockle-toc-title")) {
-      const title = document.createElement("strong");
-      title.className = "dockle-toc-title";
-      title.textContent = "On this page";
-      contents.prepend(title);
-    }
-    if (!contents.querySelector("a")) {
-      const headingSelectors = {
-        doxygen: "#doc-content .contents h1.doxsection, "
-          + "#doc-content .contents h2.groupheader, "
-          + "#doc-content .contents h2.memtitle, "
-          + "#doc-content .contents h3",
-        jsdoc: "#main article h2, #main article h3",
-        rustdoc: "#main-content .docblock h2, "
-          + "#main-content .docblock h3, "
-          + "#main-content .docblock h4, "
-          + "#main-content > h2.section-header",
-      };
-      const headings = [...document.querySelectorAll(headingSelectors[framework])]
-        .filter((heading) => getComputedStyle(heading).display !== "none");
-      if (!headings.length) {
-        const fallbackSelectors = {
-          doxygen: "#doc-content div.header .title",
-          jsdoc: "#main h1",
-          rustdoc: "#main-content h1",
-        };
-        const heading = document.querySelector(fallbackSelectors[framework]);
-        if (heading) {
-          heading.id ||= "dockle-page-start";
-          headings.push(heading);
-        }
-      }
-      const list = document.createElement("ul");
-      list.className = "page-outline";
-      const levels = headings.map((heading) => Number(heading.tagName.slice(1)));
-      const baseLevel = Math.min(...levels);
-      headings.forEach((heading, index) => {
-        const anchor = heading.querySelector(".anchor[id]");
-        heading.id ||= anchor?.id || `dockle-section-${index + 1}`;
-        const item = document.createElement("li");
-        const depth = Math.min(Number(heading.tagName.slice(1)) - baseLevel, 2);
-        item.classList.add(`dockle-toc-depth-${depth}`);
-        const link = document.createElement("a");
-        link.href = `#${heading.id}`;
-        const title = heading.cloneNode(true);
-        title.querySelectorAll(
-          ".anchor, .doc-anchor, .headerlink, .dockle-heading-anchor",
-        ).forEach(
-          (anchor) => anchor.remove(),
-        );
-        link.textContent = title.textContent.trim();
-        item.append(link);
-        list.append(item);
-      });
-      contents.append(list);
-    }
+    const contents = pageTocContents(pageNav, framework);
+    addPageTocTitle(contents);
+    populatePageToc(contents, framework);
     root.classList.add("dockle-has-page-toc");
     root.classList.toggle("dockle-native-page-toc", usesNativePageToc);
   };
