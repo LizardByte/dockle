@@ -165,9 +165,24 @@ class ProjectDogfoodTests(unittest.TestCase):
         self.assertIn("uv sync --locked", workflow)
         self.assertIn("report_type: coverage", workflow)
         self.assertIn("report_type: test_results", workflow)
-        self.assertIn("github.event_name == 'push'", workflow)
+        self.assertIn(
+            "if: needs.release-setup.outputs.publish_release == 'true'",
+            workflow,
+        )
         self.assertIn("publish_release == 'true'", workflow)
         self.assertIn("virustotal_api_key:", workflow)
+        self.assertIn("watchdog must build", workflow)
+        self.assertEqual(
+            workflow.count("NOSONAR(githubactions:S8541)"), 3
+        )
+        self.assertEqual(
+            workflow.count("NOSONAR(githubactions:S8544)"), 2
+        )
+        self.assertEqual(
+            workflow.count("--no-deps prevents unlocked dependency"), 2
+        )
+        self.assertIn("--no-sync prevents installs", workflow)
+        self.assertIn("standalone matrix portable", workflow)
         self.assertNotIn("gh-action-pypi-publish@", workflow)
 
     def test_pypi_publish_requires_a_stable_release_event(self) -> None:
@@ -197,8 +212,40 @@ class ProjectDogfoodTests(unittest.TestCase):
             "macos-26-intel",
         ):
             self.assertIn(f"os: {runner}", workflow)
-        self.assertIn("dockle-windows-amd64.exe", workflow)
-        self.assertIn("dockle-windows-arm64.exe", workflow)
+        self.assertIn("executable: dockle.exe", workflow)
+        self.assertIn("executable: dockle", workflow)
+        self.assertIn("--name dockle", workflow)
+        self.assertIn("azure/trusted-signing-action@", workflow)
+        self.assertIn("apple-actions/import-codesign-certs@", workflow)
+        self.assertIn("--codesign-identity", workflow)
+        self.assertEqual(
+            workflow.count("- name: Build standalone executable\n"), 1
+        )
+        self.assertNotIn(
+            "Build and sign macOS standalone executable", workflow
+        )
+        self.assertIn(
+            "APPLE_CODESIGN_IDENTITY: ${{ secrets.APPLE_CODESIGN_IDENTITY }}",
+            workflow,
+        )
+        self.assertIn(
+            'if [[ "${RUNNER_OS}" == "macOS" && \\',
+            workflow,
+        )
+        self.assertGreaterEqual(
+            workflow.count(
+                "if: needs.release-setup.outputs.publish_release == 'true'"
+            ),
+            2,
+        )
+        self.assertNotIn("- name: Smoke test Windows executable", workflow)
+        self.assertIn(
+            "- name: Smoke test standalone executable on Windows", workflow
+        )
+        self.assertIn("runs-on: windows-latest", workflow)
+        self.assertGreaterEqual(workflow.count("archive: false"), 2)
+        self.assertIn("dockle-${{ matrix.artifact }}.tar.gz", workflow)
+        self.assertIn("dockle-${{ matrix.artifact }}.zip", workflow)
         self.assertNotIn("SHA256SUMS", workflow)
         self.assertIn("--onefile", workflow)
         self.assertIn("--copy-metadata dockle", workflow)

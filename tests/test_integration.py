@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import shutil
 import subprocess
 import sys
@@ -173,9 +174,7 @@ source = "api"
             self.assertIn('class="dockle-portal-card" href="api/"', html)
             self.assertNotIn("data-dockle-home", html)
 
-    @unittest.skipUnless(
-        _tool_available("sphinx-build"), "Sphinx is not installed"
-    )
+    @unittest.skipUnless(importlib.util.find_spec("sphinx"), "Sphinx is not installed")
     def test_sphinx_can_discover_dockle_as_a_standalone_theme(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -189,13 +188,17 @@ source = "api"
             (source / "index.rst").write_text(
                 "Example\n=======\n", encoding="utf-8"
             )
-            executable = shutil.which(
-                "sphinx-build", path=str(Path(sys.executable).resolve().parent)
-            )
-            assert executable is not None
-
             completed = subprocess.run(
-                [executable, "-W", "-b", "html", str(source), str(output)],
+                [
+                    sys.executable,
+                    "-m",
+                    "sphinx",
+                    "-W",
+                    "-b",
+                    "html",
+                    str(source),
+                    str(output),
+                ],
                 check=False,
             )
 

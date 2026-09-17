@@ -4,6 +4,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from stat import S_IXUSR
 
 from dockle import __version__
 from dockle.builders import BuildManager, Command
@@ -190,6 +191,7 @@ class BuilderTests(unittest.TestCase):
         )
         executable.parent.mkdir(parents=True)
         executable.touch()
+        executable.chmod(executable.stat().st_mode | S_IXUSR)
 
         plan = self.manager.plan(self.config.targets[3], require_tool=True)
 
