@@ -29,8 +29,9 @@ function(dockle_add_docs target)
     if(NOT dockle_config)
         set(dockle_config "${CMAKE_SOURCE_DIR}/dockle.toml")
     elseif(NOT IS_ABSOLUTE "${dockle_config}")
-        cmake_path(ABSOLUTE_PATH dockle_config BASE_DIRECTORY
-                   "${CMAKE_CURRENT_SOURCE_DIR}" NORMALIZE)
+        get_filename_component(
+            dockle_config "${dockle_config}" ABSOLUTE
+            BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
     endif()
 
     if(NOT EXISTS "${dockle_config}")
@@ -38,13 +39,16 @@ function(dockle_add_docs target)
     endif()
 
     if(NOT DOCKLE_WORKING_DIRECTORY)
-        cmake_path(GET dockle_config PARENT_PATH dockle_working_directory)
+        get_filename_component(dockle_working_directory "${dockle_config}"
+                               DIRECTORY)
     else()
         set(dockle_working_directory "${DOCKLE_WORKING_DIRECTORY}")
     endif()
 
-    cmake_path(GET CMAKE_CURRENT_LIST_DIR PARENT_PATH dockle_package_directory)
-    cmake_path(GET dockle_package_directory PARENT_PATH dockle_python_path)
+    get_filename_component(dockle_package_directory
+                           "${CMAKE_CURRENT_LIST_DIR}" DIRECTORY)
+    get_filename_component(dockle_python_path "${dockle_package_directory}"
+                           DIRECTORY)
 
     if(DOCKLE_EXECUTABLE)
         set(dockle_command "${DOCKLE_EXECUTABLE}")
