@@ -865,7 +865,8 @@
         item.append(link);
       }
       item.classList.add("dockle-language-toc-item");
-      link.textContent = heading.querySelector("strong")?.textContent
+      link.textContent = heading.querySelector(":scope > strong, :scope > b")
+        ?.textContent
         || heading.dataset.dockleLanguage
         || heading.id.replace(/^language-/, "");
       languageList.append(item);
@@ -883,6 +884,11 @@
     const pageNav = compatibilityPageNav(framework);
     const usesNativePageToc = framework === "doxygen"
       && pageNav.classList.contains("page-nav-panel");
+    if (usesNativePageToc) {
+      pageNav.querySelectorAll("a[href] > .anchor[id]").forEach(
+        (anchor) => anchor.remove(),
+      );
+    }
     pageNav.querySelectorAll(".dockle-heading-anchor").forEach(
       (anchor) => anchor.remove(),
     );

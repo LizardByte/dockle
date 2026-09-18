@@ -150,6 +150,8 @@ class SphinxThemeTests(unittest.TestCase):
 
         self.assertIn("ensureCompatibilityPageToc", script)
         self.assertIn('["doxygen", "jsdoc", "rustdoc"]', script)
+        self.assertIn('a[href] > .anchor[id]', script)
+        self.assertIn(':scope > strong, :scope > b', script)
         self.assertIn("dockle-compat-toc", script)
         self.assertIn(".dockle-compat-toc", stylesheet)
         self.assertIn("border-left: 0 !important", stylesheet)
