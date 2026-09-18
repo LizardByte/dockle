@@ -8,6 +8,9 @@ import { fileURLToPath } from 'node:url';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const executable = path.join(projectRoot, 'bin', 'dockle-jsdoc.cjs');
+const packageMetadata = JSON.parse(
+  await readFile(path.join(projectRoot, 'package.json'), 'utf8'),
+);
 
 test('the npm command builds a self-contained native JSDoc site', async (context) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'dockle-jsdoc-'));
@@ -61,7 +64,7 @@ export function add(left, right) { return left + right; }
   assert.match(document, /data-dockle-theme="jsdoc"/);
   assert.match(document, /native-jsdoc-example/);
   assert.match(document, /https:\/\/example\.invalid\/native-jsdoc-example/);
-  assert.match(document, /Dockle 0\.0\.0/);
+  assert.ok(document.includes(`Dockle ${packageMetadata.version}`));
   assert.match(document, /JSDoc 4\.0\.5/);
   assert.match(document, /dockle-logo\.svg/);
   assert.match(document, /dockle-favicon\.svg/);

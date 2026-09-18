@@ -78,6 +78,52 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertIn("a.dockle-current", stylesheet)
         self.assertIn("markCurrentNavigation", script)
 
+    def test_sidebar_identity_stays_pinned_and_compacts_on_scroll(self) -> None:
+        stylesheet = (
+            THEME_DIRECTORY / "static" / "dockle.css"
+        ).read_text(encoding="utf-8")
+        script = (THEME_DIRECTORY / "static" / "dockle.js").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn(".dockle-sidebar::before", stylesheet)
+        self.assertIn("--dockle-sidebar-header-height", stylesheet)
+        self.assertIn("scrollbar-gutter: stable", stylesheet)
+        self.assertIn("data-dockle-has-logo", stylesheet)
+        self.assertIn("data-dockle-sidebar-compact", stylesheet)
+        self.assertIn("const sidebarScroller", script)
+        self.assertIn("--dockle-sidebar-logo-size: 4.5rem", stylesheet)
+        self.assertIn(
+            "padding: var(--dockle-sidebar-header-height)", stylesheet
+        )
+        self.assertIn("overflow-anchor: none", stylesheet)
+        self.assertIn("sidebarScroller.scrollTop >= 72", script)
+
+    def test_sidebar_brand_links_share_hover_and_type_spacing(self) -> None:
+        stylesheet = (
+            THEME_DIRECTORY / "static" / "dockle.css"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn(".dockle-compat-brand:hover", stylesheet)
+        self.assertIn(".dockle-brand a:hover", stylesheet)
+        self.assertIn("line-height: 1.3", stylesheet)
+
+    def test_content_columns_keep_a_stable_wide_screen_origin(self) -> None:
+        stylesheet = (
+            THEME_DIRECTORY / "static" / "dockle.css"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("--dockle-column-gap", stylesheet)
+        self.assertIn("justify-content: start", stylesheet)
+        self.assertIn(
+            'body.rustdoc:not(.src) > main {',
+            stylesheet,
+        )
+        self.assertIn(
+            "var(--dockle-content-width) + var(--dockle-column-gap)",
+            stylesheet,
+        )
+
     def test_attribution_resets_framework_typography(self) -> None:
         stylesheet = (
             THEME_DIRECTORY / "static" / "dockle.css"

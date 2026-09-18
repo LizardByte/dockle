@@ -15,9 +15,12 @@
   --dockle-muted: color-mix(in srgb, var(--dockle-content) 68%, transparent);
   --dockle-sidebar-padding: 1.25rem;
   --dockle-sidebar-width: 18rem;
-  --dockle-sidebar-nav-top: 9rem;
+  --dockle-sidebar-header-height: 8.5rem;
+  --dockle-sidebar-toolbar-top: 4.75rem;
+  --dockle-sidebar-logo-size: 2rem;
   --dockle-content-width: 52rem;
   --dockle-content-gutter: clamp(1.25rem, 4vw, 4rem);
+  --dockle-column-gap: clamp(1.5rem, 4vw, 4rem);
   --dockle-page-toc-width: 14rem;
   --dockle-radius: 0.35rem;
 }
@@ -439,23 +442,33 @@ dl.dockle-alert > dd {
   align-items: center;
   color: var(--dockle-content);
   display: flex;
+  font-family: var(--dockle-font);
   gap: 0.5rem;
   left: var(--dockle-sidebar-padding);
   min-height: 2rem;
   position: fixed;
   text-decoration: none;
   top: 1.5rem;
+  transition: top 160ms ease-out;
   width: calc(var(--dockle-sidebar-width) - (2 * var(--dockle-sidebar-padding)));
   z-index: 120;
 }
 
+.dockle-compat-brand:hover,
+.dockle-compat-brand:focus-visible {
+  text-decoration: none;
+}
+
 .dockle-compat-brand strong {
   font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.3;
 }
 
 .dockle-compat-brand span {
   color: var(--dockle-muted);
   font-size: 0.8rem;
+  line-height: 1.3;
 }
 
 /* Dockle's first-party Sphinx theme. */
@@ -469,14 +482,30 @@ dl.dockle-alert > dd {
   bottom: 0;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
   left: 0;
-  overflow-y: auto;
-  padding: 1.5rem var(--dockle-sidebar-padding) 4.25rem;
+  overflow: hidden;
+  padding: 0;
   position: fixed;
   top: 0;
   width: var(--dockle-sidebar-width);
   z-index: 20;
+}
+
+.dockle-sidebar::before,
+html[data-dockle-framework="doxygen"] #side-nav::before,
+html[data-dockle-framework="jsdoc"] body > nav::before,
+html[data-dockle-framework="rustdoc"] .sidebar::before {
+  background: var(--dockle-background-secondary);
+  border-right: 1px solid var(--dockle-border);
+  content: "";
+  height: var(--dockle-sidebar-header-height);
+  left: 0;
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  width: var(--dockle-sidebar-width);
+  z-index: 1;
+  transition: height 160ms ease-out;
 }
 
 .dockle-brand {
@@ -484,7 +513,13 @@ dl.dockle-alert > dd {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
+  left: var(--dockle-sidebar-padding);
   min-height: 2rem;
+  position: fixed;
+  top: 1.5rem;
+  transition: top 160ms ease-out;
+  width: calc(var(--dockle-sidebar-width) - (2 * var(--dockle-sidebar-padding)));
+  z-index: 2;
 }
 
 .dockle-brand a,
@@ -495,15 +530,26 @@ dl.dockle-alert > dd {
   font-size: 1.25rem;
   font-weight: 700;
   gap: 0.5rem;
+  line-height: 1.3;
   text-decoration: none;
+}
+
+.dockle-brand a:hover,
+.dockle-brand a:focus-visible {
+  text-decoration: none;
+}
+
+.dockle-brand > a {
+  gap: 0.5rem;
 }
 
 .dockle-logo {
   flex: 0 0 auto;
-  height: 2rem;
-  margin-right: 0;
+  height: var(--dockle-sidebar-logo-size);
+  margin: 0;
   object-fit: contain;
-  width: 2rem;
+  transition: height 160ms ease-out, width 160ms ease-out;
+  width: var(--dockle-sidebar-logo-size);
 }
 
 #projectname .dockle-logo {
@@ -516,9 +562,31 @@ dl.dockle-alert > dd {
   gap: 0.5rem;
   left: var(--dockle-sidebar-padding);
   position: fixed;
-  top: 4.75rem;
+  top: var(--dockle-sidebar-toolbar-top);
+  transition: top 160ms ease-out;
   width: calc(var(--dockle-sidebar-width) - (2 * var(--dockle-sidebar-padding)));
   z-index: 130;
+}
+
+@media (min-width: 801px) {
+  :root[data-dockle-has-logo]:not([data-dockle-sidebar-compact]) {
+    --dockle-sidebar-header-height: 13rem;
+    --dockle-sidebar-toolbar-top: 9.25rem;
+    --dockle-sidebar-logo-size: 4.5rem;
+  }
+
+  :root[data-dockle-has-logo]:not([data-dockle-sidebar-compact]) .dockle-brand,
+  :root[data-dockle-has-logo]:not([data-dockle-sidebar-compact]) .dockle-compat-brand {
+    flex-direction: column;
+    gap: 0.15rem;
+    text-align: center;
+    top: 0.75rem;
+  }
+
+  :root[data-dockle-has-logo]:not([data-dockle-sidebar-compact]) .dockle-brand > a {
+    flex-direction: column;
+    gap: 0.15rem;
+  }
 }
 
 .dockle-universal-search {
@@ -530,6 +598,7 @@ dl.dockle-alert > dd {
 .dockle-version {
   color: var(--dockle-muted);
   font-size: 0.8rem;
+  line-height: 1.3;
 }
 
 .dockle-search input[type="search"] {
@@ -591,7 +660,14 @@ dl.dockle-alert > dd {
 }
 
 .dockle-sidebar .dockle-tree {
-  margin-top: 4.25rem;
+  flex: 1 1 auto;
+  margin: 0;
+  min-height: 0;
+  overflow-anchor: none;
+  overflow-y: auto;
+  padding: var(--dockle-sidebar-header-height) var(--dockle-sidebar-padding) 4.25rem;
+  scrollbar-gutter: stable;
+  transition: padding-top 160ms ease-out;
 }
 
 .dockle-tree ul {
@@ -635,7 +711,7 @@ dl.dockle-alert > dd {
   display: flex;
   font-size: 0.9rem;
   gap: 0.3rem;
-  margin-top: auto;
+  margin-top: 1rem;
   padding-top: 1rem;
 }
 
@@ -652,9 +728,9 @@ dl.dockle-alert > dd {
 
 .dockle-main {
   display: grid;
-  gap: clamp(1.5rem, 4vw, 4rem);
+  gap: var(--dockle-column-gap);
   grid-template-columns: minmax(0, var(--dockle-content-width)) minmax(10rem, 14rem);
-  justify-content: center;
+  justify-content: start;
   padding: 2rem var(--dockle-content-gutter);
 }
 
@@ -993,9 +1069,13 @@ html[data-dockle-framework="doxygen"] #MSearchBox {
 
 html[data-dockle-framework="doxygen"] #nav-tree {
   border: 0;
-  height: calc(100vh - 8.5rem) !important;
+  box-sizing: border-box;
+  height: 100vh !important;
+  overflow-anchor: none;
   overflow: auto;
-  padding: var(--dockle-sidebar-nav-top) var(--dockle-sidebar-padding) 4.25rem;
+  padding: var(--dockle-sidebar-header-height) var(--dockle-sidebar-padding) 4.25rem;
+  scrollbar-gutter: stable;
+  transition: padding-top 160ms ease-out;
 }
 
 html[data-dockle-framework="doxygen"] #nav-tree-contents {
@@ -1301,17 +1381,33 @@ html[data-dockle-framework="doxygen"] h2.memtitle {
   }
 }
 
+@media (min-width: 1500px) {
+  .dockle-compat-toc,
+  html[data-dockle-framework="doxygen"] #page-nav {
+    left: calc(
+      var(--dockle-sidebar-width) + var(--dockle-content-gutter) +
+      var(--dockle-content-width) + var(--dockle-column-gap)
+    );
+    right: auto;
+  }
+}
+
 /* JSDoc's default template. */
 html[data-dockle-framework="jsdoc"] body > nav {
   background: var(--dockle-background-secondary);
   border-right: 1px solid var(--dockle-border);
   bottom: 0;
   margin: 0;
+  height: 100vh;
+  overflow-anchor: none;
   overflow-y: auto;
-  padding: var(--dockle-sidebar-nav-top) var(--dockle-sidebar-padding) 4.25rem;
+  padding: var(--dockle-sidebar-header-height) var(--dockle-sidebar-padding) 4.25rem;
   position: fixed;
   top: 0;
   width: var(--dockle-sidebar-width);
+  scrollbar-gutter: stable;
+  transition: padding-top 160ms ease-out;
+  z-index: 20;
 }
 
 html[data-dockle-framework="jsdoc"] body > nav h2,
@@ -1454,8 +1550,12 @@ html[data-dockle-framework="rustdoc"] {
 html[data-dockle-framework="rustdoc"] .sidebar {
   background: var(--dockle-background-secondary) !important;
   border-right: 1px solid var(--dockle-border);
+  box-sizing: border-box;
+  overflow-anchor: none;
   padding-bottom: 4.25rem !important;
-  padding-top: var(--dockle-sidebar-nav-top) !important;
+  padding-top: var(--dockle-sidebar-header-height) !important;
+  scrollbar-gutter: stable;
+  transition: padding-top 160ms ease-out;
 }
 
 html[data-dockle-framework="rustdoc"] .sidebar-resizer {
@@ -1480,8 +1580,18 @@ html[data-dockle-framework="rustdoc"] .sidebar h3 {
   padding: 0;
 }
 
+html[data-dockle-framework="rustdoc"] body.rustdoc:not(.src) > main {
+  padding: 2rem var(--dockle-content-gutter) 4rem !important;
+}
+
+html[data-dockle-framework="rustdoc"] body.rustdoc:not(.src) > main > .width-limiter {
+  margin-left: 0;
+  margin-right: auto;
+  max-width: var(--dockle-content-width);
+}
+
 html[data-dockle-framework="rustdoc"].dockle-has-page-toc body > main {
-  margin-right: calc(var(--dockle-page-toc-width) + var(--dockle-content-gutter));
+  margin-right: 0;
   padding-left: var(--dockle-content-gutter);
   padding-right: var(--dockle-content-gutter);
 }
@@ -1641,6 +1751,13 @@ html[data-dockle-framework="rustdoc"] rustdoc-topbar {
 }
 
 @media (max-width: 800px) {
+  .dockle-sidebar::before,
+  html[data-dockle-framework="doxygen"] #side-nav::before,
+  html[data-dockle-framework="jsdoc"] body > nav::before,
+  html[data-dockle-framework="rustdoc"] .sidebar::before {
+    content: none;
+  }
+
   .dockle-toolbar {
     left: auto;
     margin: 0.75rem 1rem;
@@ -1650,7 +1767,11 @@ html[data-dockle-framework="rustdoc"] rustdoc-topbar {
   }
 
   .dockle-sidebar .dockle-tree {
+    flex: initial;
     margin-top: 0;
+    overflow-y: visible;
+    padding: 0;
+    scrollbar-gutter: auto;
   }
 
   .dockle-portal header {
@@ -1684,6 +1805,9 @@ html[data-dockle-framework="rustdoc"] rustdoc-topbar {
   }
 
   .dockle-sidebar {
+    gap: 1rem;
+    overflow-y: auto;
+    padding: 1.5rem var(--dockle-sidebar-padding) 4.25rem;
     box-shadow: 0 0 2rem color-mix(in srgb, black 25%, transparent);
     transform: translateX(-105%);
     transition: transform 160ms ease-out;
@@ -1691,6 +1815,13 @@ html[data-dockle-framework="rustdoc"] rustdoc-topbar {
 
   [data-sidebar-open] .dockle-sidebar {
     transform: translateX(0);
+  }
+
+  .dockle-brand {
+    left: auto;
+    position: static;
+    top: auto;
+    width: auto;
   }
 
   .dockle-page {

@@ -123,6 +123,28 @@
   const searchRoot = document.querySelector("[data-dockle-universal-search]");
   const logoUrl = searchRoot?.dataset.dockleLogoUrl;
   const targetTitle = searchRoot?.dataset.dockleTargetTitle;
+  root.toggleAttribute("data-dockle-has-logo", Boolean(logoUrl));
+  const sidebarScroller = document.querySelector([
+    ".dockle-sidebar .dockle-tree",
+    'html[data-dockle-framework="doxygen"] #nav-tree',
+    'html[data-dockle-framework="jsdoc"] body > nav',
+    'html[data-dockle-framework="rustdoc"] .sidebar',
+  ].join(","));
+  if (sidebarScroller && logoUrl) {
+    let compact = false;
+    const updateSidebarHeader = () => {
+      if (sidebarScroller.scrollTop <= 0) {
+        compact = false;
+      } else if (sidebarScroller.scrollTop >= 72) {
+        compact = true;
+      }
+      root.toggleAttribute("data-dockle-sidebar-compact", compact);
+    };
+    sidebarScroller.addEventListener("scroll", updateSidebarHeader, {
+      passive: true,
+    });
+    updateSidebarHeader();
+  }
   if (targetTitle && root.dataset.dockleFramework === "jsdoc") {
     const home = document.querySelector("body > nav h2 a");
     if (home) {

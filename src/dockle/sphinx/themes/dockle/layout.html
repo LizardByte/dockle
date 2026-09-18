@@ -53,12 +53,11 @@
           </li>
         </ul>
         {{ toctree(maxdepth=4, collapse=False, includehidden=True) }}
+        {% if theme_repository_url %}
+          <a class="dockle-repository" href="{{ theme_repository_url|e }}">Source repository<i
+            data-lucide="external-link" aria-hidden="true"></i></a>
+        {% endif %}
       </nav>
-
-      {% if theme_repository_url %}
-        <a class="dockle-repository" href="{{ theme_repository_url|e }}">Source repository<i
-          data-lucide="external-link" aria-hidden="true"></i></a>
-      {% endif %}
     </aside>
 
     <div class="dockle-page">
