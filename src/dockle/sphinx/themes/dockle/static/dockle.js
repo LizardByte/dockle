@@ -876,6 +876,22 @@
     }
   };
 
+  const preserveDoxygenPageTocNavigation = (pageNav) => {
+    if (pageNav.dataset.dockleNavigationFixed === "true") {
+      return;
+    }
+    pageNav.dataset.dockleNavigationFixed = "true";
+    pageNav.addEventListener("click", (event) => {
+      if (!(event.target instanceof Element)) {
+        return;
+      }
+      const link = event.target.closest('a[href^="#"]:not(.noscroll)');
+      if (link && pageNav.contains(link)) {
+        event.stopPropagation();
+      }
+    }, true);
+  };
+
   const ensureCompatibilityPageToc = () => {
     const framework = root.dataset.dockleFramework;
     if (!["doxygen", "jsdoc", "rustdoc"].includes(framework)) {
@@ -888,6 +904,7 @@
       pageNav.querySelectorAll("a[href] > .anchor[id]").forEach(
         (anchor) => anchor.remove(),
       );
+      preserveDoxygenPageTocNavigation(pageNav);
     }
     pageNav.querySelectorAll(".dockle-heading-anchor").forEach(
       (anchor) => anchor.remove(),
