@@ -194,24 +194,17 @@ h6:hover > .headerlink,
 
 @keyframes dockle-anchor-highlight {
   0%,
-  35% {
-    background-color: color-mix(in srgb, var(--dockle-primary) 9%, transparent);
-    box-shadow:
-      inset 0.25rem 0 var(--dockle-primary),
-      0 0 0 0.2rem color-mix(in srgb, var(--dockle-primary) 12%, transparent);
+  40% {
+    box-shadow: -0.3rem 0 0 var(--dockle-primary);
   }
 
   100% {
-    background-color: transparent;
-    box-shadow:
-      inset 0.25rem 0 transparent,
-      0 0 0 0.2rem transparent;
+    box-shadow: -0.3rem 0 0 transparent;
   }
 }
 
 .dockle-anchor-highlight {
-  animation: dockle-anchor-highlight 1.7s ease-out;
-  border-radius: 0.25rem;
+  animation: dockle-anchor-highlight 1.4s ease-out;
 }
 
 @media (hover: none) {
@@ -224,9 +217,7 @@ h6:hover > .headerlink,
 @media (prefers-reduced-motion: reduce) {
   .dockle-anchor-highlight {
     animation: none;
-    box-shadow:
-      inset 0.25rem 0 var(--dockle-primary),
-      0 0 0 0.2rem color-mix(in srgb, var(--dockle-primary) 12%, transparent);
+    box-shadow: -0.3rem 0 0 var(--dockle-primary);
   }
 }
 
@@ -1902,13 +1893,15 @@ html[data-dockle-framework="rustdoc"] {
 }
 
 html[data-dockle-framework="rustdoc"] #main-content :target {
+  animation: none !important;
+  background: transparent !important;
   border-right: 0 !important;
 }
 
-html[data-dockle-framework="rustdoc"] #main-content :target:not(.dockle-anchor-highlight) {
-  animation: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
+html[data-dockle-framework="rustdoc"]
+  #main-content
+  :target.dockle-anchor-highlight {
+  animation: dockle-anchor-highlight 1.4s ease-out !important;
 }
 
 html[data-dockle-framework="rustdoc"] .sidebar {

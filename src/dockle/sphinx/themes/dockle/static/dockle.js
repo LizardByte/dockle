@@ -855,7 +855,8 @@
         (element) => element.classList.remove("glow"),
       );
       target.classList.remove("dockle-anchor-highlight");
-      void target.offsetWidth;
+      // Force layout so selecting the same target restarts the animation.
+      target.getBoundingClientRect();
       target.classList.add("dockle-anchor-highlight");
       activeTarget = target;
       clearTimer = setTimeout(() => {
@@ -1101,7 +1102,9 @@
           if (!destination.hash
               && normalizedPagePath(destination) === currentPath) {
             const label = link.querySelector("span") || link;
-            label.textContent = pageTitle;
+            if (label.textContent !== pageTitle) {
+              label.textContent = pageTitle;
+            }
           }
         });
       }

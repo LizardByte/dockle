@@ -105,7 +105,20 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertIn('target.classList.add("dockle-anchor-highlight")', script)
         self.assertIn("@keyframes dockle-anchor-highlight", stylesheet)
         self.assertIn(".dockle-anchor-highlight", stylesheet)
-        self.assertIn(":target:not(.dockle-anchor-highlight)", stylesheet)
+        self.assertIn("box-shadow: -0.3rem 0 0 var(--dockle-primary)", stylesheet)
+        self.assertNotIn(
+            "background-color: color-mix(in srgb, var(--dockle-primary) 9%",
+            stylesheet,
+        )
+        self.assertIn(':target.dockle-anchor-highlight {', stylesheet)
+
+    def test_doxygen_sidebar_normalization_is_idempotent(self) -> None:
+        script = (THEME_DIRECTORY / "static" / "dockle.js").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("if (label.textContent !== pageTitle)", script)
+        self.assertIn("new MutationObserver(removePageFragments)", script)
 
     def test_tabs_support_keyboard_navigation_and_named_groups(self) -> None:
         stylesheet = (
