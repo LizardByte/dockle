@@ -417,6 +417,8 @@ entry = "README.md"
             (source / "lib.rs").write_text(
                 "//! A rustdoc fixture.\n", encoding="utf-8"
             )
+            extra_file = root / "rustdoc-extra.css"
+            extra_file.write_text("body {}\n", encoding="utf-8")
             config_path = root / "dockle.toml"
             config_path.write_text(
                 """
@@ -427,6 +429,9 @@ name = "Example"
 name = "docs"
 framework = "rustdoc"
 source = "crate"
+
+[targets.rustdoc]
+extra_files = ["rustdoc-extra.css"]
 """,
                 encoding="utf-8",
             )
@@ -449,6 +454,13 @@ source = "crate"
             self.assertRegex(html, r"rustdoc [0-9]+\.[0-9]+")
             self.assertTrue(
                 (config.targets[0].output / "_dockle" / "dockle.css").is_file()
+            )
+            self.assertTrue(
+                (
+                    config.targets[0].output
+                    / "dockle_fixture"
+                    / extra_file.name
+                ).is_file()
             )
             portal = (config.build.output / "index.html").read_text(
                 encoding="utf-8"
