@@ -15,6 +15,7 @@ SUPPORTED_FRAMEWORKS = frozenset(
 )
 _TARGET_NAME = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 _TARGET_KEYS = {
+    "doxygen",
     "name",
     "title",
     "description",
@@ -68,6 +69,25 @@ class BuildConfig:
 
 
 @dataclass(frozen=True)
+class DoxygenConfig:
+    """Project-specific Doxygen settings owned by ``dockle.toml``."""
+
+    inputs: tuple[Path, ...]
+    excludes: tuple[Path, ...] = ()
+    exclude_patterns: tuple[str, ...] = ()
+    image_paths: tuple[Path, ...] = ()
+    include_paths: tuple[Path, ...] = ()
+    predefined: tuple[str, ...] = ()
+    extra_stylesheets: tuple[Path, ...] = ()
+    extra_files: tuple[Path, ...] = ()
+    aliases: tuple[str, ...] = ()
+    main_page: Path | None = None
+    dot_graph_max_nodes: int = 50
+    warn_if_undocumented: bool = True
+    warn_no_paramdoc: bool = True
+
+
+@dataclass(frozen=True)
 class TargetConfig:
     """One documentation target."""
 
@@ -77,6 +97,7 @@ class TargetConfig:
     framework: str
     source: Path
     output: Path
+    doxygen: DoxygenConfig | None = None
     entry: str = "index"
     home: bool = False
 
@@ -282,6 +303,7 @@ def _load_target(
     source = _path_within_root(
         root, _required_string(item, "source", where), f"{where}.source"
     )
+    doxygen = _load_doxygen(item, where, root, source, framework)
     home = _optional_bool(item, "home", where, False)
     output, home_target = _target_output(
         item, where, name, framework, home, build, outputs, home_target
@@ -300,10 +322,86 @@ def _load_target(
             framework=framework,
             source=source,
             output=output,
+            doxygen=doxygen,
             entry=_target_entry(item, where),
             home=home,
         ),
         home_target,
+    )
+
+
+def _load_doxygen(
+    item: dict[str, Any],
+    where: str,
+    root: Path,
+    source: Path,
+    framework: str,
+) -> DoxygenConfig | None:
+    raw = item.get("doxygen", {})
+    if not isinstance(raw, dict):
+        raise ConfigError(f"{where}.doxygen must be a table")
+    if framework != "doxygen":
+        if raw:
+            raise ConfigError(
+                f"{where}.doxygen requires framework = 'doxygen'"
+            )
+        return None
+
+    allowed = {
+        "aliases",
+        "dot_graph_max_nodes",
+        "exclude_patterns",
+        "excludes",
+        "extra_files",
+        "extra_stylesheets",
+        "image_paths",
+        "include_paths",
+        "inputs",
+        "main_page",
+        "predefined",
+        "warn_if_undocumented",
+        "warn_no_paramdoc",
+    }
+    _reject_unknown(raw, allowed, f"{where}.doxygen")
+    doxygen_where = f"{where}.doxygen"
+    inputs = _path_list(
+        raw,
+        "inputs",
+        doxygen_where,
+        root,
+        default=(source,),
+    )
+    if not inputs:
+        raise ConfigError(f"{doxygen_where}.inputs must not be empty")
+    return DoxygenConfig(
+        inputs=inputs,
+        excludes=_path_list(raw, "excludes", doxygen_where, root),
+        exclude_patterns=_string_list(
+            raw, "exclude_patterns", doxygen_where
+        ),
+        image_paths=_path_list(raw, "image_paths", doxygen_where, root),
+        include_paths=_path_list(raw, "include_paths", doxygen_where, root),
+        predefined=_string_list(raw, "predefined", doxygen_where),
+        extra_stylesheets=_path_list(
+            raw, "extra_stylesheets", doxygen_where, root
+        ),
+        extra_files=_path_list(raw, "extra_files", doxygen_where, root),
+        aliases=_string_list(raw, "aliases", doxygen_where),
+        main_page=_optional_path(raw, "main_page", doxygen_where, root),
+        dot_graph_max_nodes=_optional_int(
+            raw,
+            "dot_graph_max_nodes",
+            doxygen_where,
+            50,
+            minimum=0,
+            maximum=10000,
+        ),
+        warn_if_undocumented=_optional_bool(
+            raw, "warn_if_undocumented", doxygen_where, True
+        ),
+        warn_no_paramdoc=_optional_bool(
+            raw, "warn_no_paramdoc", doxygen_where, True
+        ),
     )
 
 
@@ -432,6 +530,45 @@ def _optional_string(
     return value.strip()
 
 
+def _string_list(
+    raw: dict[str, Any], key: str, where: str
+) -> tuple[str, ...]:
+    value = raw.get(key, [])
+    if not isinstance(value, list):
+        raise ConfigError(f"{where}.{key} must be an array of strings")
+    strings: list[str] = []
+    for index, item in enumerate(value):
+        if not isinstance(item, str) or not item.strip():
+            raise ConfigError(
+                f"{where}.{key}[{index}] must be a non-empty string"
+            )
+        strings.append(item.strip())
+    return tuple(strings)
+
+
+def _path_list(
+    raw: dict[str, Any],
+    key: str,
+    where: str,
+    root: Path,
+    *,
+    default: tuple[Path, ...] = (),
+) -> tuple[Path, ...]:
+    if key not in raw:
+        return default
+    return tuple(
+        _path_within_root(root, value, f"{where}.{key}[{index}]")
+        for index, value in enumerate(_string_list(raw, key, where))
+    )
+
+
+def _optional_path(
+    raw: dict[str, Any], key: str, where: str, root: Path
+) -> Path | None:
+    value = _optional_string(raw, key, where)
+    return _path_within_root(root, value, f"{where}.{key}") if value else None
+
+
 def _theme_value(raw: dict[str, Any], key: str, default: str) -> str:
     value = _optional_string(raw, key, "theme", default)
     if not value:
@@ -449,6 +586,25 @@ def _optional_bool(
     value = raw.get(key, default)
     if not isinstance(value, bool):
         raise ConfigError(f"{where}.{key} must be true or false")
+    return value
+
+
+def _optional_int(
+    raw: dict[str, Any],
+    key: str,
+    where: str,
+    default: int,
+    *,
+    minimum: int,
+    maximum: int,
+) -> int:
+    value = raw.get(key, default)
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise ConfigError(f"{where}.{key} must be an integer")
+    if value < minimum or value > maximum:
+        raise ConfigError(
+            f"{where}.{key} must be between {minimum} and {maximum}"
+        )
     return value
 
 

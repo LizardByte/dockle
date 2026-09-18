@@ -323,6 +323,7 @@ class ProjectDogfoodTests(unittest.TestCase):
 
         self.assertIn("function(dockle_add_docs target)", module)
         self.assertIn("find_program(dockle_program", module)
+        self.assertIn('"PYTHONPATH=${dockle_python_path}"', module)
         self.assertIn("-m dockle", module)
         self.assertIn("include(Dockle)", example)
         self.assertIn("TARGETS doxygen", example)

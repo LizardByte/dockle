@@ -34,6 +34,7 @@ class ConfigTests(unittest.TestCase):
             )
             self.assertEqual(config.targets[0].title, "Manual")
             self.assertEqual(config.targets[0].description, "")
+            self.assertIsNone(config.targets[0].doxygen)
             self.assertTrue(config.build.strict)
             self.assertTrue(config.build.clean)
 
@@ -228,6 +229,63 @@ home = true
             with self.assertRaisesRegex(
                 ConfigError, "entry must be a relative path"
             ):
+                load_config(path)
+
+    def test_loads_typed_doxygen_settings(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name in ("docs", "src", "images", "include"):
+                (root / name).mkdir()
+            for name in ("README.md", "docs/custom.css", "docs/custom.js"):
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.touch()
+            path = root / "dockle.toml"
+            path.write_text(
+                MINIMAL_CONFIG.replace(
+                    'framework = "sphinx"', 'framework = "doxygen"'
+                )
+                + """
+[targets.doxygen]
+inputs = ["README.md", "src"]
+image_paths = ["images"]
+include_paths = ["include"]
+predefined = ["EXAMPLE=1"]
+extra_stylesheets = ["docs/custom.css"]
+extra_files = ["docs/custom.js"]
+aliases = ['example{1}=<strong>\\1</strong>']
+main_page = "README.md"
+dot_graph_max_nodes = 75
+warn_if_undocumented = false
+warn_no_paramdoc = false
+""",
+                encoding="utf-8",
+            )
+
+            config = load_config(path)
+            doxygen = config.targets[0].doxygen
+
+            self.assertIsNotNone(doxygen)
+            assert doxygen is not None
+            self.assertEqual(
+                doxygen.inputs,
+                ((root / "README.md").resolve(), (root / "src").resolve()),
+            )
+            self.assertEqual(doxygen.predefined, ("EXAMPLE=1",))
+            self.assertEqual(doxygen.main_page, (root / "README.md").resolve())
+            self.assertEqual(doxygen.dot_graph_max_nodes, 75)
+            self.assertFalse(doxygen.warn_if_undocumented)
+            self.assertFalse(doxygen.warn_no_paramdoc)
+
+    def test_rejects_doxygen_settings_for_other_frameworks(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "dockle.toml"
+            path.write_text(
+                MINIMAL_CONFIG + "\n[targets.doxygen]\ninputs = [\"src\"]\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ConfigError, "requires framework"):
                 load_config(path)
 
     def test_selects_targets_in_configuration_order(self) -> None:

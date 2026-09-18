@@ -43,12 +43,26 @@ Complete example
    home = true
 
    [[targets]]
-   name = "guide"
-   title = "User guide"
-   description = "Tutorials and configuration reference."
-   framework = "sphinx"
-   source = "docs"
-   entry = "index"
+   name = "api"
+   title = "API reference"
+   description = "Public headers and authored guides."
+   framework = "doxygen"
+   source = "."
+
+   [targets.doxygen]
+   inputs = ["README.md", "docs", "include"]
+   excludes = ["docs/private"]
+   exclude_patterns = ["*/generated/*"]
+   image_paths = ["docs/images"]
+   include_paths = ["include"]
+   predefined = ["EXAMPLE_PUBLIC_API=1"]
+   extra_stylesheets = ["docs/project.css"]
+   extra_files = ["docs/project.js"]
+   aliases = ['example_link{1}=<a href="\\1">Example</a>']
+   main_page = "README.md"
+   dot_graph_max_nodes = 75
+   warn_if_undocumented = true
+   warn_no_paramdoc = true
 
 Project metadata
 ----------------
@@ -109,6 +123,52 @@ rustdoc     Cargo and Rust            Reserved; ``source`` names a crate directo
 
 Each non-home output directory must be unique and must remain below ``build.output``. Entry paths cannot be absolute
 or escape the source directory.
+
+Doxygen target settings
+-----------------------
+
+Dockle always generates the Doxyfile. A Doxygen target can add a typed
+``[targets.doxygen]`` table for project-specific behavior without introducing
+a second native configuration file:
+
+``inputs``
+   Source files and directories. Defaults to the target ``source``.
+
+``excludes`` and ``exclude_patterns``
+   Paths and glob patterns omitted from Doxygen's recursive input scan.
+
+``image_paths`` and ``include_paths``
+   Additional image lookup and source include directories.
+
+``predefined``
+   Project-specific preprocessor definitions. Dockle defines only ``DOXYGEN``
+   by default; platform and feature macros belong here because they change
+   which project declarations are visible.
+
+``extra_stylesheets`` and ``extra_files``
+   Project CSS, JavaScript, images, or other files copied through Doxygen's
+   supported HTML hooks. Dockle's stylesheet always remains first.
+
+``aliases``
+   Complete project-specific Doxygen alias definitions. Dockle adds these after
+   its shared alert, tab, color, example, and expander aliases.
+
+``main_page``
+   Markdown main page anywhere inside the project. When omitted, Dockle uses
+   ``source / entry`` if that file exists.
+
+``dot_graph_max_nodes``
+   Graph node limit from 0 through 10000. Defaults to ``50``.
+
+``warn_if_undocumented`` and ``warn_no_paramdoc``
+   Strict documentation checks. Both default to ``true`` to preserve the shared
+   LizardByte Doxygen contract.
+
+The generated Doxyfile also carries the portable behavior formerly supplied by
+the shared ``doxyconfig-Doxyfile``: recursive Markdown-aware input, GitHub
+heading IDs, graph generation when Graphviz is available, source-path
+stripping, deterministic sorting, and strict incomplete, enum-value,
+documentation, and parameter warnings.
 
 Tool resolution
 ---------------

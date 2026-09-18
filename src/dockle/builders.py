@@ -25,6 +25,7 @@ from dockle.theme import (
 )
 
 _INDEX_DOCUMENT = "index.html"
+_DOXYGEN_PREDEFINED = ("DOXYGEN",)
 
 
 class BuildError(RuntimeError):
@@ -218,35 +219,83 @@ class DoxygenBuilder(Builder):
 
     def plan(self) -> BuildPlan:
         config_file = self.work / "Doxyfile"
-        yes_no = "YES" if self.config.build.strict else "NO"
+        settings = self.target.doxygen
+        if settings is None:
+            raise BuildError("doxygen target is missing generated settings")
+        warn_as_error = (
+            "FAIL_ON_WARNINGS" if self.config.build.strict else "NO"
+        )
+        extra_stylesheets = (
+            self._theme_file(),
+            *settings.extra_stylesheets,
+        )
         values = {
             "DOXYFILE_ENCODING": "UTF-8",
             "PROJECT_NAME": _doxygen_quote(self.config.project.name),
             "PROJECT_NUMBER": _doxygen_quote(self.config.project.version),
             "PROJECT_BRIEF": _doxygen_quote(self.config.project.description),
             "OUTPUT_DIRECTORY": _doxygen_quote(_posix(self.target.output)),
-            "INPUT": _doxygen_quote(_posix(self.target.source)),
+            "INPUT": _doxygen_paths(settings.inputs),
             "RECURSIVE": "YES",
+            "EXTRACT_ALL": "NO",
             "GENERATE_HTML": "YES",
             "HTML_OUTPUT": ".",
-            "HTML_EXTRA_STYLESHEET": _doxygen_quote(
-                _posix(self._theme_file())
-            ),
+            "HTML_COLORSTYLE": "LIGHT",
+            "HTML_COPY_CLIPBOARD": "NO",
+            "HTML_EXTRA_STYLESHEET": _doxygen_paths(extra_stylesheets),
             "GENERATE_TREEVIEW": "YES",
             "FULL_SIDEBAR": "YES",
             "HTML_DYNAMIC_MENUS": "YES",
             "HTML_DYNAMIC_SECTIONS": "YES",
             "SEARCHENGINE": "YES",
+            "CASE_SENSE_NAMES": "YES",
+            "CREATE_SUBDIRS": "NO",
+            "DISABLE_INDEX": "NO",
             "EXTENSION_MAPPING": (
                 "python=Python javascript=JavaScript "
                 "typescript=JavaScript json=JavaScript "
                 "csharp=Csharp objective-c=Objective-C"
             ),
             "GENERATE_LATEX": "NO",
-            "WARN_AS_ERROR": yes_no,
+            "GENERATE_XML": "NO",
+            "MACRO_EXPANSION": "YES",
+            "MARKDOWN_ID_STYLE": "GITHUB",
+            "MARKDOWN_SUPPORT": "YES",
+            "PREDEFINED": _doxygen_strings(
+                (*_DOXYGEN_PREDEFINED, *settings.predefined)
+            ),
+            "SORT_BRIEF_DOCS": "YES",
+            "STRIP_FROM_INC_PATH": _doxygen_quote(
+                _posix(self.config.root)
+            ),
+            "STRIP_FROM_PATH": _doxygen_quote(_posix(self.config.root)),
+            "TOC_INCLUDE_HEADINGS": "5",
+            "WARNINGS": "YES",
+            "WARN_AS_ERROR": warn_as_error,
+            "WARN_IF_DOC_ERROR": "YES",
+            "WARN_IF_INCOMPLETE_DOC": "YES",
+            "WARN_IF_UNDOC_ENUM_VAL": "YES",
+            "WARN_IF_UNDOCUMENTED": _doxygen_yes_no(
+                settings.warn_if_undocumented
+            ),
+            "WARN_NO_PARAMDOC": _doxygen_yes_no(settings.warn_no_paramdoc),
             "QUIET": "YES",
+            "DOT_GRAPH_MAX_NODES": str(settings.dot_graph_max_nodes),
         }
-        entry = self.target.source / self.target.entry
+        optional_paths = {
+            "EXCLUDE": settings.excludes,
+            "HTML_EXTRA_FILES": settings.extra_files,
+            "IMAGE_PATH": settings.image_paths,
+            "INCLUDE_PATH": settings.include_paths,
+        }
+        for key, paths in optional_paths.items():
+            if paths:
+                values[key] = _doxygen_paths(paths)
+        if settings.exclude_patterns:
+            values["EXCLUDE_PATTERNS"] = _doxygen_strings(
+                settings.exclude_patterns
+            )
+        entry = settings.main_page or self.target.source / self.target.entry
         if entry.is_file():
             values["USE_MDFILE_AS_MAINPAGE"] = _doxygen_quote(_posix(entry))
         dot = shutil.which("dot")
@@ -257,6 +306,7 @@ class DoxygenBuilder(Builder):
         )
         if dot:
             values["DOT_PATH"] = _doxygen_quote(_posix(Path(dot).parent))
+            values["HAVE_DOT"] = "YES"
         else:
             sibling_dot = next(
                 (candidate for candidate in sibling_dots if candidate.is_file()),
@@ -266,6 +316,13 @@ class DoxygenBuilder(Builder):
                 values["DOT_PATH"] = _doxygen_quote(
                     _posix(sibling_dot.parent)
                 )
+                values["HAVE_DOT"] = "YES"
+        if values.get("HAVE_DOT") == "YES":
+            values["DOT_IMAGE_FORMAT"] = "svg"
+            values["DOT_NUM_THREADS"] = "0"
+            values["INTERACTIVE_SVG"] = "YES"
+        else:
+            values["HAVE_DOT"] = "NO"
         aliases = (
             'ALIASES                 = ""\n'
             'ALIASES                += "_dockle_alert{4|:|}=<dl class=\\"dockle-alert '
@@ -290,6 +347,18 @@ class DoxygenBuilder(Builder):
             '<ul>^^\\1^^</ul></div>"\n'
             'ALIASES                += "tabs_grouped{2|:|}=<div class=\\"dockle-tabs '
             'dockle-tabs-alias\\" data-dockle-tab-group=\\"\\1\\"><ul>^^\\2^^</ul></div>"\n'
+            'ALIASES                += "examples=^^**Examples**^^@code{.cpp}"\n'
+            'ALIASES                += "examples_end=@endcode^^"\n'
+            'ALIASES                += "red{1}=<span style=\\"color:red\\">\\1</span>"\n'
+            'ALIASES                += "blue{1}=<span style=\\"color:blue\\">\\1</span>"\n'
+            'ALIASES                += "green{1}=<span style=\\"color:green\\">\\1</span>"\n'
+            'ALIASES                += "yellow{1}=<span style=\\"color:yellow\\">\\1</span>"\n'
+            'ALIASES                += "expander{2|}=@htmlonly<details><summary>^^\\1^^'
+            '</summary><div>@endhtmlonly^^\\2^^@htmlonly</div></details>@endhtmlonly"\n'
+        )
+        custom_aliases = "".join(
+            f"ALIASES                += {_doxygen_quote(alias)}\n"
+            for alias in settings.aliases
         )
         contents = (
             "# Generated by Dockle. Changes will be overwritten.\n"
@@ -297,6 +366,7 @@ class DoxygenBuilder(Builder):
                 f"{key:<24} = {value}\n" for key, value in values.items()
             )
             + aliases
+            + custom_aliases
         )
         return BuildPlan(
             target=self.target,
@@ -313,9 +383,11 @@ class DoxygenBuilder(Builder):
     def finalize(self, stylesheet: str) -> int:
         """Restore fence metadata before applying the shared theme."""
 
-        annotate_doxygen_code_languages(
-            self.target.output, self.target.source
-        )
+        settings = self.target.doxygen
+        if settings is not None:
+            annotate_doxygen_code_languages(
+                self.target.output, settings.inputs
+            )
         return super().finalize(stylesheet)
 
 
@@ -584,8 +656,20 @@ class BuildManager:
         checks: list[tuple[TargetConfig, str | None]] = []
         for target in targets:
             problem: str | None = None
-            if not target.source.exists():
-                problem = f"source does not exist: {target.source}"
+            required_paths = [target.source]
+            if target.doxygen is not None:
+                required_paths.extend(target.doxygen.inputs)
+                required_paths.extend(target.doxygen.image_paths)
+                required_paths.extend(target.doxygen.include_paths)
+                required_paths.extend(target.doxygen.extra_stylesheets)
+                required_paths.extend(target.doxygen.extra_files)
+                if target.doxygen.main_page is not None:
+                    required_paths.append(target.doxygen.main_page)
+            missing_path = next(
+                (path for path in required_paths if not path.exists()), None
+            )
+            if missing_path is not None:
+                problem = f"source does not exist: {missing_path}"
             else:
                 try:
                     self._resolve_tool(target.framework, required=True)
@@ -676,6 +760,18 @@ class BuildManager:
 def _doxygen_quote(value: str) -> str:
     escaped = value.replace('"', '\\"')
     return f'"{escaped}"'
+
+
+def _doxygen_paths(paths: tuple[Path, ...]) -> str:
+    return " ".join(_doxygen_quote(_posix(path)) for path in paths)
+
+
+def _doxygen_strings(values: tuple[str, ...]) -> str:
+    return " ".join(_doxygen_quote(value) for value in values)
+
+
+def _doxygen_yes_no(value: bool) -> str:
+    return "YES" if value else "NO"
 
 
 def _posix(path: Path) -> str:

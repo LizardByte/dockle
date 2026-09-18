@@ -196,10 +196,16 @@ def render_theme(theme: ThemeConfig) -> str:
     return f"{tokens}\n{base}"
 
 
-def annotate_doxygen_code_languages(output: Path, source: Path) -> int:
+def annotate_doxygen_code_languages(
+    output: Path, sources: Path | tuple[Path, ...]
+) -> int:
     """Restore Markdown fence languages that Doxygen drops from its HTML."""
 
-    languages = _fenced_code_languages(source)
+    source_paths = (sources,) if isinstance(sources, Path) else sources
+    languages: dict[str, set[str]] = {}
+    for source in source_paths:
+        for code, source_languages in _fenced_code_languages(source).items():
+            languages.setdefault(code, set()).update(source_languages)
     if not languages:
         return 0
 

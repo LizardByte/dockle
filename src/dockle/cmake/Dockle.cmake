@@ -43,8 +43,19 @@ function(dockle_add_docs target)
         set(dockle_working_directory "${DOCKLE_WORKING_DIRECTORY}")
     endif()
 
+    cmake_path(GET CMAKE_CURRENT_LIST_DIR PARENT_PATH dockle_package_directory)
+    cmake_path(GET dockle_package_directory PARENT_PATH dockle_python_path)
+
     if(DOCKLE_EXECUTABLE)
         set(dockle_command "${DOCKLE_EXECUTABLE}")
+    elseif(EXISTS "${dockle_package_directory}/__init__.py")
+        # Run the implementation adjacent to this module so a source-submodule
+        # integration cannot silently use a different globally installed
+        # Dockle revision.
+        find_package(Python3 3.11 REQUIRED COMPONENTS Interpreter)
+        set(dockle_command
+            "${CMAKE_COMMAND}" -E env "PYTHONPATH=${dockle_python_path}"
+            "${Python3_EXECUTABLE}" -m dockle)
     else()
         find_program(dockle_program NAMES dockle dockle.exe)
         if(dockle_program)

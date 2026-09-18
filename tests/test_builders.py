@@ -133,6 +133,10 @@ class BuilderTests(unittest.TestCase):
         self.assertIn("\\1|:|note|:|info|:|\\2", doxyfile)
         self.assertIn('data-lucide=\\"\\3\\"', doxyfile)
         self.assertIn('"tab{2|:|}', doxyfile)
+        self.assertNotIn('"tab_with_pipe{2|:|}', doxyfile)
+        self.assertIn('PREDEFINED               = "DOXYGEN"', doxyfile)
+        self.assertNotIn('"_WIN32"', doxyfile)
+        self.assertNotIn('"__linux__"', doxyfile)
         self.assertIn('"tabs{1}', doxyfile)
         self.assertIn('"tabs_grouped{2|:|}', doxyfile)
         self.assertIn('data-dockle-tab-group=\\"\\1\\"', doxyfile)
@@ -141,6 +145,47 @@ class BuilderTests(unittest.TestCase):
             doxyfile,
         )
         self.assertNotIn("dockle-alert- \\2", doxyfile)
+
+    def test_doxygen_plan_uses_typed_project_settings(self) -> None:
+        custom_css = self.root / "cpp" / "custom.css"
+        custom_js = self.root / "cpp" / "custom.js"
+        main_page = self.root / "README.md"
+        for path in (custom_css, custom_js, main_page):
+            path.touch()
+        configured = ALL_TARGETS_CONFIG.replace(
+            'framework = "doxygen"\nsource = "cpp"',
+            '''framework = "doxygen"
+source = "cpp"
+
+[targets.doxygen]
+inputs = ["README.md", "cpp"]
+predefined = ["EXAMPLE=1"]
+extra_stylesheets = ["cpp/custom.css"]
+extra_files = ["cpp/custom.js"]
+aliases = ['example{1}=<strong>\\1</strong>']
+main_page = "README.md"
+dot_graph_max_nodes = 75
+warn_if_undocumented = false
+warn_no_paramdoc = false''',
+        )
+        self.config_path.write_text(configured, encoding="utf-8")
+        config = load_config(self.config_path)
+
+        plan = BuildManager(config).plan(config.targets[1])
+        doxyfile = plan.generated_files[plan.work / "Doxyfile"]
+        settings = config.targets[1].doxygen
+        assert settings is not None
+
+        self.assertIn(f'"{settings.main_page.as_posix()}"', doxyfile)
+        self.assertIn(
+            f'"{settings.extra_stylesheets[0].as_posix()}"', doxyfile
+        )
+        self.assertIn(f'"{settings.extra_files[0].as_posix()}"', doxyfile)
+        self.assertIn('"EXAMPLE=1"', doxyfile)
+        self.assertIn("DOT_GRAPH_MAX_NODES      = 75", doxyfile)
+        self.assertIn("WARN_IF_UNDOCUMENTED     = NO", doxyfile)
+        self.assertIn("WARN_NO_PARAMDOC         = NO", doxyfile)
+        self.assertIn('ALIASES                += "example{1}', doxyfile)
 
     def test_mkdocs_plan_generates_only_dockle_owned_config(self) -> None:
         plan = self.manager.plan(self.config.targets[2])

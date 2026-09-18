@@ -52,11 +52,14 @@ deleted before each build. The first schema deliberately exposes only concepts s
 * project name, version, description, repository, author, and copyright;
 * theme colors and font stacks;
 * output/work directories and strict/clean behavior; and
-* named targets with a title, description, framework, source, output, entry document, and optional Sphinx home role.
+* named targets with a title, description, framework, source, output, entry document, and optional Sphinx home role;
+  and
+* typed, namespaced settings for generator behavior that has no portable equivalent, beginning with Doxygen inputs,
+  paths, definitions, assets, warnings, graph limits, and aliases.
 
-Framework-specific passthrough dictionaries are intentionally absent. They make an integration quick to ship but turn
-the wrapper into five native configuration files hidden inside TOML. New settings should first be evaluated for a
-portable meaning. An explicit, namespaced escape hatch can be added later for irreducible cases.
+Unvalidated framework-specific passthrough dictionaries remain intentionally absent. They make an integration quick to
+ship but turn the wrapper into five native configuration files hidden inside TOML. New settings are first evaluated for
+a portable meaning; irreducible behavior receives a strict typed table owned and documented by Dockle.
 
 Theme strategy
 --------------

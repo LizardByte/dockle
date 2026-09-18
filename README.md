@@ -86,7 +86,12 @@ home = true
 [[targets]]
 name = "cpp-api"
 framework = "doxygen"
-source = "src"
+source = "."
+
+[targets.doxygen]
+inputs = ["README.md", "docs", "src"]
+main_page = "README.md"
+predefined = ["EXAMPLE_PUBLIC_API=1"]
 
 [[targets]]
 name = "rust-api"
