@@ -1,5 +1,12 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import {
+  mkdtemp,
+  mkdir,
+  readFile,
+  readdir,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -32,7 +39,29 @@ test('the packaged highlighter includes every built-in grammar', async () => {
   context.window = context;
   runInNewContext(source, context);
 
-  assert.ok(context.hljs.listLanguages().length >= 190);
+  const packagedLanguages = (await readdir(path.join(
+    projectRoot,
+    'node_modules',
+    '@highlightjs',
+    'cdn-assets',
+    'languages',
+  ))).filter((filename) => filename.endsWith('.min.js'));
+  assert.equal(context.hljs.listLanguages().length, packagedLanguages.length);
+  for (const reference of [
+    path.join('.dockle', 'example-sources', 'sphinx', 'component-reference.md'),
+    path.join('.dockle', 'example-sources', 'sphinx', 'component-reference-rst.rst'),
+    path.join('.dockle', 'example-sources', 'doxygen', 'component-reference.md'),
+    path.join('.dockle', 'example-sources', 'mkdocs', 'component-reference.md'),
+    path.join('.dockle', 'example-sources', 'jsdoc', 'tutorials', 'component-reference.md'),
+    path.join('.dockle', 'example-sources', 'rustdoc', 'component-reference.md'),
+  ]) {
+    const document = await readFile(path.join(projectRoot, reference), 'utf8');
+    assert.equal(
+      document.match(/class="dockle-language-gallery-header"/g)?.length,
+      packagedLanguages.length,
+      reference,
+    );
+  }
   for (const language of [
     'cmake',
     'console',
@@ -64,9 +93,12 @@ test('the npm command builds a self-contained native JSDoc site', async (context
   }));
   await writeFile(path.join(root, 'logo.svg'), '<svg xmlns="http://www.w3.org/2000/svg"/>');
   await writeFile(path.join(root, 'favicon.svg'), '<svg xmlns="http://www.w3.org/2000/svg"/>');
-  await writeFile(path.join(tutorials, 'showcase.md'), '# Component reference\n');
+  await writeFile(
+    path.join(tutorials, 'component-reference.md'),
+    '# Component reference\n',
+  );
   await writeFile(path.join(tutorials, 'tutorials.json'), JSON.stringify({
-    showcase: { title: 'Component reference' },
+    'component-reference': { title: 'Component reference' },
   }));
   await writeFile(path.join(source, 'example.js'), `/**
  * Add two values.
@@ -113,11 +145,12 @@ export function add(left, right) { return left + right; }
   assert.match(document, /dockle-logo\.svg/);
   assert.match(document, /dockle-favicon\.svg/);
   assert.match(document, />Component reference<\/a>/);
-  assert.doesNotMatch(document, />showcase<\/a>/);
+  assert.doesNotMatch(document, />component-reference<\/a>/);
   assert.match(
     document,
     /pre\.prettyprint:not\(\.source\.linenums\)/,
   );
+  assert.match(document, /classList\.remove\("prettyprint", "source"\)/);
   assert.doesNotMatch(document, /data-dockle-home/);
   assert.ok(search.docs.some((entry) => entry.text.includes('Add two values')));
   await readFile(path.join(output, 'dockle.css'), 'utf8');

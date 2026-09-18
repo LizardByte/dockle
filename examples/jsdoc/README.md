@@ -11,7 +11,7 @@ normalizes the generated HTML with the shared presentation layer.
 
 | Page | Purpose |
 | --- | --- |
-| [Component reference](tutorial-showcase.html) | Authoring syntax beside rendered results |
+| [Component reference](tutorial-component-reference.html) | Authoring syntax beside rendered results |
 | [API reference](module-dockle-demo.html) | Framework-native JavaScript API output |
 
 ## Use Dockle with JSDoc

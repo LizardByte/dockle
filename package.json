@@ -47,10 +47,11 @@
     "access": "public"
   },
   "scripts": {
-    "build": "npm run sync:highlighter && npm run sync:lucide",
+    "build": "npm run sync:highlighter && npm run sync:lucide && npm run stage:examples",
     "prepack": "npm run build",
     "pretest": "npm run build",
     "sync:highlighter": "node scripts/sync-highlighter.mjs",
+    "stage:examples": "node scripts/stage-examples.mjs",
     "sync:lucide": "node scripts/sync-lucide.mjs",
     "test": "npm run test:unit && npm run test:lint",
     "test:lint": "eslint publish.js eslint.config.mjs bin scripts src/dockle/jsdoc_template src/dockle/sphinx/themes/dockle/static/dockle.js tests-js",

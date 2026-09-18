@@ -211,14 +211,37 @@ def annotate_doxygen_code_languages(output: Path, source: Path) -> int:
             opening = match.group("open")
             if "data-dockle-language" in opening:
                 return match.group(0)
-            code = _doxygen_fragment_text(match.group("body"))
+            body = match.group("body")
+            code = _doxygen_fragment_text(body)
             candidates = languages.get(_normalized_code(code), set())
+            if not candidates:
+                lines = _DOXYGEN_FRAGMENT_LINE.findall(body)
+                if lines:
+                    parser = _TextContentParser()
+                    parser.feed(lines[0])
+                    echoed_language = "".join(parser.parts).strip().casefold()
+                    body_without_info = _DOXYGEN_FRAGMENT_LINE.sub(
+                        "", body, count=1
+                    )
+                    code_without_info = _doxygen_fragment_text(
+                        body_without_info
+                    )
+                    possible = languages.get(
+                        _normalized_code(code_without_info), set()
+                    )
+                    if (
+                        echoed_language
+                        and len(possible) == 1
+                        and next(iter(possible)).endswith(echoed_language)
+                    ):
+                        candidates = possible
+                        body = body_without_info
             if len(candidates) != 1:
                 return match.group(0)
             language = next(iter(candidates))
             marked = f'{opening[:-1]} data-dockle-language="{escape(language)}">'
             annotated += 1
-            return f'{marked}{match.group("body")}{match.group("close")}'
+            return f'{marked}{body}{match.group("close")}'
 
         updated = _DOXYGEN_FRAGMENT.sub(annotate, document)
         if updated != document:

@@ -202,7 +202,11 @@ class SphinxThemeTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
 
         self.assertIn("applySyntaxHighlighting", script)
-        self.assertIn("data-dockle-language", script)
+        self.assertIn("addLanguageGalleries", script)
+        self.assertIn('querySelectorAll(".dockle-language-gallery")', script)
+        self.assertIn("dockle-language-gallery-end", script)
+        self.assertIn("item.dataset.dockleLanguage", script)
+        self.assertIn("dataset.dockleLanguage", script)
         self.assertIn('["shell", "bash"]', script)
         self.assertIn('["shell-session", "console"]', script)
         self.assertIn('document.querySelectorAll("pre")', script)

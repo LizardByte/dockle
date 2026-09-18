@@ -31,14 +31,14 @@ name = "sphinx"
 title = "Sphinx example"
 description = "Python with matching reStructuredText and Markdown authoring references."
 framework = "sphinx"
-source = "examples/sphinx"
+source = ".dockle/example-sources/sphinx"
 
 [[targets]]
 name = "doxygen"
 title = "Doxygen example"
 description = "C++ and Markdown built from a Dockle-generated Doxyfile."
 framework = "doxygen"
-source = "examples/doxygen"
+source = ".dockle/example-sources/doxygen"
 entry = "README.md"
 
 [[targets]]
@@ -46,14 +46,14 @@ name = "mkdocs"
 title = "MkDocs example"
 description = "Configuration and Markdown rendered with Dockle's MkDocs theme."
 framework = "mkdocs"
-source = "examples/mkdocs"
+source = ".dockle/example-sources/mkdocs"
 
 [[targets]]
 name = "jsdoc"
 title = "JSDoc example"
 description = "JavaScript and Markdown built from Dockle-generated JSDoc configuration."
 framework = "jsdoc"
-source = "examples/jsdoc"
+source = ".dockle/example-sources/jsdoc"
 entry = "README.md"
 
 [[targets]]
@@ -61,4 +61,4 @@ name = "rustdoc"
 title = "rustdoc example"
 description = "Rust and Markdown built through Cargo and normalized by Dockle."
 framework = "rustdoc"
-source = "examples/rustdoc"
+source = ".dockle/example-sources/rustdoc"

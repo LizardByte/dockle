@@ -11,7 +11,7 @@ extensions, and selects its first-party MkDocs theme.
 
 | Page | Purpose |
 | --- | --- |
-| [Component reference](showcase.md) | Authoring syntax beside rendered results |
+| [Component reference](component-reference.md) | Authoring syntax beside rendered results |
 | [API reference](api.md) | A configuration-oriented reference page |
 
 ## Use Dockle with MkDocs

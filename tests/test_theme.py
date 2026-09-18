@@ -88,7 +88,9 @@ class ThemeTests(unittest.TestCase):
             output.mkdir()
             (source / "README.md").write_text(
                 '```toml\nname = "dockle"\n```\n\n'
-                "```shell\ndockle build\n```\n",
+                "```shell\ndockle build\n```\n\n"
+                "```1c\nname = \"numeric language\"\n```\n\n"
+                "```clojure-repl\nuser=> (dockle)\n```\n",
                 encoding="utf-8",
             )
             html = output / "index.html"
@@ -96,16 +98,26 @@ class ThemeTests(unittest.TestCase):
                 '<div class="fragment"><div class="line">'
                 'name = &quot;dockle&quot;</div></div><!-- fragment -->'
                 '<div class="fragment"><div class="line">'
-                "dockle build</div></div><!-- fragment -->",
+                "dockle build</div></div><!-- fragment -->"
+                '<div class="fragment"><div class="line"> 1c</div>'
+                '<div class="line">name = &quot;numeric language&quot;</div>'
+                "</div><!-- fragment -->"
+                '<div class="fragment"><div class="line"> -repl</div>'
+                '<div class="line">user=&gt; (dockle)</div>'
+                "</div><!-- fragment -->",
                 encoding="utf-8",
             )
 
             count = annotate_doxygen_code_languages(output, source)
 
             document = html.read_text(encoding="utf-8")
-            self.assertEqual(count, 2)
+            self.assertEqual(count, 4)
             self.assertIn('data-dockle-language="toml"', document)
             self.assertIn('data-dockle-language="shell"', document)
+            self.assertIn('data-dockle-language="1c"', document)
+            self.assertIn('data-dockle-language="clojure-repl"', document)
+            self.assertNotIn('<div class="line"> 1c</div>', document)
+            self.assertNotIn('<div class="line"> -repl</div>', document)
 
     def test_apply_theme_is_idempotent(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

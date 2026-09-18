@@ -109,7 +109,7 @@ whole output tree so removed targets cannot leave stale pages behind; a named-ta
 ## Review all five adapters
 
 This repository is also an executable comparison suite. Every adapter has an
-overview, component showcase, GitHub-style alerts, code, tables, and an API or
+overview, component reference, GitHub-style alerts, code, tables, and an API or
 reference page. Each language fixture differs only where the underlying
 generator requires it:
 

@@ -11,7 +11,7 @@ HTML with the shared presentation layer.
 
 | Page | Purpose |
 | --- | --- |
-| [Component reference](showcase/index.html) | Authoring syntax beside rendered results |
+| [Component reference](component_reference/index.html) | Authoring syntax beside rendered results |
 | [API reference](struct.DocumentationTarget.html) | Framework-native Rust API output |
 
 ## Use Dockle with rustdoc

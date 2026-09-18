@@ -81,26 +81,6 @@ types with the same blockquote syntax.
 > [!TODO]
 > Work that remains to be completed.
 
-## Code blocks
-
-### Source
-
-````markdown
-```javascript
-const targets = ["sphinx", "doxygen", "mkdocs", "jsdoc", "rustdoc"];
-const enabled = targets.filter((target) => target !== "disabled");
-```
-````
-
-### Result
-
-```javascript
-const targets = ["sphinx", "doxygen", "mkdocs", "jsdoc", "rustdoc"];
-const enabled = targets.filter((target) => target !== "disabled");
-```
-
-Inline code such as `dockle build` uses the shared code font and background.
-
 ## Tables
 
 ### Source

@@ -384,6 +384,83 @@
     return languageAliases.get(normalized) || normalized;
   };
 
+  const addLanguageGalleries = () => {
+    document.querySelectorAll(".dockle-language-gallery")
+      .forEach((gallery, galleryIndex) => {
+        if (gallery.dataset.dockleReady !== undefined) {
+          return;
+        }
+        let end = gallery.nextElementSibling;
+        while (
+          end
+          && !end.classList.contains("dockle-language-gallery-end")
+        ) {
+          end = end.nextElementSibling;
+        }
+        if (!end) {
+          return;
+        }
+        gallery.dataset.dockleReady = "";
+
+        const controls = document.createElement("div");
+        controls.className = "dockle-language-gallery-controls";
+        const label = document.createElement("label");
+        label.className = "dockle-language-gallery-label";
+        label.textContent = "Filter languages";
+        const input = document.createElement("input");
+        input.className = "dockle-language-gallery-filter";
+        input.id = `dockle-language-gallery-filter-${galleryIndex}`;
+        input.type = "search";
+        input.placeholder = "Filter by language or alias";
+        input.autocomplete = "off";
+        label.htmlFor = input.id;
+        const count = document.createElement("span");
+        count.className = "dockle-language-gallery-count";
+        count.setAttribute("aria-live", "polite");
+        controls.append(label, input, count);
+
+        const list = document.createElement("div");
+        list.className = "dockle-language-gallery-list";
+        const entries = [];
+        let item;
+        let current = gallery.nextElementSibling;
+        while (current && current !== end) {
+          const next = current.nextElementSibling;
+          if (
+            current.classList.contains("dockle-language-gallery-header")
+          ) {
+            item = document.createElement("article");
+            item.className = "dockle-language-gallery-item";
+            item.dataset.dockleSearch = current.textContent.toLowerCase();
+            const identifier = current.querySelector("code")?.textContent;
+            if (identifier) {
+              item.dataset.dockleLanguage = canonicalLanguage(identifier);
+            }
+            entries.push(item);
+            list.append(item);
+          }
+          if (item) {
+            item.append(current);
+          }
+          current = next;
+        }
+        end.remove();
+
+        const update = () => {
+          const query = input.value.trim().toLowerCase();
+          let visible = 0;
+          entries.forEach((entry) => {
+            entry.hidden = !entry.dataset.dockleSearch.includes(query);
+            visible += entry.hidden ? 0 : 1;
+          });
+          count.textContent = `${visible} of ${entries.length} languages`;
+        };
+        input.addEventListener("input", update);
+        gallery.replaceChildren(controls, list);
+        update();
+      });
+  };
+
   const languageName = (element) => {
     const prefixes = ["language-", "lang-", "highlight-"];
     for (
@@ -427,7 +504,7 @@
       return;
     }
 
-    document.querySelectorAll("div.fragment[data-dockle-language]")
+    document.querySelectorAll("div.fragment")
       .forEach((fragment) => {
         if (fragment.querySelector(".lineno")) {
           return;
@@ -909,6 +986,7 @@
   });
 
   addDoxygenNavigation();
+  addLanguageGalleries();
   applySyntaxHighlighting();
   addCodeCopyButtons();
   replaceRustdocIcons();

@@ -314,6 +314,91 @@ div.fragment > code.hljs {
   white-space: pre;
 }
 
+.dockle-language-gallery {
+  margin: 1rem 0;
+}
+
+.dockle-language-gallery-controls {
+  align-items: end;
+  display: grid;
+  gap: 0.4rem 1rem;
+  grid-template-columns: minmax(12rem, 1fr) auto;
+  margin-bottom: 1rem;
+}
+
+.dockle-language-gallery-label {
+  color: var(--dockle-content);
+  font-weight: 600;
+  grid-column: 1 / -1;
+}
+
+.dockle-language-gallery-filter {
+  background: var(--dockle-background-secondary);
+  border: 1px solid var(--dockle-border);
+  border-radius: var(--dockle-radius);
+  color: var(--dockle-content);
+  font: inherit;
+  min-width: 0;
+  padding: 0.65rem 0.8rem;
+}
+
+.dockle-language-gallery-filter:focus-visible {
+  border-color: var(--dockle-primary);
+  outline: 2px solid color-mix(in srgb, var(--dockle-primary) 25%, transparent);
+  outline-offset: 1px;
+}
+
+.dockle-language-gallery-count {
+  color: var(--dockle-muted);
+  white-space: nowrap;
+}
+
+.dockle-language-gallery-list {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+}
+
+.dockle-language-gallery-item {
+  min-width: 0;
+}
+
+.dockle-language-gallery-item[hidden] {
+  display: none;
+}
+
+.dockle-language-gallery-end {
+  display: none;
+}
+
+.dockle-language-gallery-header {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.65rem;
+  margin-bottom: 0.35rem;
+}
+
+.dockle-language-gallery-header > span {
+  color: var(--dockle-muted);
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.dockle-language-gallery-item pre {
+  margin: 0;
+}
+
+@media (max-width: 32rem) {
+  .dockle-language-gallery-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .dockle-language-gallery-count {
+    white-space: normal;
+  }
+}
+
 .dockle-code-block {
   position: relative;
 }

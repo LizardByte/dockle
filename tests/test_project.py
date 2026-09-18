@@ -191,17 +191,98 @@ class ProjectDogfoodTests(unittest.TestCase):
         self.assertNotIn("doxyconfig", declared)
 
     def test_examples_document_portable_doxygen_authoring(self) -> None:
-        showcase = (
-            PROJECT_ROOT / "examples" / "doxygen" / "showcase.md"
+        reference = (
+            PROJECT_ROOT
+            / ".dockle"
+            / "example-sources"
+            / "doxygen"
+            / "component-reference.md"
         ).read_text(encoding="utf-8")
 
-        self.assertIn("```python", showcase)
-        self.assertIn("```javascript", showcase)
         self.assertIn(
             "@admonition{Custom title |:| "
             "A neutral custom admonition can contain A | B.}",
-            showcase,
+            reference,
         )
+
+    def test_component_references_are_composed_from_shared_source(self) -> None:
+        common = (
+            PROJECT_ROOT
+            / "examples"
+            / "shared"
+            / "component-reference.md.inc"
+        ).read_text(encoding="utf-8").strip()
+        references = {
+            "sphinx": PROJECT_ROOT / "examples" / "sphinx",
+            "doxygen": PROJECT_ROOT / "examples" / "doxygen",
+            "mkdocs": PROJECT_ROOT / "examples" / "mkdocs",
+        }
+
+        for framework, directory in references.items():
+            specific = (
+                directory / "component-reference.md.inc"
+            ).read_text(encoding="utf-8").strip()
+            generated = (
+                PROJECT_ROOT
+                / ".dockle"
+                / "example-sources"
+                / framework
+                / "component-reference.md"
+            ).read_text(encoding="utf-8")
+            self.assertFalse((directory / "component-reference.md").exists())
+            self.assertIn(common, generated, framework)
+            self.assertIn(specific, generated, framework)
+            self.assertIn('class="dockle-language-gallery"', generated)
+            self.assertIn(
+                'class="dockle-language-gallery-end"', generated
+            )
+            self.assertNotIn(" code block", specific.lower())
+
+        shared_only_references = {
+            "jsdoc": (
+                PROJECT_ROOT
+                / ".dockle"
+                / "example-sources"
+                / "jsdoc"
+                / "tutorials"
+                / "component-reference.md"
+            ),
+            "rustdoc": (
+                PROJECT_ROOT
+                / ".dockle"
+                / "example-sources"
+                / "rustdoc"
+                / "component-reference.md"
+            ),
+        }
+        for framework, generated_path in shared_only_references.items():
+            generated = generated_path.read_text(encoding="utf-8")
+            source = PROJECT_ROOT / "examples" / framework
+            source_reference = source / "component-reference.md"
+            if framework == "jsdoc":
+                source_reference = source / "tutorials" / source_reference.name
+            self.assertFalse((source / "component-reference.md.inc").exists())
+            self.assertFalse(source_reference.exists())
+            self.assertIn(common, generated, framework)
+            self.assertIn('class="dockle-language-gallery"', generated)
+
+        rst_reference = (
+            PROJECT_ROOT
+            / ".dockle"
+            / "example-sources"
+            / "sphinx"
+            / "component-reference-rst.rst"
+        ).read_text(encoding="utf-8")
+        self.assertFalse(
+            (
+                PROJECT_ROOT
+                / "examples"
+                / "sphinx"
+                / "component-reference-rst.rst"
+            ).exists()
+        )
+        self.assertIn("actual reStructuredText code block", rst_reference)
+        self.assertIn('class="dockle-language-gallery"', rst_reference)
 
     def test_command_examples_use_the_shared_shell_language(self) -> None:
         markdown_files = [

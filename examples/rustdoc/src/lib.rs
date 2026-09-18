@@ -1,8 +1,8 @@
 #![doc = include_str!("../README.md")]
 
 /// Common authoring and rendering components demonstrated by rustdoc.
-#[doc = include_str!("../showcase.md")]
-pub mod showcase {}
+#[doc = include_str!("../component-reference.md")]
+pub mod component_reference {}
 
 /// Controls how an adapter handles generator warnings.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
