@@ -67,6 +67,7 @@
     "c8": "10.1.3",
     "eslint": "10.10.0",
     "globals": "17.12.0",
+    "highlightjs-fixtures": "https://github.com/highlightjs/highlight.js/archive/refs/tags/11.12.0.tar.gz",
     "lucide": "1.46.0"
   }
 }

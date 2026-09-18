@@ -47,6 +47,18 @@ test('the packaged highlighter includes every built-in grammar', async () => {
     'languages',
   ))).filter((filename) => filename.endsWith('.min.js'));
   assert.equal(context.hljs.listLanguages().length, packagedLanguages.length);
+  const fixtureLanguages = new Set((await readdir(path.join(
+    projectRoot,
+    'node_modules',
+    'highlightjs-fixtures',
+    'test',
+    'markup',
+  ), { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name));
+  for (const language of context.hljs.listLanguages()) {
+    assert.ok(fixtureLanguages.has(language), language);
+  }
   for (const reference of [
     path.join('.dockle', 'example-sources', 'sphinx', 'component-reference.md'),
     path.join('.dockle', 'example-sources', 'sphinx', 'component-reference-rst.rst'),
@@ -61,6 +73,7 @@ test('the packaged highlighter includes every built-in grammar', async () => {
       packagedLanguages.length,
       reference,
     );
+    assert.doesNotMatch(document, /# Dockle \S+ syntax preview/);
   }
   for (const language of [
     'cmake',

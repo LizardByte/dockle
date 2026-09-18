@@ -463,14 +463,18 @@
 
   const languageName = (element) => {
     const prefixes = ["language-", "lang-", "highlight-"];
+    const ancestors = [];
     for (
       let candidate = element;
       candidate && candidate !== document.body;
       candidate = candidate.parentElement
     ) {
+      ancestors.push(candidate);
       if (candidate.dataset.dockleLanguage) {
         return canonicalLanguage(candidate.dataset.dockleLanguage);
       }
+    }
+    for (const candidate of ancestors) {
       for (const name of candidate.classList) {
         const prefix = prefixes.find((value) => name.startsWith(value));
         if (prefix) {

@@ -3,5 +3,28 @@
   "extends": [
     "local>LizardByte/.github:renovate-config"
   ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^package\\.json$/"
+      ],
+      "matchStrings": [
+        "\\\"highlightjs-fixtures\\\":\\s*\\\"https://github\\.com/highlightjs/highlight\\.js/archive/refs/tags/(?<currentValue>[^/]+)\\.tar\\.gz\\\""
+      ],
+      "depNameTemplate": "highlightjs/highlight.js",
+      "datasourceTemplate": "github-tags",
+      "versioningTemplate": "semver"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchPackageNames": [
+        "@highlightjs/cdn-assets",
+        "highlightjs/highlight.js"
+      ],
+      "groupName": "highlight.js"
+    }
+  ],
   "forkProcessing": "enabled"
 }
