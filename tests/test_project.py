@@ -25,11 +25,11 @@ class ProjectDogfoodTests(unittest.TestCase):
         self.assertEqual(config.targets[0].output, config.build.output)
         self.assertEqual(
             config.project.logo,
-            PROJECT_ROOT / "branding" / "dockle-logo.png",
+            PROJECT_ROOT / "branding" / "dockle-logo.svg",
         )
         self.assertEqual(
             config.project.favicon,
-            PROJECT_ROOT / "branding" / "dockle-logo.png",
+            PROJECT_ROOT / "branding" / "dockle-logo.svg",
         )
 
     def test_common_cpp_lint_submodule_is_configured(self) -> None:

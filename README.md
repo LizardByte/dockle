@@ -1,11 +1,17 @@
 <div align="center">
   <img
-    src="branding/dockle-logo.png"
+    src="/branding/dockle-logo.svg"
     alt="Dockle logo"
     width="192"
   />
   <h1 align="center">Dockle</h1>
   <h4 align="center">Build documentation with multiple frameworks and one consistent theme.</h4>
+</div>
+
+<div align="center">
+  <a href="https://github.com/LizardByte/dockle"><img src="https://img.shields.io/github/stars/lizardbyte/dockle.svg?logo=github&style=for-the-badge" alt="GitHub stars"></a>
+  <a href="https://codecov.io/gh/LizardByte/dockle"><img src="https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fapp.lizardbyte.dev%2Fdashboard%2Fshields%2Fcodecov%2Fdockle.json&style=for-the-badge&logo=codecov" alt="Codecov"></a>
+  <a href="https://sonarcloud.io/project/overview?id=LizardByte_dockle"><img src="https://img.shields.io/sonar/quality_gate/LizardByte_dockle?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge&logo=sonarqubecloud&label=sonarcloud" alt="SonarCloud"></a>
 </div>
 
 Dockle is a configuration and presentation layer for documentation generators. A project describes itself once in
