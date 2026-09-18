@@ -32,10 +32,13 @@ Build pipeline
        +--> rustdoc adapter --> generated Cargo invocation
        |
        v
-   upstream HTML output
+   upstream/native themed HTML output
+       |
+       +--> Sphinx, MkDocs, JSDoc native templates
+       +--> Doxygen, rustdoc compatibility enhancement
        |
        v
-   Dockle compatibility theme --> publishable target directories
+   publishable target directories
        |
        v
    Sphinx home target, comparison cards, and cross-target links --> one hosted documentation site
@@ -61,14 +64,15 @@ Theme strategy
 Furo is a visual reference only: content-first pages, quiet navigation chrome, readable typography, responsive
 behavior, and automatic light/dark palettes. Dockle does not depend on or inherit from Furo. It ships and registers its
 own Sphinx theme, inheriting only Sphinx's intentionally minimal ``basic`` template primitives. Doxygen receives
-Dockle's generated CSS through its supported extra-stylesheet setting. The other initial adapters inject the same
-generated stylesheet into their HTML after the upstream build.
+Dockle's generated CSS through its supported extra-stylesheet setting. JSDoc uses a first-party native template that
+delegates semantic document rendering to JSDoc's default publisher through its supported layout and static-file hooks.
+Rustdoc receives the shared stylesheet after the upstream build.
 
 The compatibility layer normalizes design tokens and common content components. Post-processing marks each page with
 its framework, attaches subpath-safe relative assets, adds common search and color-scheme controls, renders Lucide
-icons, and links back to the root portal. Sphinx and MkDocs use maintained native templates. Doxygen keeps its semantic
-HTML while Dockle completes missing page outlines and derives previous/next links from Doxygen's generated navigation
-tree. The other adapters receive the same controls through generated-HTML enhancement. Icons come from the pinned
+icons, and links back to the root portal. Sphinx, MkDocs, and JSDoc use maintained native templates. Doxygen keeps its
+semantic HTML while Dockle completes missing page outlines and derives previous/next links from Doxygen's generated
+navigation tree. Rustdoc receives the same controls through generated-HTML enhancement. Icons come from the pinned
 ``lucide`` npm package; Dockle packages its official browser runtime so built sites remain self-contained. These
 implementations are first-party Dockle code; ``doxygen-awesome-css`` and ``doxyconfig`` are design references, not
 dependencies.
@@ -90,7 +94,7 @@ Milestone 1: theme fidelity (in progress)
 
 * Representative visual fixtures for every supported generator are implemented and built together.
 * The native MkDocs theme now shares Dockle's sidebar/page structure and assets with Sphinx.
-* Evaluate whether a native JSDoc template is preferable to the compatibility layer.
+* The native JSDoc template replaces post-build HTML rewriting and is consumable independently from npm.
 * Keep the documented supported-version matrix current and add visual regression baselines.
 * Add accessible color contrast, keyboard navigation, and mobile-layout checks.
 * Decide whether rustdoc needs a maintained template or a deliberately narrower compatibility promise.
@@ -117,7 +121,7 @@ Milestone 3: ecosystem and distribution
 * Define a typed third-party adapter interface.
 * Add adapters based on demand, with TypeDoc and Dokka as likely candidates.
 * Publish reproducible Python packages, standalone platform executables, and a supported CI action.
-* Add thin npm and CMake installation paths around the canonical command; publish a crate only when it adds Rust value.
+* Maintain the native npm/JSDoc and CMake installation paths; publish a crate only when it adds Rust value.
 * Add machine-readable schema documentation and configuration migration tooling before stabilizing version 1.
 
 Known risks

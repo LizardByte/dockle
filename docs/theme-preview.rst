@@ -47,8 +47,8 @@ Framework         Dockle-owned configuration        Styling integration
 ================  ================================  =====================
 Sphinx            ``conf.py``                       Native Dockle theme
 Doxygen           ``Doxyfile``                      Extra stylesheet
-MkDocs            ``mkdocs.yml``                    HTML normalization
-JSDoc             ``jsdoc.json``                    HTML normalization
+MkDocs            ``mkdocs.yml``                    Native Dockle theme
+JSDoc             ``jsdoc.json``                    Native Dockle template
 rustdoc            Cargo command and environment    HTML normalization
 ================  ================================  =====================
 

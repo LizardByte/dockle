@@ -6,6 +6,8 @@
 _site/
 
 # Node.js
+.npm-cache/
+.npm-tmp/
 node_modules/
 
 # Python
@@ -20,5 +22,6 @@ dist/
 .coverage
 coverage/
 junit-python.xml
+junit-node.xml
 .pytest_cache/
 .ruff_cache/

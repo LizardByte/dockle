@@ -60,10 +60,25 @@ class RecordingRunner:
     def run(self, command: Command) -> None:
         self.commands.append(command)
         self.html_output.mkdir(parents=True, exist_ok=True)
+        is_jsdoc = any("jsdoc.json" in argument for argument in command.args)
+        root = ' data-dockle-framework="jsdoc"' if is_jsdoc else ""
+        favicon = (
+            '<link data-dockle-favicon><link data-dockle-theme="jsdoc">'
+            if is_jsdoc
+            else ""
+        )
         (self.html_output / "index.html").write_text(
-            "<!doctype html><html><head><title>Fixture</title></head><body><main>Docs</main></body></html>",
+            f"<!doctype html><html{root}><head><title>Fixture</title>"
+            f"{favicon}</head><body><main>Docs</main></body></html>",
             encoding="utf-8",
         )
+        if is_jsdoc:
+            (self.html_output / "dockle.css").write_text(
+                "body {}", encoding="utf-8"
+            )
+            (self.html_output / "dockle-favicon.svg").write_text(
+                "<svg/>", encoding="utf-8"
+            )
 
 
 class BuilderTests(unittest.TestCase):
@@ -144,6 +159,12 @@ class BuilderTests(unittest.TestCase):
         self.assertIn('"destination"', native)
         self.assertIn('"recurse": true', native)
         self.assertIn('"readme"', native)
+        self.assertIn('"template"', native)
+        self.assertIn('"dockleVersion"', native)
+        self.assertIn('"projectName": "Example API"', native)
+        self.assertIn('"targetTitle": "Jsdoc"', native)
+        self.assertIn('"stylesheet"', native)
+        self.assertTrue((plan.work / "theme" / "dockle.css") in plan.generated_files)
         self.assertEqual(plan.command.args[1], "--configure")
         self.assertIn("--pedantic", plan.command.args)
 
@@ -186,8 +207,8 @@ class BuilderTests(unittest.TestCase):
         self.assertIn('"destination"', generated)
         self.assertIn('data-dockle-theme="jsdoc"', html)
         self.assertIn('data-dockle-framework="jsdoc"', html)
-        self.assertTrue((target.output / "_dockle" / "dockle.css").is_file())
-        self.assertTrue((target.output / "_dockle" / "favicon.svg").is_file())
+        self.assertTrue((target.output / "dockle.css").is_file())
+        self.assertTrue((target.output / "dockle-favicon.svg").is_file())
         self.assertIn("data-dockle-favicon", html)
         portal = (config.build.output / "index.html").read_text(
             encoding="utf-8"
@@ -248,8 +269,14 @@ class BuilderTests(unittest.TestCase):
                             / "fixture"
                         )
                     native_output.mkdir(parents=True, exist_ok=True)
+                    root = (
+                        ' data-dockle-framework="jsdoc"'
+                        if candidate.framework == "jsdoc"
+                        else ""
+                    )
                     (native_output / "index.html").write_text(
-                        "<!doctype html><html><head></head><body>Docs</body></html>",
+                        f"<!doctype html><html{root}><head></head>"
+                        "<body>Docs</body></html>",
                         encoding="utf-8",
                     )
 

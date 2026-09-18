@@ -16,7 +16,7 @@ from pathlib import Path
 
 from dockle import __version__
 from dockle.config import DockleConfig, TargetConfig
-from dockle.theme import apply_theme, render_theme, write_portal
+from dockle.theme import ThemeError, apply_theme, render_theme, write_portal
 
 
 class BuildError(RuntimeError):
@@ -342,10 +342,16 @@ class MkDocsBuilder(Builder):
 
 
 class JsDocBuilder(Builder):
-    """Build JavaScript API documentation from generated JSON."""
+    """Build JavaScript API documentation with Dockle's native template."""
 
     def plan(self) -> BuildPlan:
         config_file = self.work / "jsdoc.json"
+        portal = Path(
+            os.path.relpath(
+                self.config.build.output / "index.html",
+                self.target.output,
+            )
+        ).as_posix()
         native = {
             "source": {
                 "include": [str(self.target.source)],
@@ -355,9 +361,32 @@ class JsDocBuilder(Builder):
                 "destination": str(self.target.output),
                 "encoding": "utf8",
                 "recurse": True,
+                "template": str(_jsdoc_template()),
             },
             "templates": {
-                "default": {"includeDate": False, "outputSourceFiles": True}
+                "default": {
+                    "includeDate": False,
+                    "outputSourceFiles": True,
+                },
+                "dockle": {
+                    "dockleVersion": __version__,
+                    "favicon": (
+                        str(self.config.project.favicon)
+                        if self.config.project.favicon
+                        else ""
+                    ),
+                    "logo": (
+                        str(self.config.project.logo)
+                        if self.config.project.logo
+                        else ""
+                    ),
+                    "portalUrl": portal,
+                    "projectName": self.config.project.name,
+                    "projectUrl": portal,
+                    "projectVersion": self.config.project.version,
+                    "stylesheet": str(self._theme_file()),
+                    "targetTitle": self.target.title,
+                },
             },
         }
         entry = self.target.source / self.target.entry
@@ -373,8 +402,28 @@ class JsDocBuilder(Builder):
             target=self.target,
             command=Command(tuple(args), self.config.root),
             work=self.work,
-            generated_files={config_file: json.dumps(native, indent=2) + "\n"},
+            generated_files={
+                config_file: json.dumps(native, indent=2) + "\n",
+                self._theme_file(): render_theme(self.config.theme),
+            },
         )
+
+    def finalize(self, stylesheet: str) -> int:
+        """Validate the pages emitted by the native JSDoc template."""
+
+        del stylesheet
+        html_files = sorted(self.target.output.rglob("*.html"))
+        if not html_files:
+            raise ThemeError(
+                f"jsdoc did not generate any HTML files in {self.target.output}"
+            )
+        for html_file in html_files:
+            document = html_file.read_text(encoding="utf-8")
+            if 'data-dockle-framework="jsdoc"' not in document:
+                raise ThemeError(
+                    f"jsdoc did not use Dockle's native template: {html_file}"
+                )
+        return len(html_files)
 
 
 class RustdocBuilder(Builder):
@@ -603,6 +652,12 @@ def _posix(path: Path) -> str:
 
 def _yaml_string(value: str) -> str:
     return json.dumps(value, ensure_ascii=False)
+
+
+def _jsdoc_template() -> Path:
+    """Return the first-party JSDoc template bundled with Dockle."""
+
+    return Path(__file__).resolve().parent / "jsdoc_template"
 
 
 def _uses_bundled_generator(config: DockleConfig, framework: str) -> bool:

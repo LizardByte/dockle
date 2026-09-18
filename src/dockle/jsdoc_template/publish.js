@@ -1,0 +1,151 @@
+'use strict';
+
+const fs = require('node:fs');
+const path = require('node:path');
+const env = require('jsdoc/env');
+
+const DEFAULT_TOKENS = `:root {
+  --dockle-primary: #2962ff;
+  --dockle-content: #2e3440;
+  --dockle-background: #ffffff;
+  --dockle-font: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --dockle-code-font: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+}
+:root[data-color-scheme="dark"] {
+  --dockle-content: #e5e7eb;
+  --dockle-background: #131416;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-color-scheme]) {
+    --dockle-content: #e5e7eb;
+    --dockle-background: #131416;
+  }
+}
+`;
+
+const sharedAssets = path.resolve(
+  __dirname,
+  '..',
+  'sphinx',
+  'themes',
+  'dockle',
+  'static',
+);
+
+function assetName(prefix, source) {
+  return source ? `${prefix}${path.extname(source).toLowerCase()}` : '';
+}
+
+function copyConfiguredAsset(source, destination) {
+  if (!source) {
+    return;
+  }
+  fs.copyFileSync(path.resolve(env.pwd, source), destination);
+}
+
+function htmlFiles(directory) {
+  const files = [];
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const filename = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...htmlFiles(filename));
+    } else if (entry.isFile() && entry.name.endsWith('.html')) {
+      files.push(filename);
+    }
+  }
+  return files;
+}
+
+function siteRoot(destination) {
+  const indexes = htmlFiles(destination)
+    .filter((filename) => path.basename(filename) === 'index.html')
+    .sort((left, right) => left.length - right.length);
+  if (!indexes.length) {
+    throw new Error(`JSDoc did not generate an index page in ${destination}`);
+  }
+  return path.dirname(indexes[0]);
+}
+
+function decodeEntities(value) {
+  const named = {
+    amp: '&',
+    apos: "'",
+    gt: '>',
+    lt: '<',
+    nbsp: ' ',
+    quot: '"',
+  };
+  return value.replace(/&(#(?:x[0-9a-f]+|[0-9]+)|[a-z]+);/gi, (match, entity) => {
+    if (entity.startsWith('#x')) {
+      return String.fromCodePoint(Number.parseInt(entity.slice(2), 16));
+    }
+    if (entity.startsWith('#')) {
+      return String.fromCodePoint(Number.parseInt(entity.slice(1), 10));
+    }
+    return named[entity.toLowerCase()] ?? match;
+  });
+}
+
+function searchableText(document) {
+  return decodeEntities(
+    document
+      .replace(/<(script|style|svg)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ')
+      .replace(/<[^>]+>/g, ' '),
+  ).replace(/\s+/g, ' ').trim();
+}
+
+function searchDocument(filename, root) {
+  const document = fs.readFileSync(filename, 'utf8');
+  const title = /<title[^>]*>([^<]*)<\/title>/i.exec(document)?.[1]
+    || path.basename(filename, '.html');
+  return {
+    location: path.relative(root, filename).split(path.sep).join('/'),
+    text: searchableText(document).slice(0, 4000),
+    title: decodeEntities(title).trim(),
+  };
+}
+
+function finishSite(destination, dockle) {
+  const root = siteRoot(destination);
+  const stylesheet = dockle.stylesheet
+    ? fs.readFileSync(path.resolve(env.pwd, dockle.stylesheet), 'utf8')
+    : DEFAULT_TOKENS + fs.readFileSync(path.join(sharedAssets, 'dockle.css'), 'utf8');
+  fs.writeFileSync(path.join(root, 'dockle.css'), stylesheet, 'utf8');
+  copyConfiguredAsset(dockle.logo, path.join(root, dockle.logoFile));
+  copyConfiguredAsset(dockle.favicon, path.join(root, dockle.faviconFile));
+  const docs = htmlFiles(root).map((filename) => searchDocument(filename, root));
+  fs.writeFileSync(
+    path.join(root, 'search.json'),
+    JSON.stringify({ docs }),
+    'utf8',
+  );
+}
+
+exports.publish = (taffyData, opts, tutorials) => {
+  env.conf.templates ||= {};
+  env.conf.templates.default ||= {};
+  env.conf.templates.dockle ||= {};
+  const defaults = env.conf.templates.default;
+  const dockle = env.conf.templates.dockle;
+  dockle.dockleVersion ||= '0.0.0';
+  dockle.faviconFile = assetName('dockle-favicon', dockle.favicon);
+  dockle.logoFile = assetName('dockle-logo', dockle.logo);
+  dockle.projectName ||= 'Documentation';
+  dockle.projectUrl ||= dockle.portalUrl || 'index.html';
+  dockle.targetTitle ||= dockle.projectName;
+
+  defaults.includeDate = false;
+  defaults.layoutFile = path.join(__dirname, 'tmpl', 'layout.tmpl');
+  defaults.staticFiles ||= {};
+  defaults.staticFiles.include ||= [];
+  if (!defaults.staticFiles.include.includes(sharedAssets)) {
+    defaults.staticFiles.include.push(sharedAssets);
+  }
+
+  const defaultTemplate = path.join(env.dirname, 'templates', 'default');
+  const defaultPublisher = require(path.join(defaultTemplate, 'publish'));
+  opts.template = defaultTemplate;
+  const result = defaultPublisher.publish(taffyData, opts, tutorials);
+  finishSite(path.resolve(opts.destination), dockle);
+  return result;
+};

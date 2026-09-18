@@ -21,7 +21,6 @@
   const storageKey = "dockle-color-scheme";
   const colorPreference = window.matchMedia("(prefers-color-scheme: dark)");
   const themeModes = ["auto", "light", "dark"];
-  let storedScheme = null;
 
   const configureComponentReference = () => {
     const isReference = Boolean(document.querySelector("#component-reference"))
@@ -51,7 +50,7 @@
   };
 
   configureComponentReference();
-  storedScheme = loadStoredScheme();
+  const storedScheme = loadStoredScheme();
 
   if (storedScheme === "light" || storedScheme === "dark") {
     root.dataset.colorScheme = storedScheme;

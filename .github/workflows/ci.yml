@@ -14,6 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  NODE_VERSION: '24'
   PYTHON_VERSION: '3.14'
 
 jobs:
@@ -109,6 +110,10 @@ jobs:
             --no-build --no-sync python -I -c \
             "import dockle; print(dockle.__version__)"
           uv run --locked --no-default-groups --group test --all-extras \
+            --no-build --no-sync python -I -c \
+            "from pathlib import Path; import dockle; "\
+            "assert (Path(dockle.__file__).parent / 'jsdoc_template' / 'publish.js').is_file()"
+          uv run --locked --no-default-groups --group test --all-extras \
             --no-build --no-sync dockle cmake-dir
 
       - name: Test with pytest
@@ -198,6 +203,70 @@ jobs:
           name: release-python
           path: dist/*
           retention-days: 30
+
+  node-package:
+    name: Node package
+    needs:
+      - release-setup
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set package version
+        env:
+          RELEASE_VERSION: ${{ needs.release-setup.outputs.release_version }}
+        run: npm version "${RELEASE_VERSION}" --no-git-tag-version
+
+      - name: Install Node.js dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Test Node.js package
+        id: node-test
+        run: npm test
+
+      - name: Build Node.js package
+        run: npm run build
+
+      - name: Check Node.js package contents
+        run: npm publish --dry-run
+
+      - name: Upload Node.js test coverage
+        if: >-
+          always() &&
+          (steps.node-test.outcome == 'success' || steps.node-test.outcome == 'failure') &&
+          startsWith(github.repository, 'LizardByte/')
+        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4  # v7.1.0
+        with:
+          disable_search: true
+          fail_ci_if_error: true
+          files: ./coverage/lcov.info
+          flags: node-${{ env.NODE_VERSION }}
+          report_type: coverage
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
+
+      - name: Upload Node.js test results
+        if: >-
+          always() &&
+          (steps.node-test.outcome == 'success' || steps.node-test.outcome == 'failure') &&
+          startsWith(github.repository, 'LizardByte/')
+        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4  # v7.1.0
+        with:
+          disable_search: true
+          fail_ci_if_error: true
+          files: ./junit-node.xml
+          flags: node-${{ env.NODE_VERSION }}
+          report_type: test_results
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
 
   standalone:
     name: Standalone (${{ matrix.artifact }})
@@ -466,6 +535,7 @@ jobs:
     name: Create Release
     if: needs.release-setup.outputs.publish_release == 'true'
     needs:
+      - node-package
       - python-package
       - pytest
       - release-setup

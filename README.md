@@ -39,6 +39,16 @@ The PyPI distribution uses the organization-qualified name `lizardbyte-dockle`; 
 command remain `dockle`. Doxygen, JSDoc, and the Rust toolchain remain native tool dependencies. Their executable paths
 can be overridden in `dockle.toml` when they are not available on `PATH`.
 
+JavaScript-only projects can use the native Dockle JSDoc template without Python, Doxygen, or Graphviz:
+
+```console
+npm install --save-dev @lizardbyte/dockle
+npx dockle-jsdoc src --destination docs
+```
+
+That npm package includes JSDoc and the first-party template. The Python package uses the same template when JSDoc is
+one target in a larger multi-framework site.
+
 Create a single configuration file:
 
 ```toml
@@ -119,12 +129,14 @@ No Sphinx or MkDocs configuration is duplicated for the hosting service. Once th
 the Docs, each branch and pull request build will exercise the root Sphinx documentation and all five adapters used
 locally.
 
-## Distribution direction
+## Distribution
 
-The Python package is the canonical implementation. PyPI will provide the normal install path, while standalone
-per-platform executables can make the same command available to C++, JavaScript, and Rust projects without requiring a
-managed Python environment. The npm package should be a verified launcher for those binaries; a crates.io package only
-makes sense if it provides similar installation value or a real Rust API rather than a second implementation.
+The Python package is the canonical multi-framework orchestrator. PyPI provides the normal install path, while
+standalone per-platform executables make that command available to C++, JavaScript, and Rust projects without requiring
+a managed Python environment. The `@lizardbyte/dockle` npm package is intentionally narrower: it provides JSDoc, the
+native Dockle JSDoc template, and the `dockle-jsdoc` command without installing Python or unrelated documentation
+toolchains. A crates.io package still only makes sense if it provides comparable installation value or a real Rust API
+rather than a second implementation.
 
 For CMake projects, [`cmake/Dockle.cmake`](cmake/Dockle.cmake) already exposes `dockle_add_docs()`. It finds an installed
 or standalone Dockle command and falls back to `Python3 -m dockle`.
@@ -136,13 +148,13 @@ or standalone Dockle command and falls back to `Python3 -m dockle`.
 | Sphinx | `conf.py` | Dockle's packaged Sphinx theme | Implemented |
 | Doxygen | `Doxyfile` | `HTML_EXTRA_STYLESHEET` | Implemented |
 | MkDocs | `mkdocs.yml` | Dockle's packaged MkDocs theme | Implemented |
-| JSDoc | `jsdoc.json` | Generated HTML normalization | Implemented |
+| JSDoc | `jsdoc.json` | Dockle's packaged native JSDoc template | Implemented |
 | rustdoc | Cargo command and environment | Generated HTML normalization | Implemented |
 
 Every adapter now receives Dockle's generated client-side search index and the
 same search interface, including result ranking and empty/error behavior. The
 color-scheme control sits beside search and uses a state-aware Lucide icon.
-Sphinx and MkDocs use first-party templates; Doxygen, JSDoc, and rustdoc keep
+Sphinx, MkDocs, and JSDoc use first-party templates. Doxygen and rustdoc keep
 their semantic output while Dockle normalizes their structure and visual
 primitives. Doxygen additionally receives a persistent tree, an automatically
 completed page outline, and generated previous/next navigation.

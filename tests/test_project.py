@@ -105,8 +105,15 @@ class ProjectDogfoodTests(unittest.TestCase):
     def test_lucide_runtime_is_managed_by_npm(self) -> None:
         with (PROJECT_ROOT / "package.json").open(encoding="utf-8") as stream:
             package = json.load(stream)
+        self.assertEqual(package["name"], "@lizardbyte/dockle")
+        self.assertEqual(package["version"], "0.0.0")
         self.assertEqual(package["author"], "LizardByte")
         self.assertEqual(package["license"], "MIT")
+        self.assertNotIn("private", package)
+        self.assertEqual(
+            package["bin"]["dockle-jsdoc"], "bin/dockle-jsdoc.cjs"
+        )
+        self.assertEqual(package["dependencies"]["jsdoc"], "4.0.5")
         version = package["dependencies"]["lucide"]
         runtime = (
             PROJECT_ROOT
@@ -184,6 +191,11 @@ class ProjectDogfoodTests(unittest.TestCase):
         self.assertIn("uv sync --locked", workflow)
         self.assertIn("python-version:\n          - '3.11'", workflow)
         self.assertIn("Smoke test installed wheel", workflow)
+        self.assertIn("name: Node package", workflow)
+        self.assertIn('NODE_VERSION: \'24\'', workflow)
+        self.assertIn("npm publish --dry-run", workflow)
+        self.assertIn("./coverage/lcov.info", workflow)
+        self.assertIn("./junit-node.xml", workflow)
         self.assertIn("report_type: coverage", workflow)
         self.assertIn("report_type: test_results", workflow)
         self.assertIn(
@@ -221,6 +233,17 @@ class ProjectDogfoodTests(unittest.TestCase):
         self.assertIn('"lizardbyte_dockle-*.whl"', workflow)
         self.assertIn('"lizardbyte_dockle-*.tar.gz"', workflow)
         self.assertIn("gh-action-pypi-publish@", workflow)
+
+    def test_npm_publish_requires_a_release_event(self) -> None:
+        workflow = (
+            PROJECT_ROOT / ".github" / "workflows" / "_update-npm.yml"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("release:", workflow)
+        self.assertIn("- released", workflow)
+        self.assertIn("__call-update-npm.yml@master", workflow)
+        self.assertIn("id-token: write", workflow)
+        self.assertIn("release_version:", workflow)
 
     def test_ci_builds_all_requested_standalone_executables(self) -> None:
         workflow = (
