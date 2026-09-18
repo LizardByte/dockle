@@ -579,7 +579,7 @@ class RustdocBuilder(Builder):
             env["RUSTDOCFLAGS"] = f"{existing_flags} -D warnings".strip()
         return BuildPlan(
             target=self.target,
-            command=Command(tuple(args), self.config.root, env),
+            command=Command(tuple(args), manifest.parent, env),
             work=self.work,
             generated_files={},
         )
@@ -591,6 +591,14 @@ class RustdocBuilder(Builder):
                 f"cargo did not generate rustdoc output in {source}"
             )
         shutil.copytree(source, self.target.output, dirs_exist_ok=True)
+        settings = self.target.rustdoc
+        if settings is not None and settings.extra_files:
+            html_directories = {
+                path.parent for path in self.target.output.rglob("*.html")
+            }
+            for directory in html_directories:
+                for extra_file in settings.extra_files:
+                    shutil.copy2(extra_file, directory / extra_file.name)
         self._write_index()
         return super().finalize(stylesheet)
 
@@ -697,6 +705,8 @@ class BuildManager:
                     required_paths.append(target.jsdoc.readme)
             if target.sphinx is not None:
                 required_paths.extend(target.sphinx.static_paths)
+            if target.rustdoc is not None:
+                required_paths.extend(target.rustdoc.extra_files)
             missing_path = next(
                 (path for path in required_paths if not path.exists()), None
             )

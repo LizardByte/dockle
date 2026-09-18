@@ -19,6 +19,7 @@ _TARGET_KEYS = {
     "jsdoc",
     "mkdocs",
     "sphinx",
+    "rustdoc",
     "name",
     "title",
     "description",
@@ -119,6 +120,13 @@ class SphinxConfig:
 
 
 @dataclass(frozen=True)
+class RustdocConfig:
+    """Project-specific rustdoc settings owned by ``dockle.toml``."""
+
+    extra_files: tuple[Path, ...] = ()
+
+
+@dataclass(frozen=True)
 class TargetConfig:
     """One documentation target."""
 
@@ -132,6 +140,7 @@ class TargetConfig:
     jsdoc: JsDocConfig | None = None
     mkdocs: MkDocsConfig | None = None
     sphinx: SphinxConfig | None = None
+    rustdoc: RustdocConfig | None = None
     entry: str = "index"
     home: bool = False
 
@@ -341,6 +350,7 @@ def _load_target(
     jsdoc = _load_jsdoc(item, where, root, source, framework)
     mkdocs = _load_mkdocs(item, where, framework)
     sphinx = _load_sphinx(item, where, root, framework)
+    rustdoc = _load_rustdoc(item, where, root, framework)
     home = _optional_bool(item, "home", where, False)
     output, home_target = _target_output(
         item, where, name, framework, home, build, outputs, home_target
@@ -363,6 +373,7 @@ def _load_target(
             jsdoc=jsdoc,
             mkdocs=mkdocs,
             sphinx=sphinx,
+            rustdoc=rustdoc,
             entry=_target_entry(item, where),
             home=home,
         ),
@@ -543,6 +554,26 @@ def _load_sphinx(
         extra_stylesheets=_string_list(
             raw, "extra_stylesheets", sphinx_where
         ),
+    )
+
+
+def _load_rustdoc(
+    item: dict[str, Any], where: str, root: Path, framework: str
+) -> RustdocConfig | None:
+    raw = item.get("rustdoc", {})
+    if not isinstance(raw, dict):
+        raise ConfigError(f"{where}.rustdoc must be a table")
+    if framework != "rustdoc":
+        if raw:
+            raise ConfigError(
+                f"{where}.rustdoc requires framework = 'rustdoc'"
+            )
+        return None
+
+    rustdoc_where = f"{where}.rustdoc"
+    _reject_unknown(raw, {"extra_files"}, rustdoc_where)
+    return RustdocConfig(
+        extra_files=_path_list(raw, "extra_files", rustdoc_where, root)
     )
 
 

@@ -320,6 +320,7 @@ exclude_pattern = "generated/"''',
 
         self.assertEqual(plan.command.args[1], "doc")
         self.assertIn("--no-deps", plan.command.args)
+        self.assertEqual(plan.command.cwd, self.config.targets[4].source)
         self.assertTrue(
             plan.command.env["RUSTDOCFLAGS"].endswith("-D warnings")
         )

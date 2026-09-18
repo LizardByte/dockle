@@ -212,6 +212,17 @@ must expose:
    Asset names from the configured static directories, or absolute web URLs.
    Dockle's theme assets remain in place.
 
+rustdoc target settings
+-----------------------
+
+Use ``[targets.rustdoc]`` when crate-local HTML hooks reference supporting
+assets:
+
+``extra_files``
+   Project files copied beside every generated rustdoc HTML page. Cargo runs
+   from the manifest directory so its local ``.cargo/config.toml`` and HTML
+   hook paths are honored.
+
 Tool resolution
 ---------------
 

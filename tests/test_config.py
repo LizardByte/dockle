@@ -359,6 +359,30 @@ extra_stylesheets = ["project.css"]
             self.assertEqual(sphinx.extra_javascript, ("project.js",))
             self.assertEqual(sphinx.extra_stylesheets, ("project.css",))
 
+    def test_loads_typed_rustdoc_extra_files(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "docs").mkdir()
+            extra_file = root / "crowdin.js"
+            extra_file.touch()
+            path = root / "dockle.toml"
+            path.write_text(
+                MINIMAL_CONFIG.replace(
+                    'framework = "sphinx"', 'framework = "rustdoc"'
+                )
+                + '''
+[targets.rustdoc]
+extra_files = ["crowdin.js"]
+''',
+                encoding="utf-8",
+            )
+
+            config = load_config(path)
+            rustdoc = config.targets[0].rustdoc
+
+            assert rustdoc is not None
+            self.assertEqual(rustdoc.extra_files, (extra_file.resolve(),))
+
     def test_selects_targets_in_configuration_order(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "dockle.toml"
