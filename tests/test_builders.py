@@ -191,6 +191,9 @@ extra_files = ["cpp/custom.js"]
 aliases = ['example{1}=<strong>\\1</strong>']
 main_page = "README.md"
 dot_graph_max_nodes = 75
+optimize_output_java = true
+separate_member_pages = true
+warn_if_undoc_enum_val = false
 warn_if_undocumented = false
 warn_no_paramdoc = false''',
         )
@@ -209,6 +212,9 @@ warn_no_paramdoc = false''',
         self.assertIn(f'"{settings.extra_files[0].as_posix()}"', doxyfile)
         self.assertIn('"EXAMPLE=1"', doxyfile)
         self.assertIn("DOT_GRAPH_MAX_NODES      = 75", doxyfile)
+        self.assertIn("OPTIMIZE_OUTPUT_JAVA     = YES", doxyfile)
+        self.assertIn("SEPARATE_MEMBER_PAGES    = YES", doxyfile)
+        self.assertIn("WARN_IF_UNDOC_ENUM_VAL   = NO", doxyfile)
         self.assertIn("WARN_IF_UNDOCUMENTED     = NO", doxyfile)
         self.assertIn("WARN_NO_PARAMDOC         = NO", doxyfile)
         self.assertIn('ALIASES                += "example{1}', doxyfile)

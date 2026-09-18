@@ -160,8 +160,11 @@ a second native configuration file:
 ``dot_graph_max_nodes``
    Graph node limit from 0 through 10000. Defaults to ``50``.
 
-``warn_if_undocumented`` and ``warn_no_paramdoc``
-   Strict documentation checks. Both default to ``true`` to preserve the shared
+``optimize_output_java`` and ``separate_member_pages``
+   Native presentation switches used by projects such as C# API references.
+
+``warn_if_undoc_enum_val``, ``warn_if_undocumented``, and ``warn_no_paramdoc``
+   Strict documentation checks. All three default to ``true`` to preserve the shared
    LizardByte Doxygen contract.
 
 The generated Doxyfile also carries the portable behavior formerly supplied by

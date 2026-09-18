@@ -87,6 +87,9 @@ class DoxygenConfig:
     aliases: tuple[str, ...] = ()
     main_page: Path | None = None
     dot_graph_max_nodes: int = 50
+    optimize_output_java: bool = False
+    separate_member_pages: bool = False
+    warn_if_undoc_enum_val: bool = True
     warn_if_undocumented: bool = True
     warn_no_paramdoc: bool = True
 
@@ -409,7 +412,10 @@ def _load_doxygen(
         "include_paths",
         "inputs",
         "main_page",
+        "optimize_output_java",
         "predefined",
+        "separate_member_pages",
+        "warn_if_undoc_enum_val",
         "warn_if_undocumented",
         "warn_no_paramdoc",
     }
@@ -446,6 +452,15 @@ def _load_doxygen(
             50,
             minimum=0,
             maximum=10000,
+        ),
+        optimize_output_java=_optional_bool(
+            raw, "optimize_output_java", doxygen_where, False
+        ),
+        separate_member_pages=_optional_bool(
+            raw, "separate_member_pages", doxygen_where, False
+        ),
+        warn_if_undoc_enum_val=_optional_bool(
+            raw, "warn_if_undoc_enum_val", doxygen_where, True
         ),
         warn_if_undocumented=_optional_bool(
             raw, "warn_if_undocumented", doxygen_where, True

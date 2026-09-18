@@ -270,6 +270,12 @@ class DoxygenBuilder(Builder):
             "PREDEFINED": _doxygen_strings(
                 (*_DOXYGEN_PREDEFINED, *settings.predefined)
             ),
+            "OPTIMIZE_OUTPUT_JAVA": _doxygen_yes_no(
+                settings.optimize_output_java
+            ),
+            "SEPARATE_MEMBER_PAGES": _doxygen_yes_no(
+                settings.separate_member_pages
+            ),
             "SORT_BRIEF_DOCS": "YES",
             "STRIP_FROM_INC_PATH": _doxygen_quote(
                 _posix(self.config.root)
@@ -280,7 +286,9 @@ class DoxygenBuilder(Builder):
             "WARN_AS_ERROR": warn_as_error,
             "WARN_IF_DOC_ERROR": "YES",
             "WARN_IF_INCOMPLETE_DOC": "YES",
-            "WARN_IF_UNDOC_ENUM_VAL": "YES",
+            "WARN_IF_UNDOC_ENUM_VAL": _doxygen_yes_no(
+                settings.warn_if_undoc_enum_val
+            ),
             "WARN_IF_UNDOCUMENTED": _doxygen_yes_no(
                 settings.warn_if_undocumented
             ),

@@ -256,6 +256,9 @@ extra_files = ["docs/custom.js"]
 aliases = ['example{1}=<strong>\\1</strong>']
 main_page = "README.md"
 dot_graph_max_nodes = 75
+optimize_output_java = true
+separate_member_pages = true
+warn_if_undoc_enum_val = false
 warn_if_undocumented = false
 warn_no_paramdoc = false
 """,
@@ -274,6 +277,9 @@ warn_no_paramdoc = false
             self.assertEqual(doxygen.predefined, ("EXAMPLE=1",))
             self.assertEqual(doxygen.main_page, (root / "README.md").resolve())
             self.assertEqual(doxygen.dot_graph_max_nodes, 75)
+            self.assertTrue(doxygen.optimize_output_java)
+            self.assertTrue(doxygen.separate_member_pages)
+            self.assertFalse(doxygen.warn_if_undoc_enum_val)
             self.assertFalse(doxygen.warn_if_undocumented)
             self.assertFalse(doxygen.warn_no_paramdoc)
 
