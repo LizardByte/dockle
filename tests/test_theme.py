@@ -6,7 +6,12 @@ from pathlib import Path
 
 from dockle import __version__
 from dockle.config import ThemeConfig
-from dockle.theme import ThemeError, apply_theme, render_theme
+from dockle.theme import (
+    ThemeError,
+    annotate_doxygen_code_languages,
+    apply_theme,
+    render_theme,
+)
 
 
 class ThemeTests(unittest.TestCase):
@@ -39,8 +44,13 @@ class ThemeTests(unittest.TestCase):
             self.assertEqual(count, 1)
             self.assertIn("../../_dockle/dockle.css", document)
             self.assertIn("../../_dockle/lucide.min.js", document)
+            self.assertIn("../../_dockle/highlight.min.js", document)
             self.assertLess(
                 document.index("lucide.min.js"),
+                document.index("highlight.min.js"),
+            )
+            self.assertLess(
+                document.index("highlight.min.js"),
                 document.index("dockle.js"),
             )
             self.assertIn('data-dockle-framework="rustdoc"', document)
@@ -63,6 +73,39 @@ class ThemeTests(unittest.TestCase):
             self.assertTrue(
                 (output / "_dockle" / "lucide.min.js").is_file()
             )
+            self.assertTrue(
+                (output / "_dockle" / "highlight.min.js").is_file()
+            )
+
+    def test_doxygen_fence_languages_are_restored_for_highlighting(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source"
+            output = root / "output"
+            source.mkdir()
+            output.mkdir()
+            (source / "README.md").write_text(
+                '```toml\nname = "dockle"\n```\n\n'
+                "```console\ndockle build\n```\n",
+                encoding="utf-8",
+            )
+            html = output / "index.html"
+            html.write_text(
+                '<div class="fragment"><div class="line">'
+                'name = &quot;dockle&quot;</div></div><!-- fragment -->'
+                '<div class="fragment"><div class="line">'
+                "dockle build</div></div><!-- fragment -->",
+                encoding="utf-8",
+            )
+
+            count = annotate_doxygen_code_languages(output, source)
+
+            document = html.read_text(encoding="utf-8")
+            self.assertEqual(count, 2)
+            self.assertIn('data-dockle-language="toml"', document)
+            self.assertIn('data-dockle-language="console"', document)
 
     def test_apply_theme_is_idempotent(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

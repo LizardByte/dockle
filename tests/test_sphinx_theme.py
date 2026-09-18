@@ -31,6 +31,12 @@ class SphinxThemeTests(unittest.TestCase):
             (THEME_DIRECTORY / "static" / "lucide.min.js").is_file()
         )
         self.assertTrue(
+            (THEME_DIRECTORY / "static" / "highlight.min.js").is_file()
+        )
+        self.assertTrue(
+            (THEME_DIRECTORY / "static" / "HIGHLIGHT_LICENSE.txt").is_file()
+        )
+        self.assertTrue(
             (THEME_DIRECTORY / "static" / "LUCIDE_LICENSE.txt").is_file()
         )
         self.assertTrue((THEME_DIRECTORY / "main.html").is_file())
@@ -181,9 +187,28 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertIn("--dockle-code-string", stylesheet)
         self.assertIn("span.keywordflow", stylesheet)
         self.assertIn("span.stringliteral", stylesheet)
+        self.assertIn(".hljs-keyword", stylesheet)
+        self.assertIn(".hljs-string", stylesheet)
         self.assertIn('html[data-dockle-framework="jsdoc"]', stylesheet)
         self.assertIn(":is(.params, .props)", stylesheet)
         self.assertIn(".name\n  code {", stylesheet)
+
+    def test_unhighlighted_fences_use_the_packaged_highlighter(self) -> None:
+        script = (THEME_DIRECTORY / "static" / "dockle.js").read_text(
+            encoding="utf-8"
+        )
+        highlighter = (
+            THEME_DIRECTORY / "static" / "highlight.min.js"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("applySyntaxHighlighting", script)
+        self.assertIn("data-dockle-language", script)
+        self.assertIn("highlighter.highlightElement", script)
+        self.assertTrue(
+            highlighter.startswith(
+                "/*! Highlight.js 11.12.0 | BSD-3-Clause |"
+            )
+        )
 
     def test_doxygen_generated_indexes_use_shared_surface_styles(self) -> None:
         stylesheet = (

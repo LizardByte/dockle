@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
-const version = manifest.dependencies.lucide;
+const version = manifest.devDependencies.lucide;
 const lucideRoot = path.join(root, 'node_modules', 'lucide');
 const staticRoot = path.join(
   root,

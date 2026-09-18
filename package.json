@@ -35,6 +35,8 @@
     "src/dockle/jsdoc_template/",
     "src/dockle/sphinx/themes/dockle/static/dockle.css",
     "src/dockle/sphinx/themes/dockle/static/dockle.js",
+    "src/dockle/sphinx/themes/dockle/static/highlight.min.js",
+    "src/dockle/sphinx/themes/dockle/static/HIGHLIGHT_LICENSE.txt",
     "src/dockle/sphinx/themes/dockle/static/LUCIDE_LICENSE.txt",
     "src/dockle/sphinx/themes/dockle/static/lucide.min.js",
     "LICENSE",
@@ -45,7 +47,10 @@
     "access": "public"
   },
   "scripts": {
-    "build": "npm run sync:lucide",
+    "build": "npm run sync:highlighter && npm run sync:lucide",
+    "prepack": "npm run build",
+    "pretest": "npm run build",
+    "sync:highlighter": "node scripts/sync-highlighter.mjs",
     "sync:lucide": "node scripts/sync-lucide.mjs",
     "test": "npm run test:unit && npm run test:lint",
     "test:lint": "eslint publish.js eslint.config.mjs bin scripts src/dockle/jsdoc_template src/dockle/sphinx/themes/dockle/static/dockle.js tests-js",
@@ -53,13 +58,14 @@
     "test:package": "npm pack --dry-run"
   },
   "dependencies": {
-    "jsdoc": "4.0.5",
-    "lucide": "1.46.0"
+    "jsdoc": "4.0.5"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@highlightjs/cdn-assets": "11.12.0",
     "c8": "10.1.3",
     "eslint": "10.10.0",
-    "globals": "17.12.0"
+    "globals": "17.12.0",
+    "lucide": "1.46.0"
   }
 }

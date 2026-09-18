@@ -16,7 +16,13 @@ from pathlib import Path
 
 from dockle import __version__
 from dockle.config import DockleConfig, TargetConfig
-from dockle.theme import ThemeError, apply_theme, render_theme, write_portal
+from dockle.theme import (
+    ThemeError,
+    annotate_doxygen_code_languages,
+    apply_theme,
+    render_theme,
+    write_portal,
+)
 
 _INDEX_DOCUMENT = "index.html"
 
@@ -296,6 +302,14 @@ class DoxygenBuilder(Builder):
                 self._theme_file(): render_theme(self.config.theme),
             },
         )
+
+    def finalize(self, stylesheet: str) -> int:
+        """Restore fence metadata before applying the shared theme."""
+
+        annotate_doxygen_code_languages(
+            self.target.output, self.target.source
+        )
+        return super().finalize(stylesheet)
 
 
 class MkDocsBuilder(Builder):

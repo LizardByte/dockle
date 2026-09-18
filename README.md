@@ -116,6 +116,7 @@ generator requires it:
 ```console
 python -m pip install -e ".[all]"
 npm ci --ignore-scripts
+npm run build
 dockle check
 dockle build
 ```

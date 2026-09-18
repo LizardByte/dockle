@@ -41,10 +41,25 @@ _TARGET_CARDS_START = re.compile(
     re.IGNORECASE,
 )
 _FIRST_H1_END = re.compile(r"</h1\s*>", re.IGNORECASE)
+_DOXYGEN_FRAGMENT = re.compile(
+    r'(?P<open><div\s+class=["\'][^"\']*\bfragment\b[^"\']*["\'][^>]*>)'
+    r"(?P<body>.*?)"
+    r"(?P<close></div><!--\s*fragment\s*-->)",
+    re.IGNORECASE | re.DOTALL,
+)
+_DOXYGEN_FRAGMENT_LINE = re.compile(
+    r'<div\s+class=["\'][^"\']*\bline\b[^"\']*["\'][^>]*>'
+    r"(?P<body>.*?)</div>",
+    re.IGNORECASE | re.DOTALL,
+)
+_MARKDOWN_FENCE = re.compile(
+    r"^(?P<indent> {0,3})(?P<fence>`{3,}|~{3,})(?P<info>.*)$"
+)
 _DOCKLE_URL = "https://github.com/LizardByte/dockle"
 _CSS_ASSET = "dockle.css"
 _SCRIPT_ASSET = "dockle.js"
 _LUCIDE_ASSET = "lucide.min.js"
+_HIGHLIGHT_ASSET = "highlight.min.js"
 _INDEX_FILE = "index.html"
 _FRAMEWORKS = {
     "doxygen": ("Doxygen", "https://www.doxygen.nl/"),
@@ -132,6 +147,17 @@ class _LinkRelationshipParser(HTMLParser):
             )
 
 
+class _TextContentParser(HTMLParser):
+    """Extract decoded text from a generated HTML fragment."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.parts: list[str] = []
+
+    def handle_data(self, data: str) -> None:
+        self.parts.append(data)
+
+
 def _theme_asset(name: str) -> Path:
     return (
         Path(__file__)
@@ -167,6 +193,87 @@ def render_theme(theme: ThemeConfig) -> str:
 }}
 """
     return f"{tokens}\n{base}"
+
+
+def annotate_doxygen_code_languages(output: Path, source: Path) -> int:
+    """Restore Markdown fence languages that Doxygen drops from its HTML."""
+
+    languages = _fenced_code_languages(source)
+    if not languages:
+        return 0
+
+    annotated = 0
+    for html_file in sorted(output.rglob("*.html")):
+        document = html_file.read_text(encoding="utf-8")
+
+        def annotate(match: re.Match[str]) -> str:
+            nonlocal annotated
+            opening = match.group("open")
+            if "data-dockle-language" in opening:
+                return match.group(0)
+            code = _doxygen_fragment_text(match.group("body"))
+            candidates = languages.get(_normalized_code(code), set())
+            if len(candidates) != 1:
+                return match.group(0)
+            language = next(iter(candidates))
+            marked = f'{opening[:-1]} data-dockle-language="{escape(language)}">'
+            annotated += 1
+            return f'{marked}{match.group("body")}{match.group("close")}'
+
+        updated = _DOXYGEN_FRAGMENT.sub(annotate, document)
+        if updated != document:
+            html_file.write_text(updated, encoding="utf-8")
+    return annotated
+
+
+def _fenced_code_languages(source: Path) -> dict[str, set[str]]:
+    languages: dict[str, set[str]] = {}
+    markdown_files = (
+        [source]
+        if source.is_file() and source.suffix.casefold() == ".md"
+        else sorted(source.rglob("*.md"))
+    )
+    for markdown_file in markdown_files:
+        lines = markdown_file.read_text(encoding="utf-8").splitlines()
+        index = 0
+        while index < len(lines):
+            opening = _MARKDOWN_FENCE.match(lines[index])
+            if opening is None:
+                index += 1
+                continue
+            fence = opening.group("fence")
+            language = _fence_language(opening.group("info"))
+            closing = re.compile(
+                rf"^ {{0,3}}{re.escape(fence[0])}{{{len(fence)},}}[ \t]*$"
+            )
+            block: list[str] = []
+            index += 1
+            while index < len(lines) and closing.match(lines[index]) is None:
+                block.append(lines[index])
+                index += 1
+            if language and block:
+                key = _normalized_code("\n".join(block))
+                languages.setdefault(key, set()).add(language)
+            index += 1
+    return languages
+
+
+def _fence_language(info: str) -> str:
+    token = info.strip().split(maxsplit=1)[0] if info.strip() else ""
+    return token.strip("{}").removeprefix(".").casefold()
+
+
+def _doxygen_fragment_text(fragment: str) -> str:
+    lines: list[str] = []
+    for match in _DOXYGEN_FRAGMENT_LINE.finditer(fragment):
+        parser = _TextContentParser()
+        parser.feed(match.group("body"))
+        lines.append("".join(parser.parts))
+    return "\n".join(lines)
+
+
+def _normalized_code(code: str) -> str:
+    return "\n".join(line.rstrip() for line in code.splitlines()).strip("\n")
 
 
 def apply_theme(
@@ -241,7 +348,7 @@ def _write_theme_assets(output: Path, stylesheet: str) -> Path:
     asset_dir = output / "_dockle"
     asset_dir.mkdir(parents=True, exist_ok=True)
     (asset_dir / _CSS_ASSET).write_text(stylesheet, encoding="utf-8")
-    for asset in (_LUCIDE_ASSET, _SCRIPT_ASSET):
+    for asset in (_LUCIDE_ASSET, _HIGHLIGHT_ASSET, _SCRIPT_ASSET):
         shutil.copyfile(_theme_asset(asset), asset_dir / asset)
     return asset_dir
 
@@ -281,6 +388,15 @@ def _inject_theme_assets(
         script = (
             f'<script defer src="{relative_lucide}" '
             "data-dockle-lucide></script>\n"
+        )
+        document = _insert_before_head_end(document, script, html_file)
+    if _HIGHLIGHT_ASSET not in document:
+        relative_highlight = _relative(
+            asset_dir / _HIGHLIGHT_ASSET, html_file
+        )
+        script = (
+            f'<script defer src="{relative_highlight}" '
+            "data-dockle-highlight></script>\n"
         )
         document = _insert_before_head_end(document, script, html_file)
     if _SCRIPT_ASSET not in document:
@@ -700,6 +816,7 @@ def write_portal(
   <title>{escape(config.project.name)} documentation</title>
 {favicon}  <link rel="stylesheet" href="_dockle/dockle.css" data-dockle-theme="portal">
   <script defer src="_dockle/lucide.min.js" data-dockle-lucide></script>
+  <script defer src="_dockle/highlight.min.js" data-dockle-highlight></script>
   <script defer src="_dockle/dockle.js" data-dockle-script></script>
 </head>
 <body class="dockle-portal">

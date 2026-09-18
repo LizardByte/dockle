@@ -101,9 +101,16 @@ constexpr std::array targets{
 
 Inline code such as `dockle build` uses the shared code font and background.
 
-Doxygen normally selects a parser from a file extension. Dockle maps common,
-full Markdown language names to Doxygen's native parsers, so Python and
-JavaScript fences are highlighted without Doxygen-specific authoring syntax:
+Doxygen normally highlights only the languages understood by its native
+parsers. Dockle preserves each Markdown fence label and applies its packaged
+highlighter when Doxygen cannot, so TOML, console, Python, JavaScript, and the
+other bundled languages use ordinary Markdown syntax:
+
+```toml
+[project]
+name = "dockle"
+frameworks = ["doxygen", "sphinx", "mkdocs"]
+```
 
 ```python
 def enabled(targets):

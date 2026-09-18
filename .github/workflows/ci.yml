@@ -59,6 +59,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Build third-party browser assets
+        run: |
+          npm ci --ignore-scripts
+          npm run build
+
       - name: Set up Python
         id: setup-python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
@@ -171,6 +181,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Build third-party browser assets
+        run: |
+          npm ci --ignore-scripts
+          npm run build
+
       - name: Set up Python
         id: setup-python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
@@ -231,9 +251,6 @@ jobs:
       - name: Test Node.js package
         id: node-test
         run: npm test
-
-      - name: Build Node.js package
-        run: npm run build
 
       - name: Check Node.js package contents
         run: npm publish --dry-run
@@ -300,6 +317,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Build third-party browser assets
+        run: |
+          npm ci --ignore-scripts
+          npm run build
 
       - name: Install Apple signing certificate
         if: >-

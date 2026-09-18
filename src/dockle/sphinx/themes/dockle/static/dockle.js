@@ -357,6 +357,48 @@
     return source?.innerText.replace(/\n$/, "") || "";
   };
 
+  const languageName = (element) => {
+    const languageClass = [...element.classList]
+      .find((name) => name.startsWith("language-"));
+    return languageClass?.slice("language-".length) || "";
+  };
+
+  const applySyntaxHighlighting = () => {
+    const highlighter = globalThis.hljs;
+    if (!highlighter?.highlightElement || !highlighter?.getLanguage) {
+      return;
+    }
+
+    document.querySelectorAll("div.fragment[data-dockle-language]")
+      .forEach((fragment) => {
+        if (fragment.querySelector("span, a, .lineno")) {
+          return;
+        }
+        const language = fragment.dataset.dockleLanguage;
+        if (!highlighter.getLanguage(language)) {
+          return;
+        }
+        const code = document.createElement("code");
+        code.className = `language-${language}`;
+        code.textContent = codeText(fragment);
+        fragment.replaceChildren(code);
+        highlighter.highlightElement(code);
+      });
+
+    document.querySelectorAll("pre code").forEach((code) => {
+      const language = languageName(code);
+      if (
+        code.dataset.highlighted
+        || code.childElementCount
+        || !language
+        || !highlighter.getLanguage(language)
+      ) {
+        return;
+      }
+      highlighter.highlightElement(code);
+    });
+  };
+
   const addCodeCopyButtons = () => {
     const containers = [
       ...document.querySelectorAll(".highlight, div.fragment, .example-wrap"),
@@ -792,6 +834,7 @@
   });
 
   addDoxygenNavigation();
+  applySyntaxHighlighting();
   addCodeCopyButtons();
   replaceRustdocIcons();
   placeBuiltWithFooter();

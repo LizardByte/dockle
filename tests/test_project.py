@@ -63,6 +63,10 @@ class ProjectDogfoodTests(unittest.TestCase):
         )
         self.assertIn("${READTHEDOCS_OUTPUT}html/", contents)
         self.assertIn("npm ci --ignore-scripts", contents)
+        self.assertLess(
+            contents.index("npm run build"),
+            contents.index("python -m pip install"),
+        )
         self.assertIn('python: "miniforge3-26.3"', contents)
         self.assertIn("environment: environment.yml", contents)
 
@@ -114,7 +118,7 @@ class ProjectDogfoodTests(unittest.TestCase):
             package["bin"]["dockle-jsdoc"], "bin/dockle-jsdoc.cjs"
         )
         self.assertEqual(package["dependencies"]["jsdoc"], "4.0.5")
-        version = package["dependencies"]["lucide"]
+        version = package["devDependencies"]["lucide"]
         runtime = (
             PROJECT_ROOT
             / "src"
@@ -131,6 +135,47 @@ class ProjectDogfoodTests(unittest.TestCase):
             runtime.startswith(f"/*! Lucide {version} | ISC |"),
             "run npm run sync:lucide after changing the Lucide dependency",
         )
+
+    def test_highlighter_runtime_is_managed_by_npm(self) -> None:
+        with (PROJECT_ROOT / "package.json").open(encoding="utf-8") as stream:
+            package = json.load(stream)
+        version = package["devDependencies"]["@highlightjs/cdn-assets"]
+        runtime = (
+            PROJECT_ROOT
+            / "src"
+            / "dockle"
+            / "sphinx"
+            / "themes"
+            / "dockle"
+            / "static"
+            / "highlight.min.js"
+        ).read_text(encoding="utf-8")
+
+        self.assertRegex(version, r"^\d+\.\d+\.\d+$")
+        self.assertTrue(
+            runtime.startswith(
+                f"/*! Highlight.js {version} | BSD-3-Clause |"
+            ),
+            "run npm run sync:highlighter after changing the dependency",
+        )
+
+    def test_third_party_browser_assets_are_generated_not_tracked(self) -> None:
+        ignored = (PROJECT_ROOT / ".gitignore").read_text(encoding="utf-8")
+        with (PROJECT_ROOT / "package.json").open(encoding="utf-8") as stream:
+            package = json.load(stream)
+
+        for filename in (
+            "HIGHLIGHT_LICENSE.txt",
+            "LUCIDE_LICENSE.txt",
+            "highlight.min.js",
+            "lucide.min.js",
+        ):
+            self.assertIn(
+                f"src/dockle/sphinx/themes/dockle/static/{filename}",
+                ignored,
+            )
+        self.assertEqual(package["scripts"]["prepack"], "npm run build")
+        self.assertEqual(package["scripts"]["pretest"], "npm run build")
 
     def test_reference_doxygen_projects_are_not_dependencies(self) -> None:
         dependency_files = [
@@ -192,6 +237,15 @@ class ProjectDogfoodTests(unittest.TestCase):
             project["tool"]["hatch"]["build"]["targets"]["sdist"]["include"],
             ["/LICENSE", "/README.md", "/pyproject.toml", "/src"],
         )
+        self.assertEqual(
+            project["tool"]["hatch"]["build"]["artifacts"],
+            [
+                "/src/dockle/sphinx/themes/dockle/static/HIGHLIGHT_LICENSE.txt",
+                "/src/dockle/sphinx/themes/dockle/static/LUCIDE_LICENSE.txt",
+                "/src/dockle/sphinx/themes/dockle/static/highlight.min.js",
+                "/src/dockle/sphinx/themes/dockle/static/lucide.min.js",
+            ],
+        )
         self.assertTrue((PROJECT_ROOT / "uv.lock").is_file())
 
     def test_ci_uses_release_version_and_uploads_codecov_reports(self) -> None:
@@ -207,6 +261,9 @@ class ProjectDogfoodTests(unittest.TestCase):
         self.assertIn("name: Node package", workflow)
         self.assertIn('NODE_VERSION: \'24\'', workflow)
         self.assertIn("npm publish --dry-run", workflow)
+        self.assertEqual(
+            workflow.count("- name: Build third-party browser assets"), 3
+        )
         self.assertIn("./coverage/lcov.info", workflow)
         self.assertIn("./junit-node.xml", workflow)
         self.assertIn("report_type: coverage", workflow)

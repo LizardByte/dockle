@@ -243,24 +243,48 @@ pre code {
 
 /* Normalize each generator's native syntax tokens to one shared palette. */
 :where(.highlight, .codehilite) :is(.c, .ch, .cm, .cp, .cpf, .c1, .cs),
+.hljs :is(.hljs-comment, .hljs-quote),
 html[data-dockle-framework="jsdoc"] pre.prettyprint .com,
 html[data-dockle-framework="rustdoc"] pre :is(.comment, .doccomment) {
   color: var(--dockle-code-comment) !important;
 }
 
 :where(.highlight, .codehilite) :is(.k, .kc, .kd, .kn, .kp, .kr, .kt),
+.hljs
+  :is(
+    .hljs-keyword,
+    .hljs-literal,
+    .hljs-section,
+    .hljs-selector-tag,
+    .hljs-link
+  ),
 html[data-dockle-framework="jsdoc"] pre.prettyprint :is(.kwd, .typ),
 html[data-dockle-framework="rustdoc"] pre :is(.kw, .kw-2, .self-val) {
   color: var(--dockle-code-keyword) !important;
 }
 
 :where(.highlight, .codehilite) :is(.nb, .nc, .nd, .ne, .nf, .nl, .nn, .nt),
+.hljs
+  :is(
+    .hljs-attribute,
+    .hljs-built_in,
+    .hljs-bullet,
+    .hljs-name,
+    .hljs-symbol,
+    .hljs-title,
+    .hljs-type,
+    .hljs-variable,
+    .hljs-template-tag,
+    .hljs-template-variable,
+    .hljs-addition
+  ),
 html[data-dockle-framework="jsdoc"] pre.prettyprint :is(.atn, .tag),
 html[data-dockle-framework="rustdoc"] pre :is(.macro, .prelude-ty, .prelude-val, .primitive) {
   color: var(--dockle-code-name) !important;
 }
 
 :where(.highlight, .codehilite) :is(.m, .mb, .mf, .mh, .mi, .mo, .il),
+.hljs :is(.hljs-number, .hljs-meta),
 html[data-dockle-framework="jsdoc"] pre.prettyprint .lit,
 html[data-dockle-framework="rustdoc"] pre :is(.bool-val, .number) {
   color: var(--dockle-code-number) !important;
@@ -273,9 +297,21 @@ html[data-dockle-framework="rustdoc"] pre :is(.lifetime, .question-mark) {
 
 :where(.highlight, .codehilite)
   :is(.s, .sa, .sb, .sc, .dl, .sd, .s1, .s2, .se, .sh, .si, .sr, .ss, .sx),
+.hljs :is(.hljs-string, .hljs-regexp, .hljs-deletion),
 html[data-dockle-framework="jsdoc"] pre.prettyprint :is(.atv, .str),
 html[data-dockle-framework="rustdoc"] pre :is(.string, .string-2) {
   color: var(--dockle-code-string) !important;
+}
+
+.hljs {
+  background: transparent !important;
+  color: inherit;
+}
+
+div.fragment > code.hljs {
+  display: block;
+  padding: 0;
+  white-space: pre;
 }
 
 .dockle-code-block {

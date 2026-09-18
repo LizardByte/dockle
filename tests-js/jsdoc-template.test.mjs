@@ -5,12 +5,48 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { runInNewContext } from 'node:vm';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const executable = path.join(projectRoot, 'bin', 'dockle-jsdoc.cjs');
 const packageMetadata = JSON.parse(
   await readFile(path.join(projectRoot, 'package.json'), 'utf8'),
 );
+
+test('the packaged highlighter includes every built-in grammar', async () => {
+  const source = await readFile(
+    path.join(
+      projectRoot,
+      'src',
+      'dockle',
+      'sphinx',
+      'themes',
+      'dockle',
+      'static',
+      'highlight.min.js',
+    ),
+    'utf8',
+  );
+  const context = { console };
+  context.globalThis = context;
+  context.window = context;
+  runInNewContext(source, context);
+
+  assert.ok(context.hljs.listLanguages().length >= 190);
+  for (const language of [
+    'cmake',
+    'console',
+    'dockerfile',
+    'markdown',
+    'powershell',
+    'rust',
+    'toml',
+    'typescript',
+    'yaml',
+  ]) {
+    assert.ok(context.hljs.getLanguage(language), language);
+  }
+});
 
 test('the npm command builds a self-contained native JSDoc site', async (context) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'dockle-jsdoc-'));
@@ -81,5 +117,6 @@ export function add(left, right) { return left + right; }
   assert.ok(search.docs.some((entry) => entry.text.includes('Add two values')));
   await readFile(path.join(output, 'dockle.css'), 'utf8');
   await readFile(path.join(output, 'dockle.js'), 'utf8');
+  await readFile(path.join(output, 'highlight.min.js'), 'utf8');
   await readFile(path.join(output, 'lucide.min.js'), 'utf8');
 });

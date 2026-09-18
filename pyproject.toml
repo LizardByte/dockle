@@ -65,6 +65,14 @@ dockle = "dockle.sphinx_theme"
 [project.entry-points."mkdocs.themes"]
 dockle = "dockle.sphinx.themes.dockle"
 
+[tool.hatch.build]
+artifacts = [
+  "/src/dockle/sphinx/themes/dockle/static/HIGHLIGHT_LICENSE.txt",
+  "/src/dockle/sphinx/themes/dockle/static/LUCIDE_LICENSE.txt",
+  "/src/dockle/sphinx/themes/dockle/static/highlight.min.js",
+  "/src/dockle/sphinx/themes/dockle/static/lucide.min.js",
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/dockle"]
 
