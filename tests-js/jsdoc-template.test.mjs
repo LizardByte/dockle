@@ -59,6 +59,18 @@ test('the packaged highlighter includes every built-in grammar', async () => {
   for (const language of context.hljs.listLanguages()) {
     assert.ok(fixtureLanguages.has(language), language);
   }
+  const languageCollator = new Intl.Collator('en', {
+    ignorePunctuation: true,
+    numeric: true,
+    sensitivity: 'base',
+  });
+  const expectedLanguageOrder = [...context.hljs.listLanguages()]
+    .sort((left, right) => (
+      languageCollator.compare(
+        context.hljs.getLanguage(left).name || left,
+        context.hljs.getLanguage(right).name || right,
+      ) || languageCollator.compare(left, right)
+    ));
   for (const reference of [
     path.join('.dockle', 'example-sources', 'sphinx', 'component-reference.md'),
     path.join('.dockle', 'example-sources', 'sphinx', 'component-reference-rst.rst'),
@@ -78,6 +90,10 @@ test('the packaged highlighter includes every built-in grammar', async () => {
       packagedLanguages.length,
       reference,
     );
+    const renderedLanguageOrder = [...document.matchAll(
+      /<h3 id="language-([^"]+)" class="dockle-language-gallery-header">/g,
+    )].map((match) => match[1]);
+    assert.deepEqual(renderedLanguageOrder, expectedLanguageOrder, reference);
     assert.doesNotMatch(document, /# Dockle \S+ syntax preview/);
   }
   for (const language of [

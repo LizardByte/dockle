@@ -173,10 +173,24 @@ const runtime = await readFile(runtimePath, 'utf8');
 const context = { console };
 context.globalThis = context;
 context.window = context;
-runInNewContext(runtime, context);
+// The generated asset comes from the pinned dependency, not user input.
+runInNewContext(runtime, context); // NOSONAR (javascript:S1523): trusted Highlight.js asset.
 
+const languageCollator = new Intl.Collator('en', {
+  ignorePunctuation: true,
+  numeric: true,
+  sensitivity: 'base',
+});
+const languageDisplayName = (language) => (
+  context.hljs.getLanguage(language).name || language
+);
 const languages = [...context.hljs.listLanguages()]
-  .sort((left, right) => left.localeCompare(right));
+  .sort((left, right) => (
+    languageCollator.compare(
+      languageDisplayName(left),
+      languageDisplayName(right),
+    ) || languageCollator.compare(left, right)
+  ));
 const previews = new Map(await Promise.all(languages.map(async (language) => [
   language,
   await selectLanguagePreview(context.hljs, language),

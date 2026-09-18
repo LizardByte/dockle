@@ -6,6 +6,7 @@ import json
 import os
 import re
 import shutil
+from collections.abc import Iterator
 from html import escape
 from html.parser import HTMLParser
 from importlib.metadata import PackageNotFoundError, version
@@ -53,7 +54,7 @@ _DOXYGEN_FRAGMENT_LINE = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 _MARKDOWN_FENCE = re.compile(
-    r"^(?P<indent> {0,3})(?P<fence>`{3,}|~{3,})(?P<info>.*)$"
+    r"^(?P<indent> {0,3}+)(?P<fence>`{3,}+|~{3,}+)(?P<info>[^\r\n]*+)$"
 )
 _DOCKLE_URL = "https://github.com/LizardByte/dockle"
 _CSS_ASSET = "dockle.css"
@@ -205,80 +206,95 @@ def annotate_doxygen_code_languages(output: Path, source: Path) -> int:
     annotated = 0
     for html_file in sorted(output.rglob("*.html")):
         document = html_file.read_text(encoding="utf-8")
-
-        def annotate(match: re.Match[str]) -> str:
-            nonlocal annotated
-            opening = match.group("open")
-            if "data-dockle-language" in opening:
-                return match.group(0)
-            body = match.group("body")
-            code = _doxygen_fragment_text(body)
-            candidates = languages.get(_normalized_code(code), set())
-            if not candidates:
-                lines = _DOXYGEN_FRAGMENT_LINE.findall(body)
-                if lines:
-                    parser = _TextContentParser()
-                    parser.feed(lines[0])
-                    echoed_language = "".join(parser.parts).strip().casefold()
-                    body_without_info = _DOXYGEN_FRAGMENT_LINE.sub(
-                        "", body, count=1
-                    )
-                    code_without_info = _doxygen_fragment_text(
-                        body_without_info
-                    )
-                    possible = languages.get(
-                        _normalized_code(code_without_info), set()
-                    )
-                    if (
-                        echoed_language
-                        and len(possible) == 1
-                        and next(iter(possible)).endswith(echoed_language)
-                    ):
-                        candidates = possible
-                        body = body_without_info
-            if len(candidates) != 1:
-                return match.group(0)
-            language = next(iter(candidates))
-            marked = f'{opening[:-1]} data-dockle-language="{escape(language)}">'
-            annotated += 1
-            return f'{marked}{body}{match.group("close")}'
-
-        updated = _DOXYGEN_FRAGMENT.sub(annotate, document)
+        existing = document.count("data-dockle-language")
+        updated = _DOXYGEN_FRAGMENT.sub(
+            lambda match: _annotate_doxygen_fragment(match, languages),
+            document,
+        )
+        annotated += updated.count("data-dockle-language") - existing
         if updated != document:
             html_file.write_text(updated, encoding="utf-8")
     return annotated
 
 
+def _annotate_doxygen_fragment(
+    match: re.Match[str], languages: dict[str, set[str]]
+) -> str:
+    opening = match.group("open")
+    if "data-dockle-language" in opening:
+        return match.group(0)
+    language, body = _doxygen_fragment_language(match.group("body"), languages)
+    if language is None:
+        return match.group(0)
+    marked = f'{opening[:-1]} data-dockle-language="{escape(language)}">'
+    return f'{marked}{body}{match.group("close")}'
+
+
+def _doxygen_fragment_language(
+    body: str, languages: dict[str, set[str]]
+) -> tuple[str | None, str]:
+    code = _doxygen_fragment_text(body)
+    candidates = languages.get(_normalized_code(code), set())
+    if not candidates:
+        candidates, body = _doxygen_echoed_language(body, languages)
+    if len(candidates) != 1:
+        return None, body
+    return next(iter(candidates)), body
+
+
+def _doxygen_echoed_language(
+    body: str, languages: dict[str, set[str]]
+) -> tuple[set[str], str]:
+    lines = _DOXYGEN_FRAGMENT_LINE.findall(body)
+    if not lines:
+        return set(), body
+    parser = _TextContentParser()
+    parser.feed(lines[0])
+    echoed_language = "".join(parser.parts).strip().casefold()
+    body_without_info = _DOXYGEN_FRAGMENT_LINE.sub("", body, count=1)
+    code_without_info = _doxygen_fragment_text(body_without_info)
+    possible = languages.get(_normalized_code(code_without_info), set())
+    if (
+        echoed_language
+        and len(possible) == 1
+        and next(iter(possible)).endswith(echoed_language)
+    ):
+        return possible, body_without_info
+    return set(), body
+
+
 def _fenced_code_languages(source: Path) -> dict[str, set[str]]:
     languages: dict[str, set[str]] = {}
-    markdown_files = (
-        [source]
-        if source.is_file() and source.suffix.casefold() == ".md"
-        else sorted(source.rglob("*.md"))
-    )
+    markdown_files = [source] if source.is_file() else sorted(source.rglob("*.md"))
     for markdown_file in markdown_files:
-        lines = markdown_file.read_text(encoding="utf-8").splitlines()
-        index = 0
-        while index < len(lines):
-            opening = _MARKDOWN_FENCE.match(lines[index])
-            if opening is None:
-                index += 1
-                continue
-            fence = opening.group("fence")
-            language = _fence_language(opening.group("info"))
-            closing = re.compile(
-                rf"^ {{0,3}}{re.escape(fence[0])}{{{len(fence)},}}[ \t]*$"
-            )
-            block: list[str] = []
-            index += 1
-            while index < len(lines) and closing.match(lines[index]) is None:
-                block.append(lines[index])
-                index += 1
+        for language, block in _markdown_fences(markdown_file):
             if language and block:
                 key = _normalized_code("\n".join(block))
                 languages.setdefault(key, set()).add(language)
-            index += 1
     return languages
+
+
+def _markdown_fences(markdown_file: Path) -> Iterator[tuple[str, list[str]]]:
+    if markdown_file.suffix.casefold() != ".md":
+        return
+    lines = markdown_file.read_text(encoding="utf-8").splitlines()
+    index = 0
+    while index < len(lines):
+        opening = _MARKDOWN_FENCE.match(lines[index])
+        if opening is None:
+            index += 1
+            continue
+        fence = opening.group("fence")
+        closing = re.compile(
+            rf"^ {{0,3}}{re.escape(fence[0])}{{{len(fence)},}}[ \t]*$"
+        )
+        block: list[str] = []
+        index += 1
+        while index < len(lines) and closing.match(lines[index]) is None:
+            block.append(lines[index])
+            index += 1
+        yield _fence_language(opening.group("info")), block
+        index += 1
 
 
 def _fence_language(info: str) -> str:
