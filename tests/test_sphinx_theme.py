@@ -105,12 +105,19 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertIn('target.classList.add("dockle-anchor-highlight")', script)
         self.assertIn("@keyframes dockle-anchor-highlight", stylesheet)
         self.assertIn(".dockle-anchor-highlight", stylesheet)
-        self.assertIn("box-shadow: -0.3rem 0 0 var(--dockle-primary)", stylesheet)
+        self.assertIn("animation: dockle-anchor-highlight 650ms ease-out", stylesheet)
+        self.assertIn("var(--dockle-primary) 4%", stylesheet)
+        self.assertIn("var(--dockle-primary) 62%", stylesheet)
         self.assertNotIn(
             "background-color: color-mix(in srgb, var(--dockle-primary) 9%",
             stylesheet,
         )
         self.assertIn(':target.dockle-anchor-highlight {', stylesheet)
+        self.assertIn('link.classList.add("dockle-toc-current")', script)
+        self.assertIn('link.setAttribute("aria-current", "location")', script)
+        self.assertNotIn('target.classList.remove("dockle-anchor-highlight");\n        if', script)
+        self.assertIn('setTimeout(() => link.blur(), 700)', script)
+        self.assertIn(".dockle-toc-current", stylesheet)
 
     def test_doxygen_sidebar_normalization_is_idempotent(self) -> None:
         script = (THEME_DIRECTORY / "static" / "dockle.js").read_text(

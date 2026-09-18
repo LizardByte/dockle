@@ -822,7 +822,28 @@
 
   const setupAnchorHighlights = () => {
     let activeTarget;
-    let clearTimer;
+    const pageTocLinks = () => [...document.querySelectorAll(
+      "#page-nav a[href], .dockle-on-this-page a[href]",
+    )];
+    const markActiveTocLink = (hash) => {
+      pageTocLinks().forEach((link) => {
+        link.classList.remove("dockle-toc-current");
+        if (link.getAttribute("aria-current") === "location") {
+          link.removeAttribute("aria-current");
+        }
+      });
+      if (!hash || hash === "#") {
+        return;
+      }
+      pageTocLinks().forEach((link) => {
+        const destination = new URL(link.href, document.baseURI);
+        if (destination.hash === hash
+            && normalizedPagePath(destination) === normalizedPagePath(location.href)) {
+          link.classList.add("dockle-toc-current");
+          link.setAttribute("aria-current", "location");
+        }
+      });
+    };
     const targetForHash = (hash) => {
       if (!hash || hash === "#") {
         return null;
@@ -846,11 +867,12 @@
     };
     const highlightHashTarget = (hash = location.hash) => {
       const target = targetForHash(hash);
+      activeTarget?.classList.remove("dockle-anchor-highlight");
+      activeTarget = null;
+      markActiveTocLink(hash);
       if (!target) {
         return;
       }
-      activeTarget?.classList.remove("dockle-anchor-highlight");
-      clearTimeout(clearTimer);
       document.querySelectorAll(".glow").forEach(
         (element) => element.classList.remove("glow"),
       );
@@ -859,14 +881,11 @@
       target.getBoundingClientRect();
       target.classList.add("dockle-anchor-highlight");
       activeTarget = target;
-      clearTimer = setTimeout(() => {
-        target.classList.remove("dockle-anchor-highlight");
-        if (activeTarget === target) {
-          activeTarget = null;
-        }
-      }, 1800);
     };
     window.addEventListener("hashchange", () => highlightHashTarget());
+    if (root.dataset.dockleFramework === "doxygen") {
+      window.addEventListener("load", () => highlightHashTarget());
+    }
     document.addEventListener("click", (event) => {
       if (!(event.target instanceof Element)) {
         return;
@@ -879,6 +898,9 @@
       if (destination.hash
           && normalizedPagePath(destination) === normalizedPagePath(location.href)) {
         setTimeout(() => highlightHashTarget(destination.hash));
+        if (event.detail > 0 && link.matches(".dockle-heading-anchor")) {
+          setTimeout(() => link.blur(), 700);
+        }
       }
     });
     highlightHashTarget();
