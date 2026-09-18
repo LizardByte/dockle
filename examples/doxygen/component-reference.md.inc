@@ -9,7 +9,7 @@ can use them in Markdown pages and API comments without maintaining a shared
 #### Source
 
 ```text
-@admonition{Custom title | A neutral custom admonition.}
+@admonition{Custom title |:| A neutral custom admonition.}
 @attention{Something requires immediate consideration.}
 @caution{An action may have harmful consequences.}
 @danger{A condition is likely to cause serious failure.}
@@ -25,7 +25,7 @@ can use them in Markdown pages and API comments without maintaining a shared
 
 #### Result
 
-@admonition{Custom title | A neutral custom admonition.}
+@admonition{Custom title |:| A neutral custom admonition.}
 
 @attention{Something requires immediate consideration.}
 

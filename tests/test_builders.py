@@ -113,6 +113,10 @@ class BuilderTests(unittest.TestCase):
     def test_sphinx_plan_uses_typed_static_assets(self) -> None:
         static = self.root / "sphinx-docs" / "_static"
         static.mkdir()
+        extra_config = self.root / "sphinx-docs" / "extra_conf.py"
+        extra_config.write_text(
+            "extensions.append('example')\n", encoding="utf-8"
+        )
         configured = ALL_TARGETS_CONFIG.replace(
             'framework = "sphinx"\nsource = "sphinx-docs"',
             '''framework = "sphinx"
@@ -122,7 +126,8 @@ source = "sphinx-docs"
 exclude_patterns = ["drafts/**"]
 static_paths = ["sphinx-docs/_static"]
 extra_stylesheets = ["project.css"]
-extra_javascript = ["project.js"]''',
+extra_javascript = ["project.js"]
+extra_config = "sphinx-docs/extra_conf.py"''',
         )
         self.config_path.write_text(configured, encoding="utf-8")
         config = load_config(self.config_path)
@@ -134,6 +139,8 @@ extra_javascript = ["project.js"]''',
         self.assertIn(repr(str(static.resolve())), conf)
         self.assertIn("html_css_files = ['project.css']", conf)
         self.assertIn("html_js_files = ['project.js']", conf)
+        self.assertIn(repr(str(extra_config.resolve())), conf)
+        self.assertIn("exec(compile(_dockle_extra_config.read_bytes()", conf)
 
     def test_doxygen_plan_uses_supported_extra_stylesheet_hook(self) -> None:
         (self.config.targets[1].source / "index").write_text(
@@ -155,7 +162,7 @@ extra_javascript = ["project.js"]''',
         )
         self.assertIn('ALIASES                += "danger{1}', doxyfile)
         self.assertIn('"_dockle_alert{4|:|}', doxyfile)
-        self.assertIn('"admonition{2|}', doxyfile)
+        self.assertIn('"admonition{2|:|}', doxyfile)
         self.assertIn("\\1|:|note|:|info|:|\\2", doxyfile)
         self.assertIn('data-lucide=\\"\\3\\"', doxyfile)
         self.assertIn('"tab{2|:|}', doxyfile)
@@ -165,12 +172,16 @@ extra_javascript = ["project.js"]''',
         self.assertNotIn('"__linux__"', doxyfile)
         self.assertIn('"tabs{1}', doxyfile)
         self.assertIn('"tabs_grouped{2|:|}', doxyfile)
+        self.assertIn('"expander{2|:|}', doxyfile)
         self.assertIn('data-dockle-tab-group=\\"\\1\\"', doxyfile)
         self.assertIn(
             "dockle-alert-\\2\\\"><dt",
             doxyfile,
         )
         self.assertNotIn("dockle-alert- \\2", doxyfile)
+        self.assertIn("WARN_IF_UNDOC_ENUM_VAL   = YES", doxyfile)
+        self.assertIn("WARN_IF_UNDOCUMENTED     = YES", doxyfile)
+        self.assertIn("WARN_NO_PARAMDOC         = YES", doxyfile)
 
     def test_doxygen_plan_uses_typed_project_settings(self) -> None:
         custom_css = self.root / "cpp" / "custom.css"
@@ -193,9 +204,7 @@ main_page = "README.md"
 dot_graph_max_nodes = 75
 optimize_output_java = true
 separate_member_pages = true
-warn_if_undoc_enum_val = false
-warn_if_undocumented = false
-warn_no_paramdoc = false''',
+generate_xml = true''',
         )
         self.config_path.write_text(configured, encoding="utf-8")
         config = load_config(self.config_path)
@@ -214,9 +223,10 @@ warn_no_paramdoc = false''',
         self.assertIn("DOT_GRAPH_MAX_NODES      = 75", doxyfile)
         self.assertIn("OPTIMIZE_OUTPUT_JAVA     = YES", doxyfile)
         self.assertIn("SEPARATE_MEMBER_PAGES    = YES", doxyfile)
-        self.assertIn("WARN_IF_UNDOC_ENUM_VAL   = NO", doxyfile)
-        self.assertIn("WARN_IF_UNDOCUMENTED     = NO", doxyfile)
-        self.assertIn("WARN_NO_PARAMDOC         = NO", doxyfile)
+        self.assertIn("GENERATE_XML             = YES", doxyfile)
+        self.assertIn("WARN_IF_UNDOC_ENUM_VAL   = YES", doxyfile)
+        self.assertIn("WARN_IF_UNDOCUMENTED     = YES", doxyfile)
+        self.assertIn("WARN_NO_PARAMDOC         = YES", doxyfile)
         self.assertIn('ALIASES                += "example{1}', doxyfile)
 
     def test_mkdocs_plan_generates_only_dockle_owned_config(self) -> None:

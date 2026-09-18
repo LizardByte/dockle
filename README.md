@@ -118,6 +118,10 @@ dockle build manual cpp-api
 
 The configuration path can be changed with `dockle --config path/to/dockle.toml build`. A complete build cleans the
 whole output tree so removed targets cannot leave stale pages behind; a named-target build only replaces that target.
+Strict mode is opt-in for consumers; set `strict = true` when warnings should fail the build. Doxygen's individual
+documentation warning switches remain enabled by default. A Sphinx target can set `extra_config` to a Python fragment
+that Dockle executes after its generated `conf.py`, and a Doxygen target can set `generate_xml = true` when an extension
+such as Breathe needs XML alongside the native HTML output.
 
 ## Review all five adapters
 
@@ -140,10 +144,12 @@ Sphinx, Doxygen, MkDocs, JSDoc, and rustdoc sites.
 
 ## Read the Docs
 
-The root `.readthedocs.yaml` uses a custom HTML build because Dockle, rather than Read the Docs, owns generator
-selection. A fully pinned conda environment supplies Doxygen, Graphviz, and Python while Read the Docs supplies Node.js
-and Rust. The build explicitly creates that environment and runs Dockle through `conda run`, then copies the complete
-portal to `$READTHEDOCS_OUTPUT/html/`.
+The root `.readthedocs.yaml` delegates to `readthedocs_build.sh` because Dockle, rather than Read the Docs, owns generator
+selection. Consumers call the same script from a `third-party/dockle` checkout. A fully pinned conda environment supplies
+Doxygen, Graphviz, and Python while Read the Docs supplies Node.js and Rust. The script creates that environment, installs
+the hosted prerequisites, runs Dockle through `conda run`, and copies the complete portal to
+`$READTHEDOCS_OUTPUT/html/`. Optional project hooks named `readthedocs_pre_build.sh` and
+`readthedocs_post_build.sh` run immediately before and after Dockle.
 
 No Sphinx or MkDocs configuration is duplicated for the hosting service. Once this repository is imported into Read
 the Docs, each branch and pull request build will exercise the root Sphinx documentation and all five adapters used

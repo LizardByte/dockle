@@ -150,7 +150,7 @@ const enabled = true;
 enabled = true
 ```
 
-@admonition{Compatible separator | Accepts ordinary content.}
+@admonition{Compatible separator |:| Accepts ordinary content.}
 
 @tabs_grouped{runtime|:|
 @tab{Python|:|Install from PyPI.}

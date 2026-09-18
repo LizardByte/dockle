@@ -68,7 +68,7 @@ class BuildConfig:
 
     output: Path
     work: Path
-    strict: bool = True
+    strict: bool = False
     clean: bool = True
 
 
@@ -89,6 +89,7 @@ class DoxygenConfig:
     dot_graph_max_nodes: int = 50
     optimize_output_java: bool = False
     separate_member_pages: bool = False
+    generate_xml: bool = False
     warn_if_undoc_enum_val: bool = True
     warn_if_undocumented: bool = True
     warn_no_paramdoc: bool = True
@@ -120,6 +121,7 @@ class SphinxConfig:
     static_paths: tuple[Path, ...] = ()
     extra_javascript: tuple[str, ...] = ()
     extra_stylesheets: tuple[str, ...] = ()
+    extra_config: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -302,7 +304,7 @@ def _load_build(raw: dict[str, Any], root: Path) -> BuildConfig:
     return BuildConfig(
         output=output,
         work=work,
-        strict=_optional_bool(raw, "strict", "build", True),
+        strict=_optional_bool(raw, "strict", "build", False),
         clean=_optional_bool(raw, "clean", "build", True),
     )
 
@@ -408,6 +410,7 @@ def _load_doxygen(
         "excludes",
         "extra_files",
         "extra_stylesheets",
+        "generate_xml",
         "image_paths",
         "include_paths",
         "inputs",
@@ -458,6 +461,9 @@ def _load_doxygen(
         ),
         separate_member_pages=_optional_bool(
             raw, "separate_member_pages", doxygen_where, False
+        ),
+        generate_xml=_optional_bool(
+            raw, "generate_xml", doxygen_where, False
         ),
         warn_if_undoc_enum_val=_optional_bool(
             raw, "warn_if_undoc_enum_val", doxygen_where, True
@@ -556,6 +562,7 @@ def _load_sphinx(
             "exclude_patterns",
             "extra_javascript",
             "extra_stylesheets",
+            "extra_config",
             "static_paths",
         },
         sphinx_where,
@@ -569,6 +576,7 @@ def _load_sphinx(
         extra_stylesheets=_string_list(
             raw, "extra_stylesheets", sphinx_where
         ),
+        extra_config=_optional_path(raw, "extra_config", sphinx_where, root),
     )
 
 

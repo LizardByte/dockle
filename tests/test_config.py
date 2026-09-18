@@ -35,8 +35,27 @@ class ConfigTests(unittest.TestCase):
             self.assertEqual(config.targets[0].title, "Manual")
             self.assertEqual(config.targets[0].description, "")
             self.assertIsNone(config.targets[0].doxygen)
-            self.assertTrue(config.build.strict)
+            self.assertFalse(config.build.strict)
             self.assertTrue(config.build.clean)
+
+    def test_doxygen_warning_defaults_are_enabled(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "docs").mkdir()
+            path = root / "dockle.toml"
+            path.write_text(
+                MINIMAL_CONFIG.replace(
+                    'framework = "sphinx"', 'framework = "doxygen"'
+                ),
+                encoding="utf-8",
+            )
+
+            doxygen = load_config(path).targets[0].doxygen
+
+            assert doxygen is not None
+            self.assertTrue(doxygen.warn_if_undoc_enum_val)
+            self.assertTrue(doxygen.warn_if_undocumented)
+            self.assertTrue(doxygen.warn_no_paramdoc)
 
     def test_rejects_unknown_keys(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -258,6 +277,7 @@ main_page = "README.md"
 dot_graph_max_nodes = 75
 optimize_output_java = true
 separate_member_pages = true
+generate_xml = true
 warn_if_undoc_enum_val = false
 warn_if_undocumented = false
 warn_no_paramdoc = false
@@ -279,6 +299,7 @@ warn_no_paramdoc = false
             self.assertEqual(doxygen.dot_graph_max_nodes, 75)
             self.assertTrue(doxygen.optimize_output_java)
             self.assertTrue(doxygen.separate_member_pages)
+            self.assertTrue(doxygen.generate_xml)
             self.assertFalse(doxygen.warn_if_undoc_enum_val)
             self.assertFalse(doxygen.warn_if_undocumented)
             self.assertFalse(doxygen.warn_no_paramdoc)
@@ -342,6 +363,7 @@ extra_stylesheets = ["https://example.invalid/project.css"]
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "docs" / "_static").mkdir(parents=True)
+            (root / "docs" / "extra_conf.py").touch()
             path = root / "dockle.toml"
             path.write_text(
                 MINIMAL_CONFIG
@@ -351,6 +373,7 @@ exclude_patterns = ["drafts/**"]
 static_paths = ["docs/_static"]
 extra_javascript = ["project.js"]
 extra_stylesheets = ["project.css"]
+extra_config = "docs/extra_conf.py"
 ''',
                 encoding="utf-8",
             )
@@ -364,6 +387,10 @@ extra_stylesheets = ["project.css"]
             )
             self.assertEqual(sphinx.extra_javascript, ("project.js",))
             self.assertEqual(sphinx.extra_stylesheets, ("project.css",))
+            self.assertEqual(
+                sphinx.extra_config,
+                (root / "docs" / "extra_conf.py").resolve(),
+            )
 
     def test_loads_typed_rustdoc_extra_files(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

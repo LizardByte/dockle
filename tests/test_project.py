@@ -49,26 +49,32 @@ class ProjectDogfoodTests(unittest.TestCase):
 
         self.assertIn("commands:", contents)
         self.assertNotIn("jobs:", contents)
-        self.assertIn(
-            'conda env create --quiet --name "${READTHEDOCS_VERSION}"',
-            contents,
-        )
-        self.assertIn(
-            'conda run --no-capture-output --name "${READTHEDOCS_VERSION}" python -m dockle check',
-            contents,
-        )
-        self.assertIn(
-            'conda run --no-capture-output --name "${READTHEDOCS_VERSION}" python -m dockle build',
-            contents,
-        )
-        self.assertIn("${READTHEDOCS_OUTPUT}html/", contents)
-        self.assertIn("npm ci --ignore-scripts", contents)
-        self.assertLess(
-            contents.index("npm run build"),
-            contents.index("python -m pip install"),
-        )
-        self.assertIn('python: "miniforge3-26.3"', contents)
+        self.assertIn('python: "miniconda-latest"', contents)
+        self.assertIn("readthedocs_build.sh", contents)
+        self.assertIn('export DOCKLE_DIR="${dockle_dir}"', contents)
         self.assertIn("environment: environment.yml", contents)
+
+        script = (PROJECT_ROOT / "readthedocs_build.sh").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            'conda env create --quiet --name "${environment_name}"', script
+        )
+        self.assertIn("requirements-readthedocs.txt", script)
+        self.assertIn("python -m dockle check", script)
+        self.assertIn("python -m dockle build", script)
+        self.assertIn("${READTHEDOCS_OUTPUT}html/", script)
+        self.assertIn("npm ci --ignore-scripts", script)
+        self.assertLess(
+            script.index("npm run build"),
+            script.index("python -m pip install"),
+        )
+
+        requirements = (
+            PROJECT_ROOT / "requirements-readthedocs.txt"
+        ).read_text(encoding="utf-8")
+        self.assertIn("lizardbyte_dockle-2026.918.203650", requirements)
+        self.assertNotIn("lizardbyte-dockle[all]", requirements)
 
         environment = (PROJECT_ROOT / "environment.yml").read_text(
             encoding="utf-8"
@@ -206,7 +212,7 @@ class ProjectDogfoodTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
 
         self.assertIn(
-            "@admonition{Custom title | "
+            "@admonition{Custom title |:| "
             "A neutral custom admonition.}",
             reference,
         )
