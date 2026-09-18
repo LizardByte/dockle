@@ -342,7 +342,7 @@ class DoxygenBuilder(Builder):
             'ALIASES                += "_dockle_alert{4|:|}=<dl class=\\"dockle-alert '
             'dockle-alert-\\2\\"><dt class=\\"dockle-alert-title\\"><i data-lucide=\\"\\3\\" '
             'aria-hidden=\\"true\\"></i> \\1</dt><dd>\\4</dd></dl>"\n'
-            'ALIASES                += "admonition{2|:|}=@_dockle_alert{\\1|:|note|:|info|:|\\2}"\n'
+            'ALIASES                += "admonition{2|}=@_dockle_alert{\\1|:|note|:|info|:|\\2}"\n'
             'ALIASES                += "attention{1}=@_dockle_alert{Attention|:|attention|:|circle-alert|:|\\1}"\n'
             'ALIASES                += "caution{1}=@_dockle_alert{Caution|:|caution|:|circle-alert|:|\\1}"\n'
             'ALIASES                += "danger{1}=@_dockle_alert{Danger|:|danger|:|octagon-alert|:|\\1}"\n'

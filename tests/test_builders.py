@@ -155,7 +155,7 @@ extra_javascript = ["project.js"]''',
         )
         self.assertIn('ALIASES                += "danger{1}', doxyfile)
         self.assertIn('"_dockle_alert{4|:|}', doxyfile)
-        self.assertIn('"admonition{2|:|}', doxyfile)
+        self.assertIn('"admonition{2|}', doxyfile)
         self.assertIn("\\1|:|note|:|info|:|\\2", doxyfile)
         self.assertIn('data-lucide=\\"\\3\\"', doxyfile)
         self.assertIn('"tab{2|:|}', doxyfile)

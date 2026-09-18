@@ -206,8 +206,8 @@ class ProjectDogfoodTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
 
         self.assertIn(
-            "@admonition{Custom title |:| "
-            "A neutral custom admonition can contain A | B.}",
+            "@admonition{Custom title | "
+            "A neutral custom admonition.}",
             reference,
         )
         self.assertIn("@tabs_grouped{workflow|:|", reference)
