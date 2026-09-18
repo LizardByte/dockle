@@ -197,14 +197,20 @@ class SphinxThemeTests(unittest.TestCase):
         script = (THEME_DIRECTORY / "static" / "dockle.js").read_text(
             encoding="utf-8"
         )
+        stylesheet = (
+            THEME_DIRECTORY / "static" / "dockle.css"
+        ).read_text(encoding="utf-8")
         highlighter = (
             THEME_DIRECTORY / "static" / "highlight.min.js"
         ).read_text(encoding="utf-8")
 
         self.assertIn("applySyntaxHighlighting", script)
         self.assertIn("addLanguageGalleries", script)
+        self.assertIn("addLanguageGalleryTocLinks", script)
         self.assertIn('querySelectorAll(".dockle-language-gallery")', script)
         self.assertIn("dockle-language-gallery-end", script)
+        self.assertIn(".dockle-language-toc", stylesheet)
+        self.assertIn("grid-template-columns: minmax(0, 1fr)", stylesheet)
         self.assertIn("item.dataset.dockleLanguage", script)
         self.assertIn("dataset.dockleLanguage", script)
         metadata_lookup = script.index("candidate.dataset.dockleLanguage")

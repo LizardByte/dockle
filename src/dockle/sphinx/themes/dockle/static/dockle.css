@@ -356,7 +356,7 @@ div.fragment > code.hljs {
 .dockle-language-gallery-list {
   display: grid;
   gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .dockle-language-gallery-item {
@@ -373,10 +373,17 @@ div.fragment > code.hljs {
 
 .dockle-language-gallery-header {
   align-items: baseline;
+  border: 0;
+  color: var(--dockle-content);
   display: flex;
+  font-family: var(--dockle-font);
+  font-size: 1rem;
+  font-weight: 600;
   flex-wrap: wrap;
   gap: 0.35rem 0.65rem;
-  margin-bottom: 0.35rem;
+  line-height: 1.5;
+  margin: 0 0 0.35rem;
+  padding: 0;
 }
 
 .dockle-language-gallery-header > span {
@@ -387,6 +394,17 @@ div.fragment > code.hljs {
 
 .dockle-language-gallery-item pre {
   margin: 0;
+}
+
+.dockle-language-toc {
+  list-style: none;
+  margin: 0.3rem 0 0;
+  padding-left: 0.75rem !important;
+}
+
+.dockle-language-toc > li {
+  line-height: 1.35;
+  margin: 0.4rem 0;
 }
 
 @media (max-width: 32rem) {

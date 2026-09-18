@@ -73,6 +73,11 @@ test('the packaged highlighter includes every built-in grammar', async () => {
       packagedLanguages.length,
       reference,
     );
+    assert.equal(
+      document.match(/<h3 id="language-[^"]+" class="dockle-language-gallery-header">/g)?.length,
+      packagedLanguages.length,
+      reference,
+    );
     assert.doesNotMatch(document, /# Dockle \S+ syntax preview/);
   }
   for (const language of [

@@ -824,6 +824,57 @@
     contents.append(list);
   };
 
+  const addLanguageGalleryTocLinks = () => {
+    const pageNav = document.querySelector("#page-nav, .dockle-on-this-page");
+    if (!pageNav) {
+      return;
+    }
+    const links = [...pageNav.querySelectorAll("a[href]")];
+    const sectionLink = links.find(
+      (link) => link.textContent.replace(/\s+/g, " ").trim()
+        === "Language highlighting",
+    );
+    const sectionItem = sectionLink?.closest("li");
+    if (!sectionItem) {
+      return;
+    }
+    let languageList = sectionItem.querySelector(":scope > .dockle-language-toc");
+    if (!languageList) {
+      languageList = document.createElement("ul");
+      languageList.className = "dockle-language-toc";
+      sectionItem.append(languageList);
+    }
+    const hashFor = (link) => {
+      try {
+        return new URL(link.getAttribute("href"), document.baseURI).hash;
+      } catch {
+        return "";
+      }
+    };
+    document.querySelectorAll(
+      ".dockle-language-gallery-header[id]",
+    ).forEach((heading) => {
+      const hash = `#${heading.id}`;
+      let link = [...pageNav.querySelectorAll("a[href]")]
+        .find((candidate) => hashFor(candidate) === hash);
+      let item = link?.closest("li");
+      if (!item) {
+        item = document.createElement("li");
+        link = document.createElement("a");
+        link.href = hash;
+        item.append(link);
+      }
+      item.classList.add("dockle-language-toc-item");
+      link.textContent = heading.querySelector("strong")?.textContent
+        || heading.dataset.dockleLanguage
+        || heading.id.replace(/^language-/, "");
+      languageList.append(item);
+    });
+    if (!languageList.children.length) {
+      languageList.remove();
+    }
+  };
+
   const ensureCompatibilityPageToc = () => {
     const framework = root.dataset.dockleFramework;
     if (!["doxygen", "jsdoc", "rustdoc"].includes(framework)) {
@@ -995,10 +1046,14 @@
   addCodeCopyButtons();
   replaceRustdocIcons();
   placeBuiltWithFooter();
-  if (root.dataset.dockleFramework === "doxygen") {
-    window.addEventListener("load", ensureCompatibilityPageToc);
-  } else {
+  const finalizePageToc = () => {
     ensureCompatibilityPageToc();
+    addLanguageGalleryTocLinks();
+  };
+  if (root.dataset.dockleFramework === "doxygen") {
+    window.addEventListener("load", finalizePageToc);
+  } else {
+    finalizePageToc();
   }
   addHeadingPermalinks();
   renderIcons();

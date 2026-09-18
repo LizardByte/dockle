@@ -196,11 +196,11 @@ const markdownLanguageEntries = (useNeutralFence) => languages.map((language) =>
     ? `<span>Aliases: ${aliases.map(escapeHtml).join(', ')}</span>`
     : '';
   return [
-    '<div class="dockle-language-gallery-header">',
+    `<h3 id="language-${escapeHtml(language)}" class="dockle-language-gallery-header">`,
     `<strong>${escapeHtml(definition.name || language)}</strong>`,
     `<code>${escapeHtml(language)}</code>`,
     ...(aliasMarkup ? [aliasMarkup] : []),
-    '</div>',
+    '</h3>',
     '',
     `${fence}${useNeutralFence ? 'text' : language}`,
     preview,
@@ -231,11 +231,11 @@ const rstLanguageEntries = languages.map((language) => {
     ? ` <span>Aliases: ${aliases.map(escapeHtml).join(', ')}</span>`
     : '';
   const header = [
-    '<div class="dockle-language-gallery-header">',
+    `<h3 id="language-${escapeHtml(language)}" class="dockle-language-gallery-header">`,
     `<strong>${escapeHtml(definition.name || language)}</strong> `,
     `<code>${escapeHtml(language)}</code>`,
     aliasesText,
-    '</div>',
+    '</h3>',
   ].join('');
   const preview = languagePreview(language)
     .split('\n')
