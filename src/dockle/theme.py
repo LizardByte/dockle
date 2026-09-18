@@ -9,7 +9,7 @@ import shutil
 from collections.abc import Iterator
 from html import escape
 from html.parser import HTMLParser
-from importlib.metadata import PackageNotFoundError, version
+from importlib.metadata import PackageNotFoundError, distribution, version
 from pathlib import Path
 
 from dockle import __version__
@@ -160,11 +160,27 @@ class _TextContentParser(HTMLParser):
 
 
 def _theme_asset(name: str) -> Path:
-    return (
+    source_asset = (
         Path(__file__)
         .with_name("sphinx")
         .joinpath("themes", "dockle", "static", name)
     )
+    if source_asset.is_file():
+        return source_asset
+
+    relative_asset = Path(
+        "dockle", "sphinx", "themes", "dockle", "static", name
+    )
+    try:
+        installed = distribution("lizardbyte-dockle")
+    except PackageNotFoundError:
+        return source_asset
+    for packaged_file in installed.files or ():
+        if Path(packaged_file) == relative_asset:
+            installed_asset = Path(installed.locate_file(packaged_file))
+            if installed_asset.is_file():
+                return installed_asset
+    return source_asset
 
 
 def render_theme(theme: ThemeConfig) -> str:

@@ -3,11 +3,13 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 from dockle import __version__
 from dockle.config import ThemeConfig
 from dockle.theme import (
     ThemeError,
+    _theme_asset,
     annotate_doxygen_code_languages,
     apply_theme,
     render_theme,
@@ -15,6 +17,31 @@ from dockle.theme import (
 
 
 class ThemeTests(unittest.TestCase):
+    def test_theme_asset_falls_back_to_installed_distribution(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            relative_asset = Path(
+                "dockle",
+                "sphinx",
+                "themes",
+                "dockle",
+                "static",
+                "lucide.min.js",
+            )
+            installed_asset = root / "site-packages" / relative_asset
+            installed_asset.parent.mkdir(parents=True)
+            installed_asset.write_text("installed", encoding="utf-8")
+            installed = Mock(files=[relative_asset])
+            installed.locate_file.return_value = installed_asset
+
+            with (
+                patch("dockle.theme.__file__", root / "checkout" / "theme.py"),
+                patch("dockle.theme.distribution", return_value=installed),
+            ):
+                self.assertEqual(
+                    _theme_asset("lucide.min.js"), installed_asset
+                )
+
     def test_render_theme_includes_configured_tokens(self) -> None:
         stylesheet = render_theme(
             ThemeConfig(primary="#abcdef", dark_background="#010203")
