@@ -75,7 +75,7 @@ function decodeEntities(value) {
     nbsp: ' ',
     quot: '"',
   };
-  return value.replace(/&(#(?:x[0-9a-f]+|[0-9]+)|[a-z]+);/gi, (match, entity) => {
+  return value.replace(/&(#(?:x[\da-f]+|\d+)|[a-z]+);/gi, (match, entity) => {
     if (entity.startsWith('#x')) {
       return String.fromCodePoint(Number.parseInt(entity.slice(2), 16));
     }
@@ -90,7 +90,7 @@ function searchableText(document) {
   return decodeEntities(
     document
       .replace(/<(script|style|svg)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ')
-      .replace(/<[^>]+>/g, ' '),
+      .replace(/<[^<>]*>/g, ' '),
   ).replace(/\s+/g, ' ').trim();
 }
 

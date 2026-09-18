@@ -164,7 +164,9 @@ class BuilderTests(unittest.TestCase):
         self.assertIn('"projectName": "Example API"', native)
         self.assertIn('"targetTitle": "Jsdoc"', native)
         self.assertIn('"stylesheet"', native)
-        self.assertTrue((plan.work / "theme" / "dockle.css") in plan.generated_files)
+        self.assertIn(
+            plan.work / "theme" / "dockle.css", plan.generated_files
+        )
         self.assertEqual(plan.command.args[1], "--configure")
         self.assertIn("--pedantic", plan.command.args)
 

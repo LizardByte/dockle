@@ -18,6 +18,8 @@ from dockle import __version__
 from dockle.config import DockleConfig, TargetConfig
 from dockle.theme import ThemeError, apply_theme, render_theme, write_portal
 
+_INDEX_DOCUMENT = "index.html"
+
 
 class BuildError(RuntimeError):
     """Raised when a documentation build cannot complete."""
@@ -348,7 +350,7 @@ class JsDocBuilder(Builder):
         config_file = self.work / "jsdoc.json"
         portal = Path(
             os.path.relpath(
-                self.config.build.output / "index.html",
+                self.config.build.output / _INDEX_DOCUMENT,
                 self.target.output,
             )
         ).as_posix()
@@ -470,7 +472,7 @@ class RustdocBuilder(Builder):
         crates = sorted(
             path
             for path in self.target.output.iterdir()
-            if path.is_dir() and (path / "index.html").is_file()
+            if path.is_dir() and (path / _INDEX_DOCUMENT).is_file()
         )
         if not crates:
             raise BuildError(
@@ -510,7 +512,7 @@ class RustdocBuilder(Builder):
 </body>
 </html>
 """
-        (self.target.output / "index.html").write_text(
+        (self.target.output / _INDEX_DOCUMENT).write_text(
             document, encoding="utf-8"
         )
 
