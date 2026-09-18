@@ -681,6 +681,31 @@ _BUILDERS: dict[str, type[Builder]] = {
 }
 
 
+def _required_paths(target: TargetConfig) -> tuple[Path, ...]:
+    """Return every configured project path required by a target."""
+
+    paths = [target.source]
+    if target.doxygen is not None:
+        paths.extend(target.doxygen.inputs)
+        paths.extend(target.doxygen.image_paths)
+        paths.extend(target.doxygen.include_paths)
+        paths.extend(target.doxygen.extra_stylesheets)
+        paths.extend(target.doxygen.extra_files)
+        if target.doxygen.main_page is not None:
+            paths.append(target.doxygen.main_page)
+    if target.jsdoc is not None:
+        paths.extend(target.jsdoc.inputs)
+        if target.jsdoc.readme is not None:
+            paths.append(target.jsdoc.readme)
+    if target.sphinx is not None:
+        paths.extend(target.sphinx.static_paths)
+        if target.sphinx.extra_config is not None:
+            paths.append(target.sphinx.extra_config)
+    if target.rustdoc is not None:
+        paths.extend(target.rustdoc.extra_files)
+    return tuple(paths)
+
+
 class BuildManager:
     """Resolve tools and execute one or more framework adapters."""
 
@@ -709,27 +734,9 @@ class BuildManager:
         checks: list[tuple[TargetConfig, str | None]] = []
         for target in targets:
             problem: str | None = None
-            required_paths = [target.source]
-            if target.doxygen is not None:
-                required_paths.extend(target.doxygen.inputs)
-                required_paths.extend(target.doxygen.image_paths)
-                required_paths.extend(target.doxygen.include_paths)
-                required_paths.extend(target.doxygen.extra_stylesheets)
-                required_paths.extend(target.doxygen.extra_files)
-                if target.doxygen.main_page is not None:
-                    required_paths.append(target.doxygen.main_page)
-            if target.jsdoc is not None:
-                required_paths.extend(target.jsdoc.inputs)
-                if target.jsdoc.readme is not None:
-                    required_paths.append(target.jsdoc.readme)
-            if target.sphinx is not None:
-                required_paths.extend(target.sphinx.static_paths)
-                if target.sphinx.extra_config is not None:
-                    required_paths.append(target.sphinx.extra_config)
-            if target.rustdoc is not None:
-                required_paths.extend(target.rustdoc.extra_files)
             missing_path = next(
-                (path for path in required_paths if not path.exists()), None
+                (path for path in _required_paths(target) if not path.exists()),
+                None,
             )
             if missing_path is not None:
                 problem = f"source does not exist: {missing_path}"

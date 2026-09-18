@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from importlib.metadata import PackageNotFoundError
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -17,6 +18,36 @@ from dockle.theme import (
 
 
 class ThemeTests(unittest.TestCase):
+    def test_theme_asset_returns_source_path_without_packaged_asset(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            expected = (
+                root
+                / "checkout"
+                / "sphinx"
+                / "themes"
+                / "dockle"
+                / "static"
+                / "missing.js"
+            )
+            with (
+                patch("dockle.theme.__file__", root / "checkout" / "theme.py"),
+                patch(
+                    "dockle.theme.distribution",
+                    side_effect=PackageNotFoundError,
+                ),
+            ):
+                self.assertEqual(_theme_asset("missing.js"), expected)
+
+            installed = Mock(files=[])
+            with (
+                patch("dockle.theme.__file__", root / "checkout" / "theme.py"),
+                patch("dockle.theme.distribution", return_value=installed),
+            ):
+                self.assertEqual(_theme_asset("missing.js"), expected)
+
     def test_theme_asset_falls_back_to_installed_distribution(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

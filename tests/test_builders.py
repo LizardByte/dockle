@@ -4,12 +4,13 @@ import json
 import sys
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 from stat import S_IXUSR
 from unittest.mock import patch
 
 from dockle import __version__
-from dockle.builders import BuildManager, Command
+from dockle.builders import BuildError, BuildManager, Command
 from dockle.config import load_config
 
 ALL_TARGETS_CONFIG = """
@@ -187,15 +188,26 @@ extra_config = "sphinx-docs/extra_conf.py"''',
         custom_css = self.root / "cpp" / "custom.css"
         custom_js = self.root / "cpp" / "custom.js"
         main_page = self.root / "README.md"
+        fake_doxygen = self.root / "bin" / "doxygen"
+        fake_doxygen.parent.mkdir()
+        fake_doxygen.touch()
         for path in (custom_css, custom_js, main_page):
             path.touch()
         configured = ALL_TARGETS_CONFIG.replace(
+            "[build]\nstrict = true",
+            '''[build]
+strict = true
+
+[tools]
+doxygen = "bin/doxygen"''',
+        ).replace(
             'framework = "doxygen"\nsource = "cpp"',
             '''framework = "doxygen"
 source = "cpp"
 
 [targets.doxygen]
 inputs = ["README.md", "cpp"]
+exclude_patterns = ["*/generated/*"]
 predefined = ["EXAMPLE=1"]
 extra_stylesheets = ["cpp/custom.css"]
 extra_files = ["cpp/custom.js"]
@@ -209,7 +221,8 @@ generate_xml = true''',
         self.config_path.write_text(configured, encoding="utf-8")
         config = load_config(self.config_path)
 
-        plan = BuildManager(config).plan(config.targets[1])
+        with patch("dockle.builders.shutil.which", return_value=None):
+            plan = BuildManager(config).plan(config.targets[1])
         doxyfile = plan.generated_files[plan.work / "Doxyfile"]
         settings = config.targets[1].doxygen
         assert settings is not None
@@ -220,6 +233,14 @@ generate_xml = true''',
         )
         self.assertIn(f'"{settings.extra_files[0].as_posix()}"', doxyfile)
         self.assertIn('"EXAMPLE=1"', doxyfile)
+        self.assertIn('EXCLUDE_PATTERNS         = "*/generated/*"', doxyfile)
+        self.assertRegex(doxyfile, r"(?m)^HAVE_DOT\s+= NO$")
+
+        fake_doxygen.with_name("dot").touch()
+        with patch("dockle.builders.shutil.which", return_value=None):
+            plan = BuildManager(config).plan(config.targets[1])
+        doxyfile = plan.generated_files[plan.work / "Doxyfile"]
+        self.assertRegex(doxyfile, r"(?m)^HAVE_DOT\s+= YES$")
         self.assertIn("DOT_GRAPH_MAX_NODES      = 75", doxyfile)
         self.assertIn("OPTIMIZE_OUTPUT_JAVA     = YES", doxyfile)
         self.assertIn("SEPARATE_MEMBER_PAGES    = YES", doxyfile)
@@ -387,6 +408,84 @@ exclude_pattern = "generated/"''',
         plan = self.manager.plan(self.config.targets[3], require_tool=True)
 
         self.assertTrue(Path(plan.command.args[0]).samefile(executable))
+
+    def test_plan_rejects_targets_without_framework_settings(self) -> None:
+        cases = (
+            (self.config.targets[0], "sphinx"),
+            (self.config.targets[1], "doxygen"),
+            (self.config.targets[2], "mkdocs"),
+            (self.config.targets[3], "jsdoc"),
+        )
+        for target, framework in cases:
+            with self.subTest(framework=framework):
+                malformed = replace(target, **{framework: None})
+                with self.assertRaisesRegex(
+                    BuildError,
+                    rf"{framework} target is missing generated settings",
+                ):
+                    self.manager.plan(malformed)
+
+    def test_check_validates_every_typed_project_path(self) -> None:
+        self.config_path.write_text(
+            """
+[project]
+name = "Path checks"
+
+[[targets]]
+name = "doxygen"
+framework = "doxygen"
+source = "cpp"
+
+[targets.doxygen]
+inputs = ["cpp"]
+image_paths = ["missing-images"]
+include_paths = ["cpp"]
+extra_stylesheets = ["favicon.svg"]
+extra_files = ["favicon.svg"]
+main_page = "missing-main.md"
+
+[[targets]]
+name = "jsdoc"
+framework = "jsdoc"
+source = "javascript"
+
+[targets.jsdoc]
+inputs = ["javascript"]
+readme = "missing-readme.md"
+
+[[targets]]
+name = "sphinx"
+framework = "sphinx"
+source = "sphinx-docs"
+
+[targets.sphinx]
+static_paths = ["sphinx-docs"]
+extra_config = "missing-conf.py"
+
+[[targets]]
+name = "rustdoc"
+framework = "rustdoc"
+source = "rust"
+
+[targets.rustdoc]
+extra_files = ["missing-rustdoc.css"]
+""",
+            encoding="utf-8",
+        )
+        config = load_config(self.config_path)
+
+        checks = BuildManager(config).check(config.targets)
+
+        expected = (
+            config.root / "missing-images",
+            config.root / "missing-readme.md",
+            config.root / "missing-conf.py",
+            config.root / "missing-rustdoc.css",
+        )
+        self.assertEqual(
+            [problem for _, problem in checks],
+            [f"source does not exist: {path}" for path in expected],
+        )
 
     def test_full_build_removes_stale_target_output(self) -> None:
         fake_tool = self.root / "fake-sphinx"
