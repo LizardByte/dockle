@@ -12,6 +12,12 @@
   --dockle-background-secondary: color-mix(in srgb, var(--dockle-background) 94%, var(--dockle-content));
   --dockle-border: color-mix(in srgb, var(--dockle-content) 18%, transparent);
   --dockle-code-background: color-mix(in srgb, var(--dockle-background) 92%, var(--dockle-content));
+  --dockle-code-comment: #64748b;
+  --dockle-code-keyword: #7c3aed;
+  --dockle-code-name: #0369a1;
+  --dockle-code-number: #b45309;
+  --dockle-code-operator: #be123c;
+  --dockle-code-string: #15803d;
   --dockle-muted: color-mix(in srgb, var(--dockle-content) 68%, transparent);
   --dockle-sidebar-padding: 1.25rem;
   --dockle-sidebar-width: 18rem;
@@ -31,6 +37,12 @@
     --dockle-background-secondary: color-mix(in srgb, var(--dockle-background) 88%, white);
     --dockle-border: color-mix(in srgb, var(--dockle-content) 22%, transparent);
     --dockle-code-background: color-mix(in srgb, var(--dockle-background) 82%, white);
+    --dockle-code-comment: #94a3b8;
+    --dockle-code-keyword: #c084fc;
+    --dockle-code-name: #38bdf8;
+    --dockle-code-number: #fbbf24;
+    --dockle-code-operator: #fb7185;
+    --dockle-code-string: #a3e635;
     --dockle-muted: color-mix(in srgb, var(--dockle-content) 72%, transparent);
   }
 }
@@ -40,6 +52,12 @@
   --dockle-background-secondary: color-mix(in srgb, var(--dockle-background) 88%, white);
   --dockle-border: color-mix(in srgb, var(--dockle-content) 22%, transparent);
   --dockle-code-background: color-mix(in srgb, var(--dockle-background) 82%, white);
+  --dockle-code-comment: #94a3b8;
+  --dockle-code-keyword: #c084fc;
+  --dockle-code-name: #38bdf8;
+  --dockle-code-number: #fbbf24;
+  --dockle-code-operator: #fb7185;
+  --dockle-code-string: #a3e635;
   --dockle-muted: color-mix(in srgb, var(--dockle-content) 72%, transparent);
 }
 
@@ -191,6 +209,7 @@ samp {
 code {
   background: var(--dockle-code-background);
   border-radius: 0.2rem;
+  color: var(--dockle-content);
   padding: 0.12em 0.28em;
 }
 
@@ -220,6 +239,43 @@ pre code {
 .highlight pre {
   border: 0 !important;
   margin: 0;
+}
+
+/* Normalize each generator's native syntax tokens to one shared palette. */
+:where(.highlight, .codehilite) :is(.c, .ch, .cm, .cp, .cpf, .c1, .cs),
+html[data-dockle-framework="jsdoc"] pre.prettyprint .com,
+html[data-dockle-framework="rustdoc"] pre :is(.comment, .doccomment) {
+  color: var(--dockle-code-comment) !important;
+}
+
+:where(.highlight, .codehilite) :is(.k, .kc, .kd, .kn, .kp, .kr, .kt),
+html[data-dockle-framework="jsdoc"] pre.prettyprint :is(.kwd, .typ),
+html[data-dockle-framework="rustdoc"] pre :is(.kw, .kw-2, .self-val) {
+  color: var(--dockle-code-keyword) !important;
+}
+
+:where(.highlight, .codehilite) :is(.nb, .nc, .nd, .ne, .nf, .nl, .nn, .nt),
+html[data-dockle-framework="jsdoc"] pre.prettyprint :is(.atn, .tag),
+html[data-dockle-framework="rustdoc"] pre :is(.macro, .prelude-ty, .prelude-val, .primitive) {
+  color: var(--dockle-code-name) !important;
+}
+
+:where(.highlight, .codehilite) :is(.m, .mb, .mf, .mh, .mi, .mo, .il),
+html[data-dockle-framework="jsdoc"] pre.prettyprint .lit,
+html[data-dockle-framework="rustdoc"] pre :is(.bool-val, .number) {
+  color: var(--dockle-code-number) !important;
+}
+
+:where(.highlight, .codehilite) :is(.o, .ow),
+html[data-dockle-framework="rustdoc"] pre :is(.lifetime, .question-mark) {
+  color: var(--dockle-code-operator) !important;
+}
+
+:where(.highlight, .codehilite)
+  :is(.s, .sa, .sb, .sc, .dl, .sd, .s1, .s2, .se, .sh, .si, .sr, .ss, .sx),
+html[data-dockle-framework="jsdoc"] pre.prettyprint :is(.atv, .str),
+html[data-dockle-framework="rustdoc"] pre :is(.string, .string-2) {
+  color: var(--dockle-code-string) !important;
 }
 
 .dockle-code-block {
@@ -1151,6 +1207,34 @@ html[data-dockle-framework="doxygen"]
   text-indent: 0 !important;
 }
 
+html[data-dockle-framework="doxygen"] div.fragment span.comment {
+  color: var(--dockle-code-comment) !important;
+}
+
+html[data-dockle-framework="doxygen"]
+  div.fragment
+  :is(span.keyword, span.keywordflow, span.vhdlkeyword) {
+  color: var(--dockle-code-keyword) !important;
+}
+
+html[data-dockle-framework="doxygen"]
+  div.fragment
+  :is(span.keywordtype, span.preprocessor) {
+  color: var(--dockle-code-name) !important;
+}
+
+html[data-dockle-framework="doxygen"]
+  div.fragment
+  :is(span.vhdldigit, span.vhdllogic) {
+  color: var(--dockle-code-number) !important;
+}
+
+html[data-dockle-framework="doxygen"]
+  div.fragment
+  :is(span.charliteral, span.stringliteral) {
+  color: var(--dockle-code-string) !important;
+}
+
 html[data-dockle-framework="doxygen"] #nav-sync,
 html[data-dockle-framework="doxygen"] .ui-resizable-handle {
   display: none !important;
@@ -1314,6 +1398,75 @@ html[data-dockle-framework="doxygen"] table.memberdecls .mdescRight,
 html[data-dockle-framework="doxygen"] table.memberdecls .memSeparator {
   background: transparent;
   border-color: var(--dockle-border) !important;
+}
+
+html[data-dockle-framework="doxygen"] div.directory {
+  border: 1px solid var(--dockle-border);
+  border-radius: var(--dockle-radius);
+  margin: 1rem 0;
+  overflow: hidden;
+}
+
+html[data-dockle-framework="doxygen"] table.directory {
+  border-collapse: collapse;
+  display: table;
+  font-family: var(--dockle-font);
+  font-size: 1rem;
+  margin: 0;
+  overflow: visible;
+  width: 100%;
+}
+
+html[data-dockle-framework="doxygen"] table.directory tr.even,
+html[data-dockle-framework="doxygen"] table.directory tr.odd {
+  background: transparent !important;
+}
+
+html[data-dockle-framework="doxygen"] table.directory tr:nth-child(even) {
+  background: var(--dockle-background-secondary) !important;
+}
+
+html[data-dockle-framework="doxygen"] table.directory tr:hover {
+  background: color-mix(in srgb, var(--dockle-primary) 8%, transparent) !important;
+}
+
+html[data-dockle-framework="doxygen"] table.directory td.entry,
+html[data-dockle-framework="doxygen"] table.directory td.desc {
+  background: transparent !important;
+  border-color: var(--dockle-border) !important;
+  color: var(--dockle-content);
+  line-height: 1.5;
+  padding: 0.65rem 0.8rem !important;
+}
+
+html[data-dockle-framework="doxygen"] .levels {
+  color: var(--dockle-muted);
+  font-family: var(--dockle-font);
+  margin: 0 0 0.75rem;
+}
+
+html[data-dockle-framework="doxygen"] .levels a {
+  color: var(--dockle-primary) !important;
+  text-decoration: none;
+}
+
+html[data-dockle-framework="doxygen"] .icona {
+  height: auto;
+  margin: 0 0.35rem;
+  width: auto;
+}
+
+html[data-dockle-framework="doxygen"] .icon {
+  background: var(--dockle-primary) !important;
+  border-radius: 0.2rem;
+  color: white !important;
+  font-family: var(--dockle-font);
+}
+
+html[data-dockle-framework="doxygen"] .classindex dl.even,
+html[data-dockle-framework="doxygen"] .classindex dl.odd {
+  background: transparent !important;
+  border-bottom: 1px solid var(--dockle-border);
 }
 
 html[data-dockle-framework="doxygen"] .dockle-home {
@@ -1506,6 +1659,14 @@ html[data-dockle-framework="jsdoc"] .type-signature {
   color: var(--dockle-muted) !important;
 }
 
+html[data-dockle-framework="jsdoc"]
+  :is(.params, .props)
+  .name
+  code {
+  background: var(--dockle-code-background) !important;
+  color: var(--dockle-content) !important;
+}
+
 html[data-dockle-framework="jsdoc"] pre.prettyprint code {
   background: transparent !important;
   color: var(--dockle-content) !important;
@@ -1515,20 +1676,6 @@ html[data-dockle-framework="jsdoc"] pre.prettyprint code {
 html[data-dockle-framework="jsdoc"] pre.prettyprint .pln,
 html[data-dockle-framework="jsdoc"] pre.prettyprint .pun {
   color: var(--dockle-content) !important;
-}
-
-html[data-dockle-framework="jsdoc"] pre.prettyprint .com {
-  color: var(--dockle-muted) !important;
-}
-
-html[data-dockle-framework="jsdoc"] pre.prettyprint .kwd,
-html[data-dockle-framework="jsdoc"] pre.prettyprint .typ {
-  color: color-mix(in srgb, var(--dockle-primary) 55%, white) !important;
-}
-
-html[data-dockle-framework="jsdoc"] pre.prettyprint .str,
-html[data-dockle-framework="jsdoc"] pre.prettyprint .lit {
-  color: #84cc16 !important;
 }
 
 /* rustdoc. */

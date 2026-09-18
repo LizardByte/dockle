@@ -30,14 +30,6 @@
       return;
     }
     root.classList.add("dockle-component-reference");
-    if (root.dataset.dockleFramework !== "jsdoc") {
-      return;
-    }
-    document.querySelectorAll("body > nav a").forEach((link) => {
-      if (link.textContent.trim().toLocaleLowerCase() === "showcase") {
-        link.textContent = "Component reference";
-      }
-    });
   };
 
   const loadStoredScheme = () => {

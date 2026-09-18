@@ -17,7 +17,9 @@ test('the npm command builds a self-contained native JSDoc site', async (context
   context.after(() => rm(root, { force: true, recursive: true }));
   const source = path.join(root, 'src');
   const output = path.join(root, 'site');
+  const tutorials = path.join(root, 'tutorials');
   await mkdir(source);
+  await mkdir(tutorials);
   await writeFile(path.join(root, 'package.json'), JSON.stringify({
     name: 'native-jsdoc-example',
     repository: 'https://example.invalid/native-jsdoc-example',
@@ -25,6 +27,10 @@ test('the npm command builds a self-contained native JSDoc site', async (context
   }));
   await writeFile(path.join(root, 'logo.svg'), '<svg xmlns="http://www.w3.org/2000/svg"/>');
   await writeFile(path.join(root, 'favicon.svg'), '<svg xmlns="http://www.w3.org/2000/svg"/>');
+  await writeFile(path.join(tutorials, 'showcase.md'), '# Component reference\n');
+  await writeFile(path.join(tutorials, 'tutorials.json'), JSON.stringify({
+    showcase: { title: 'Component reference' },
+  }));
   await writeFile(path.join(source, 'example.js'), `/**
  * Add two values.
  * @param {number} left Left value.
@@ -38,6 +44,7 @@ export function add(left, right) { return left + right; }
     opts: {
       destination: output,
       recurse: true,
+      tutorials,
     },
     source: {
       include: [source],
@@ -68,6 +75,8 @@ export function add(left, right) { return left + right; }
   assert.match(document, /JSDoc 4\.0\.5/);
   assert.match(document, /dockle-logo\.svg/);
   assert.match(document, /dockle-favicon\.svg/);
+  assert.match(document, />Component reference<\/a>/);
+  assert.doesNotMatch(document, />showcase<\/a>/);
   assert.doesNotMatch(document, /data-dockle-home/);
   assert.ok(search.docs.some((entry) => entry.text.includes('Add two values')));
   await readFile(path.join(output, 'dockle.css'), 'utf8');

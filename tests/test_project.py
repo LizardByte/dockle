@@ -145,6 +145,19 @@ class ProjectDogfoodTests(unittest.TestCase):
         self.assertNotIn("doxygen-awesome-css", declared)
         self.assertNotIn("doxyconfig", declared)
 
+    def test_examples_document_portable_doxygen_authoring(self) -> None:
+        showcase = (
+            PROJECT_ROOT / "examples" / "doxygen" / "showcase.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("```python", showcase)
+        self.assertIn("```javascript", showcase)
+        self.assertIn(
+            "@admonition{Custom title |:| "
+            "A neutral custom admonition can contain A | B.}",
+            showcase,
+        )
+
     def test_cmake_module_invokes_the_canonical_cli(self) -> None:
         module = (
             PROJECT_ROOT / "src" / "dockle" / "cmake" / "Dockle.cmake"

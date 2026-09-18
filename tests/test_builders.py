@@ -120,7 +120,17 @@ class BuilderTests(unittest.TestCase):
         self.assertIn("GENERATE_TREEVIEW", doxyfile)
         self.assertIn("WARN_AS_ERROR", doxyfile)
         self.assertIn("USE_MDFILE_AS_MAINPAGE", doxyfile)
+        self.assertIn(
+            "EXTENSION_MAPPING        = python=Python "
+            "javascript=JavaScript typescript=JavaScript "
+            "json=JavaScript csharp=Csharp "
+            "objective-c=Objective-C",
+            doxyfile,
+        )
         self.assertIn('ALIASES                += "danger{1}', doxyfile)
+        self.assertIn('"_dockle_alert{4|:|}', doxyfile)
+        self.assertIn('"admonition{2|:|}', doxyfile)
+        self.assertIn("\\1|:|note|:|info|:|\\2", doxyfile)
         self.assertIn('data-lucide=\\"\\3\\"', doxyfile)
         self.assertIn(
             "dockle-alert-\\2\\\"><dt",
@@ -138,6 +148,9 @@ class BuilderTests(unittest.TestCase):
         self.assertIn("name: dockle", native)
         self.assertIn('primary: "#7c4dff"', native)
         self.assertIn("- dockle.markdown", native)
+        self.assertIn("  - codehilite:", native)
+        self.assertIn("      guess_lang: false", native)
+        self.assertIn("      pygments_lang_class: true", native)
         self.assertIn(f'dockle_version: "{__version__}"', native)
         self.assertIn("--strict", plan.command.args)
 

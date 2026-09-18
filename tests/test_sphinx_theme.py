@@ -172,6 +172,30 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertIn("font-size: 1rem !important", stylesheet)
         self.assertIn("text-indent: 0 !important", stylesheet)
 
+    def test_code_tokens_and_jsdoc_inline_code_share_theme_colors(self) -> None:
+        stylesheet = (
+            THEME_DIRECTORY / "static" / "dockle.css"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("--dockle-code-keyword", stylesheet)
+        self.assertIn("--dockle-code-string", stylesheet)
+        self.assertIn("span.keywordflow", stylesheet)
+        self.assertIn("span.stringliteral", stylesheet)
+        self.assertIn('html[data-dockle-framework="jsdoc"]', stylesheet)
+        self.assertIn(":is(.params, .props)", stylesheet)
+        self.assertIn(".name\n  code {", stylesheet)
+
+    def test_doxygen_generated_indexes_use_shared_surface_styles(self) -> None:
+        stylesheet = (
+            THEME_DIRECTORY / "static" / "dockle.css"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn('table.directory tr.even', stylesheet)
+        self.assertIn('table.directory tr:nth-child(even)', stylesheet)
+        self.assertIn('table.directory td.entry', stylesheet)
+        self.assertIn('html[data-dockle-framework="doxygen"] .levels', stylesheet)
+        self.assertIn('html[data-dockle-framework="doxygen"] .icon', stylesheet)
+
     def test_rustdoc_uses_shared_lucide_toolbar_icons(self) -> None:
         stylesheet = (
             THEME_DIRECTORY / "static" / "dockle.css"

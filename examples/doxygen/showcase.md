@@ -101,6 +101,19 @@ constexpr std::array targets{
 
 Inline code such as `dockle build` uses the shared code font and background.
 
+Doxygen normally selects a parser from a file extension. Dockle maps common,
+full Markdown language names to Doxygen's native parsers, so Python and
+JavaScript fences are highlighted without Doxygen-specific authoring syntax:
+
+```python
+def enabled(targets):
+    return [target for target in targets if target != "disabled"]
+```
+
+```javascript
+const enabled = targets.filter((target) => target !== "disabled");
+```
+
 ## Tables
 
 ### Source
@@ -175,7 +188,7 @@ can use them in Markdown pages and API comments without maintaining a shared
 ### Source
 
 ```text
-@admonition{Custom title | A neutral custom admonition.}
+@admonition{Custom title |:| A neutral custom admonition can contain A | B.}
 @attention{Something requires immediate consideration.}
 @caution{An action may have harmful consequences.}
 @danger{A condition is likely to cause serious failure.}
@@ -191,7 +204,7 @@ can use them in Markdown pages and API comments without maintaining a shared
 
 ### Result
 
-@admonition{Custom title | A neutral custom admonition.}
+@admonition{Custom title |:| A neutral custom admonition can contain A | B.}
 
 @attention{Something requires immediate consideration.}
 
