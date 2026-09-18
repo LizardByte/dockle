@@ -110,6 +110,31 @@ class BuilderTests(unittest.TestCase):
         self.assertIn("-W", plan.command.args)
         self.assertNotIn("conf.py", plan.command.args)
 
+    def test_sphinx_plan_uses_typed_static_assets(self) -> None:
+        static = self.root / "sphinx-docs" / "_static"
+        static.mkdir()
+        configured = ALL_TARGETS_CONFIG.replace(
+            'framework = "sphinx"\nsource = "sphinx-docs"',
+            '''framework = "sphinx"
+source = "sphinx-docs"
+
+[targets.sphinx]
+exclude_patterns = ["drafts/**"]
+static_paths = ["sphinx-docs/_static"]
+extra_stylesheets = ["project.css"]
+extra_javascript = ["project.js"]''',
+        )
+        self.config_path.write_text(configured, encoding="utf-8")
+        config = load_config(self.config_path)
+
+        plan = BuildManager(config).plan(config.targets[0])
+        conf = plan.generated_files[plan.work / "conf.py"]
+
+        self.assertIn("exclude_patterns = ['drafts/**']", conf)
+        self.assertIn(repr(str(static.resolve())), conf)
+        self.assertIn("html_css_files = ['project.css']", conf)
+        self.assertIn("html_js_files = ['project.js']", conf)
+
     def test_doxygen_plan_uses_supported_extra_stylesheet_hook(self) -> None:
         (self.config.targets[1].source / "index").write_text(
             "# API\n", encoding="utf-8"

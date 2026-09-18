@@ -136,6 +136,9 @@ class SphinxBuilder(Builder):
     def plan(self) -> BuildPlan:
         config_file = self.work / "conf.py"
         doctrees = self.work / "doctrees"
+        settings = self.target.sphinx
+        if settings is None:
+            raise BuildError("sphinx target is missing generated settings")
         theme_options = {
             "primary": self.config.theme.primary,
             "content": self.config.theme.content,
@@ -166,7 +169,10 @@ class SphinxBuilder(Builder):
             "myst_enable_extensions = ['alert']",
             "html_theme = 'dockle'",
             f"html_theme_options = {theme_options!r}",
-            "exclude_patterns = []",
+            f"exclude_patterns = {list(settings.exclude_patterns)!r}",
+            f"html_static_path = {[str(path) for path in settings.static_paths]!r}",
+            f"html_css_files = {list(settings.extra_stylesheets)!r}",
+            f"html_js_files = {list(settings.extra_javascript)!r}",
             "",
         ]
         if self.config.project.logo is not None:
@@ -689,6 +695,8 @@ class BuildManager:
                 required_paths.extend(target.jsdoc.inputs)
                 if target.jsdoc.readme is not None:
                     required_paths.append(target.jsdoc.readme)
+            if target.sphinx is not None:
+                required_paths.extend(target.sphinx.static_paths)
             missing_path = next(
                 (path for path in required_paths if not path.exists()), None
             )

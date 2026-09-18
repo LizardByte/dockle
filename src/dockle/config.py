@@ -18,6 +18,7 @@ _TARGET_KEYS = {
     "doxygen",
     "jsdoc",
     "mkdocs",
+    "sphinx",
     "name",
     "title",
     "description",
@@ -108,6 +109,16 @@ class MkDocsConfig:
 
 
 @dataclass(frozen=True)
+class SphinxConfig:
+    """Project-specific Sphinx settings owned by ``dockle.toml``."""
+
+    exclude_patterns: tuple[str, ...] = ()
+    static_paths: tuple[Path, ...] = ()
+    extra_javascript: tuple[str, ...] = ()
+    extra_stylesheets: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class TargetConfig:
     """One documentation target."""
 
@@ -120,6 +131,7 @@ class TargetConfig:
     doxygen: DoxygenConfig | None = None
     jsdoc: JsDocConfig | None = None
     mkdocs: MkDocsConfig | None = None
+    sphinx: SphinxConfig | None = None
     entry: str = "index"
     home: bool = False
 
@@ -328,6 +340,7 @@ def _load_target(
     doxygen = _load_doxygen(item, where, root, source, framework)
     jsdoc = _load_jsdoc(item, where, root, source, framework)
     mkdocs = _load_mkdocs(item, where, framework)
+    sphinx = _load_sphinx(item, where, root, framework)
     home = _optional_bool(item, "home", where, False)
     output, home_target = _target_output(
         item, where, name, framework, home, build, outputs, home_target
@@ -349,6 +362,7 @@ def _load_target(
             doxygen=doxygen,
             jsdoc=jsdoc,
             mkdocs=mkdocs,
+            sphinx=sphinx,
             entry=_target_entry(item, where),
             home=home,
         ),
@@ -492,6 +506,42 @@ def _load_mkdocs(
         ),
         extra_stylesheets=_string_list(
             raw, "extra_stylesheets", mkdocs_where
+        ),
+    )
+
+
+def _load_sphinx(
+    item: dict[str, Any], where: str, root: Path, framework: str
+) -> SphinxConfig | None:
+    raw = item.get("sphinx", {})
+    if not isinstance(raw, dict):
+        raise ConfigError(f"{where}.sphinx must be a table")
+    if framework != "sphinx":
+        if raw:
+            raise ConfigError(
+                f"{where}.sphinx requires framework = 'sphinx'"
+            )
+        return None
+
+    sphinx_where = f"{where}.sphinx"
+    _reject_unknown(
+        raw,
+        {
+            "exclude_patterns",
+            "extra_javascript",
+            "extra_stylesheets",
+            "static_paths",
+        },
+        sphinx_where,
+    )
+    return SphinxConfig(
+        exclude_patterns=_string_list(raw, "exclude_patterns", sphinx_where),
+        static_paths=_path_list(raw, "static_paths", sphinx_where, root),
+        extra_javascript=_string_list(
+            raw, "extra_javascript", sphinx_where
+        ),
+        extra_stylesheets=_string_list(
+            raw, "extra_stylesheets", sphinx_where
         ),
     )
 

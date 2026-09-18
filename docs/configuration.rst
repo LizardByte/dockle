@@ -196,6 +196,22 @@ configuration hooks:
    Local paths relative to the documentation source, or absolute web URLs.
    Dockle's theme assets remain in place.
 
+Sphinx target settings
+----------------------
+
+Use ``[targets.sphinx]`` for authored assets that the generated ``conf.py``
+must expose:
+
+``exclude_patterns``
+   Source patterns Sphinx should omit.
+
+``static_paths``
+   Static asset directories inside the project.
+
+``extra_stylesheets`` and ``extra_javascript``
+   Asset names from the configured static directories, or absolute web URLs.
+   Dockle's theme assets remain in place.
+
 Tool resolution
 ---------------
 

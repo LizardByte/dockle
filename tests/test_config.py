@@ -332,6 +332,33 @@ extra_stylesheets = ["https://example.invalid/project.css"]
                 ("https://example.invalid/project.css",),
             )
 
+    def test_loads_typed_sphinx_settings(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "docs" / "_static").mkdir(parents=True)
+            path = root / "dockle.toml"
+            path.write_text(
+                MINIMAL_CONFIG
+                + '''
+[targets.sphinx]
+exclude_patterns = ["drafts/**"]
+static_paths = ["docs/_static"]
+extra_javascript = ["project.js"]
+extra_stylesheets = ["project.css"]
+''',
+                encoding="utf-8",
+            )
+
+            config = load_config(path)
+            sphinx = config.targets[0].sphinx
+
+            assert sphinx is not None
+            self.assertEqual(
+                sphinx.static_paths, ((root / "docs" / "_static").resolve(),)
+            )
+            self.assertEqual(sphinx.extra_javascript, ("project.js",))
+            self.assertEqual(sphinx.extra_stylesheets, ("project.css",))
+
     def test_selects_targets_in_configuration_order(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "dockle.toml"
