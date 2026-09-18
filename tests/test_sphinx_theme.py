@@ -193,7 +193,7 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertIn(":is(.params, .props)", stylesheet)
         self.assertIn(".name\n  code {", stylesheet)
 
-    def test_unhighlighted_fences_use_the_packaged_highlighter(self) -> None:
+    def test_every_authored_fence_uses_the_packaged_highlighter(self) -> None:
         script = (THEME_DIRECTORY / "static" / "dockle.js").read_text(
             encoding="utf-8"
         )
@@ -203,7 +203,11 @@ class SphinxThemeTests(unittest.TestCase):
 
         self.assertIn("applySyntaxHighlighting", script)
         self.assertIn("data-dockle-language", script)
-        self.assertIn("highlighter.highlightElement", script)
+        self.assertIn('["shell", "bash"]', script)
+        self.assertIn('["shell-session", "console"]', script)
+        self.assertIn('document.querySelectorAll("pre")', script)
+        self.assertIn("code.textContent = source", script)
+        self.assertIn("globalThis.hljs.highlightElement", script)
         self.assertTrue(
             highlighter.startswith(
                 "/*! Highlight.js 11.12.0 | BSD-3-Clause |"

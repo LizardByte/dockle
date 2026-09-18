@@ -342,7 +342,8 @@ class MkDocsBuilder(Builder):
             "  - admonition",
             "  - codehilite:",
             "      guess_lang: false",
-            "      pygments_lang_class: true",
+            "      lang_prefix: language-",
+            "      use_pygments: false",
             "  - dockle.markdown",
         ]
         if self.config.project.repository:

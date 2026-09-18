@@ -30,7 +30,7 @@ entry = "index"
 
 Then build just that target:
 
-```console
+```shell
 python -m dockle check python
 python -m dockle build python
 ```

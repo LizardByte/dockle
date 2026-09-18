@@ -40,6 +40,7 @@ test('the packaged highlighter includes every built-in grammar', async () => {
     'markdown',
     'powershell',
     'rust',
+    'shell',
     'toml',
     'typescript',
     'yaml',
@@ -113,6 +114,10 @@ export function add(left, right) { return left + right; }
   assert.match(document, /dockle-favicon\.svg/);
   assert.match(document, />Component reference<\/a>/);
   assert.doesNotMatch(document, />showcase<\/a>/);
+  assert.match(
+    document,
+    /pre\.prettyprint:not\(\.source\.linenums\)/,
+  );
   assert.doesNotMatch(document, /data-dockle-home/);
   assert.ok(search.docs.some((entry) => entry.text.includes('Add two values')));
   await readFile(path.join(output, 'dockle.css'), 'utf8');

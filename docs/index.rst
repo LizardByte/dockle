@@ -20,7 +20,7 @@ Quick start
 Install Dockle with the adapters your project uses, describe each documentation target in ``dockle.toml``, then let
 Dockle generate and invoke the native configuration:
 
-.. code-block:: console
+.. code-block:: shell
 
    python -m pip install "lizardbyte-dockle[all]"
    dockle check

@@ -77,6 +77,13 @@ navigation tree. Rustdoc receives the same controls through generated-HTML enhan
 implementations are first-party Dockle code; ``doxygen-awesome-css`` and ``doxyconfig`` are design references, not
 dependencies.
 
+Dockle also packages the complete pinned Highlight.js browser distribution. After a generator renders authored code,
+the shared client normalizes its language identifier and replaces native Pygments, Prettify, Doxygen, or rustdoc token
+markup with one Highlight.js token stream. This gives every adapter the same lexer behavior and palette without making
+the npm-only JSDoc path depend on Python. Line-numbered native source listings are intentionally left intact because
+their anchors are part of the generator's navigation. ``shell`` identifies commands or scripts; ``console`` is
+reserved for prompted terminal transcripts and output.
+
 Milestones
 ----------
 

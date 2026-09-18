@@ -357,10 +357,68 @@
     return source?.innerText.replace(/\n$/, "") || "";
   };
 
+  const languageAliases = new Map([
+    ["c++", "cpp"],
+    ["cxx", "cpp"],
+    ["default", "plaintext"],
+    ["js", "javascript"],
+    ["md", "markdown"],
+    ["none", "plaintext"],
+    ["plain", "plaintext"],
+    ["ps1", "powershell"],
+    ["pwsh", "powershell"],
+    ["py", "python"],
+    ["rs", "rust"],
+    ["shell", "bash"],
+    ["shell-session", "console"],
+    ["shellsession", "console"],
+    ["terminal", "console"],
+    ["text", "plaintext"],
+    ["ts", "typescript"],
+    ["txt", "plaintext"],
+    ["yml", "yaml"],
+  ]);
+
+  const canonicalLanguage = (language) => {
+    const normalized = language.trim().toLowerCase();
+    return languageAliases.get(normalized) || normalized;
+  };
+
   const languageName = (element) => {
-    const languageClass = [...element.classList]
-      .find((name) => name.startsWith("language-"));
-    return languageClass?.slice("language-".length) || "";
+    const prefixes = ["language-", "lang-", "highlight-"];
+    for (
+      let candidate = element;
+      candidate && candidate !== document.body;
+      candidate = candidate.parentElement
+    ) {
+      if (candidate.dataset.dockleLanguage) {
+        return canonicalLanguage(candidate.dataset.dockleLanguage);
+      }
+      for (const name of candidate.classList) {
+        const prefix = prefixes.find((value) => name.startsWith(value));
+        if (prefix) {
+          return canonicalLanguage(name.slice(prefix.length));
+        }
+      }
+      if (candidate.matches("pre.rust, code.rust")) {
+        return "rust";
+      }
+    }
+    return "";
+  };
+
+  const highlightCode = (code, language, source) => {
+    if (code.dataset.dockleHighlighted === language) {
+      return;
+    }
+    delete code.dataset.highlighted;
+    code.textContent = source;
+    [...code.classList]
+      .filter((name) => name === "hljs" || name.startsWith("language-"))
+      .forEach((name) => code.classList.remove(name));
+    code.classList.add(`language-${language}`);
+    globalThis.hljs.highlightElement(code);
+    code.dataset.dockleHighlighted = language;
   };
 
   const applySyntaxHighlighting = () => {
@@ -371,31 +429,48 @@
 
     document.querySelectorAll("div.fragment[data-dockle-language]")
       .forEach((fragment) => {
-        if (fragment.querySelector("span, a, .lineno")) {
+        if (fragment.querySelector(".lineno")) {
           return;
         }
-        const language = fragment.dataset.dockleLanguage;
+        const language = languageName(fragment);
         if (!highlighter.getLanguage(language)) {
           return;
         }
-        const code = document.createElement("code");
-        code.className = `language-${language}`;
-        code.textContent = codeText(fragment);
-        fragment.replaceChildren(code);
-        highlighter.highlightElement(code);
+        let code = fragment.querySelector(":scope > code");
+        if (!code) {
+          const source = codeText(fragment);
+          code = document.createElement("code");
+          fragment.replaceChildren(code);
+          highlightCode(code, language, source);
+          return;
+        }
+        highlightCode(code, language, code.textContent);
       });
 
-    document.querySelectorAll("pre code").forEach((code) => {
-      const language = languageName(code);
+    document.querySelectorAll("pre").forEach((pre) => {
       if (
-        code.dataset.highlighted
-        || code.childElementCount
-        || !language
-        || !highlighter.getLanguage(language)
+        pre.closest("div.fragment")
+        || pre.matches(".source.linenums")
+        || pre.querySelector(".lineno")
       ) {
         return;
       }
-      highlighter.highlightElement(code);
+      let code = pre.querySelector(":scope > code");
+      const language = languageName(code || pre);
+      if (!language || !highlighter.getLanguage(language)) {
+        return;
+      }
+      if (!code) {
+        const source = pre.textContent;
+        code = document.createElement("code");
+        pre.replaceChildren(code);
+        highlightCode(code, language, source);
+        return;
+      }
+      if (code.querySelector("a[id], a[href^='#']")) {
+        return;
+      }
+      highlightCode(code, language, code.textContent);
     });
   };
 

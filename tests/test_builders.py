@@ -150,7 +150,8 @@ class BuilderTests(unittest.TestCase):
         self.assertIn("- dockle.markdown", native)
         self.assertIn("  - codehilite:", native)
         self.assertIn("      guess_lang: false", native)
-        self.assertIn("      pygments_lang_class: true", native)
+        self.assertIn("      lang_prefix: language-", native)
+        self.assertIn("      use_pygments: false", native)
         self.assertIn(f'dockle_version: "{__version__}"', native)
         self.assertIn("--strict", plan.command.args)
 

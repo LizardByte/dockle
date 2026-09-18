@@ -102,9 +102,10 @@ constexpr std::array targets{
 Inline code such as `dockle build` uses the shared code font and background.
 
 Doxygen normally highlights only the languages understood by its native
-parsers. Dockle preserves each Markdown fence label and applies its packaged
-highlighter when Doxygen cannot, so TOML, console, Python, JavaScript, and the
-other bundled languages use ordinary Markdown syntax:
+parsers. Dockle preserves each Markdown fence label, removes Doxygen's native
+tokens from authored blocks, and applies its packaged highlighter, so TOML,
+shell, Python, JavaScript, and the other bundled languages use ordinary
+Markdown syntax and match the other adapters:
 
 ```toml
 [project]

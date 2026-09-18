@@ -88,7 +88,7 @@ class ThemeTests(unittest.TestCase):
             output.mkdir()
             (source / "README.md").write_text(
                 '```toml\nname = "dockle"\n```\n\n'
-                "```console\ndockle build\n```\n",
+                "```shell\ndockle build\n```\n",
                 encoding="utf-8",
             )
             html = output / "index.html"
@@ -105,7 +105,7 @@ class ThemeTests(unittest.TestCase):
             document = html.read_text(encoding="utf-8")
             self.assertEqual(count, 2)
             self.assertIn('data-dockle-language="toml"', document)
-            self.assertIn('data-dockle-language="console"', document)
+            self.assertIn('data-dockle-language="shell"', document)
 
     def test_apply_theme_is_idempotent(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

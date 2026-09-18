@@ -28,7 +28,7 @@ source = "rust-crate"
 
 Then build just that target:
 
-```console
+```shell
 python -m dockle check rust
 python -m dockle build rust
 ```

@@ -37,7 +37,7 @@ theme.
 
 Dockle requires Python 3.11 or newer. Install the adapters needed by the project:
 
-```console
+```shell
 python -m pip install "lizardbyte-dockle[sphinx,mkdocs]"
 ```
 
@@ -47,7 +47,7 @@ can be overridden in `dockle.toml` when they are not available on `PATH`.
 
 JavaScript-only projects can use the native Dockle JSDoc template without Python, Doxygen, or Graphviz:
 
-```console
+```shell
 npm install --save-dev @lizardbyte/dockle
 npx dockle-jsdoc src --destination docs
 ```
@@ -96,7 +96,7 @@ source = "."
 
 Then inspect or run the build:
 
-```console
+```shell
 dockle build --dry-run
 dockle check
 dockle build
@@ -113,7 +113,7 @@ overview, component showcase, GitHub-style alerts, code, tables, and an API or
 reference page. Each language fixture differs only where the underlying
 generator requires it:
 
-```console
+```shell
 python -m pip install -e ".[all]"
 npm ci --ignore-scripts
 npm run build
@@ -166,6 +166,14 @@ their semantic output while Dockle normalizes their structure and visual
 primitives. Doxygen additionally receives a persistent tree, an automatically
 completed page outline, and generated previous/next navigation.
 
+Authored code blocks are re-highlighted with Dockle's pinned Highlight.js
+runtime after each framework renders them, so native Pygments, Prettify,
+Doxygen, and rustdoc token markup cannot produce different results. Dockle
+normalizes common language aliases before highlighting; use `shell` for
+commands and scripts, and reserve `console` for transcripts that include a
+prompt or command output. Line-numbered native source listings retain their
+generator-provided navigation.
+
 Markdown GitHub alerts are enabled through MyST for Sphinx, a
 Dockle Markdown extension for MkDocs and the root portal, Doxygen's native
 parser, and a shared post-render enhancement for JSDoc and rustdoc. Dockle
@@ -179,7 +187,7 @@ script. Dockle does not depend on `doxygen-awesome-css` or `doxyconfig`.
 
 Initialize the shared lint tooling and run the test suite:
 
-```console
+```shell
 git submodule update --init third-party/lizardbyte-common
 uv sync --locked --all-extras
 uv run --project third-party/lizardbyte-common --locked --only-group lint-c \

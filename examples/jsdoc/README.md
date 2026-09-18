@@ -29,7 +29,7 @@ entry = "README.md"
 
 Then build just that target:
 
-```console
+```shell
 python -m dockle check javascript
 python -m dockle build javascript
 ```

@@ -12,7 +12,7 @@ Python projects
 PyPI will be the canonical package channel. After the first release, install the core command or select the
 Python-backed adapters that the project needs:
 
-.. code-block:: console
+.. code-block:: shell
 
    python -m pip install lizardbyte-dockle
    python -m pip install "lizardbyte-dockle[sphinx]"
@@ -60,7 +60,7 @@ Native JSDoc package
 JavaScript projects that only need JSDoc can install ``@lizardbyte/dockle``. It contains JSDoc, Dockle's native JSDoc
 template, and a small ``dockle-jsdoc`` command; it does not install Python, Doxygen, Graphviz, Sphinx, MkDocs, or Rust:
 
-.. code-block:: console
+.. code-block:: shell
 
    npm install --save-dev @lizardbyte/dockle
    npx dockle-jsdoc src --destination docs

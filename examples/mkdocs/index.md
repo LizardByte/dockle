@@ -28,7 +28,7 @@ source = "docs"
 
 Then build just that target:
 
-```console
+```shell
 python -m dockle check guide
 python -m dockle build guide
 ```

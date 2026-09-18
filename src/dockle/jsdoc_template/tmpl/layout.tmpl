@@ -62,7 +62,11 @@ const pageTitle = title === 'Home' ? dockle.targetTitle : title;
   </div>
 
   <nav><?js= this.nav ?></nav>
-  <script>prettyPrint();</script>
+  <script>
+    document.querySelectorAll("pre.prettyprint:not(.source.linenums)")
+      .forEach((block) => block.classList.remove("prettyprint"));
+    prettyPrint();
+  </script>
   <script src="scripts/linenumber.js"></script>
 </body>
 </html>

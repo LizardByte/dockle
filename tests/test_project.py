@@ -203,6 +203,27 @@ class ProjectDogfoodTests(unittest.TestCase):
             showcase,
         )
 
+    def test_command_examples_use_the_shared_shell_language(self) -> None:
+        markdown_files = [
+            PROJECT_ROOT / "README.md",
+            PROJECT_ROOT / "examples" / "sphinx" / "index.md",
+            PROJECT_ROOT / "examples" / "doxygen" / "README.md",
+            PROJECT_ROOT / "examples" / "mkdocs" / "index.md",
+            PROJECT_ROOT / "examples" / "jsdoc" / "README.md",
+            PROJECT_ROOT / "examples" / "rustdoc" / "README.md",
+        ]
+        for path in markdown_files:
+            source = path.read_text(encoding="utf-8")
+            self.assertIn("```shell", source, path)
+            self.assertNotIn("```console", source, path)
+
+        for filename in ("index.rst", "distribution.rst"):
+            source = (PROJECT_ROOT / "docs" / filename).read_text(
+                encoding="utf-8"
+            )
+            self.assertIn(".. code-block:: shell", source, filename)
+            self.assertNotIn(".. code-block:: console", source, filename)
+
     def test_cmake_module_invokes_the_canonical_cli(self) -> None:
         module = (
             PROJECT_ROOT / "src" / "dockle" / "cmake" / "Dockle.cmake"
