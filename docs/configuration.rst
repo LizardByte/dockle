@@ -170,6 +170,32 @@ heading IDs, graph generation when Graphviz is available, source-path
 stripping, deterministic sorting, and strict incomplete, enum-value,
 documentation, and parameter warnings.
 
+JSDoc target settings
+---------------------
+
+Use ``[targets.jsdoc]`` when the API source and authored landing page live in
+different parts of the repository:
+
+``inputs``
+   JavaScript source files and directories. Defaults to the target ``source``.
+
+``readme``
+   Authored JSDoc landing page anywhere inside the project.
+
+``include_pattern`` and ``exclude_pattern``
+   Regular expressions applied by JSDoc while discovering source files. The
+   include pattern defaults to JavaScript and JSX variants.
+
+MkDocs target settings
+----------------------
+
+Use ``[targets.mkdocs]`` to attach project assets through MkDocs' supported
+configuration hooks:
+
+``extra_stylesheets`` and ``extra_javascript``
+   Local paths relative to the documentation source, or absolute web URLs.
+   Dockle's theme assets remain in place.
+
 Tool resolution
 ---------------
 

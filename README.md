@@ -97,6 +97,14 @@ predefined = ["EXAMPLE_PUBLIC_API=1"]
 name = "rust-api"
 framework = "rustdoc"
 source = "."
+
+[[targets]]
+name = "web-api"
+framework = "jsdoc"
+source = "src"
+
+[targets.jsdoc]
+readme = "README.md"
 ```
 
 Then inspect or run the build:

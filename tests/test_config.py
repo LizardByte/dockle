@@ -288,6 +288,50 @@ warn_no_paramdoc = false
             with self.assertRaisesRegex(ConfigError, "requires framework"):
                 load_config(path)
 
+    def test_loads_typed_jsdoc_and_mkdocs_settings(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "docs").mkdir()
+            (root / "src").mkdir()
+            (root / "README.md").touch()
+            path = root / "dockle.toml"
+            path.write_text(
+                MINIMAL_CONFIG.replace(
+                    'framework = "sphinx"', 'framework = "jsdoc"'
+                )
+                + '''
+[targets.jsdoc]
+inputs = ["src"]
+readme = "README.md"
+
+[[targets]]
+name = "website"
+framework = "mkdocs"
+source = "docs"
+
+[targets.mkdocs]
+extra_javascript = ["_static/project.js"]
+extra_stylesheets = ["https://example.invalid/project.css"]
+''',
+                encoding="utf-8",
+            )
+
+            config = load_config(path)
+            jsdoc = config.targets[0].jsdoc
+            mkdocs = config.targets[1].mkdocs
+
+            assert jsdoc is not None
+            assert mkdocs is not None
+            self.assertEqual(jsdoc.inputs, ((root / "src").resolve(),))
+            self.assertEqual(jsdoc.readme, (root / "README.md").resolve())
+            self.assertEqual(
+                mkdocs.extra_javascript, ("_static/project.js",)
+            )
+            self.assertEqual(
+                mkdocs.extra_stylesheets,
+                ("https://example.invalid/project.css",),
+            )
+
     def test_selects_targets_in_configuration_order(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "dockle.toml"

@@ -16,6 +16,8 @@ SUPPORTED_FRAMEWORKS = frozenset(
 _TARGET_NAME = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 _TARGET_KEYS = {
     "doxygen",
+    "jsdoc",
+    "mkdocs",
     "name",
     "title",
     "description",
@@ -88,6 +90,24 @@ class DoxygenConfig:
 
 
 @dataclass(frozen=True)
+class JsDocConfig:
+    """Project-specific JSDoc settings owned by ``dockle.toml``."""
+
+    inputs: tuple[Path, ...]
+    readme: Path | None = None
+    include_pattern: str = r".+\.(c|m)?jsx?$"
+    exclude_pattern: str = ""
+
+
+@dataclass(frozen=True)
+class MkDocsConfig:
+    """Project-specific MkDocs assets owned by ``dockle.toml``."""
+
+    extra_javascript: tuple[str, ...] = ()
+    extra_stylesheets: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class TargetConfig:
     """One documentation target."""
 
@@ -98,6 +118,8 @@ class TargetConfig:
     source: Path
     output: Path
     doxygen: DoxygenConfig | None = None
+    jsdoc: JsDocConfig | None = None
+    mkdocs: MkDocsConfig | None = None
     entry: str = "index"
     home: bool = False
 
@@ -304,6 +326,8 @@ def _load_target(
         root, _required_string(item, "source", where), f"{where}.source"
     )
     doxygen = _load_doxygen(item, where, root, source, framework)
+    jsdoc = _load_jsdoc(item, where, root, source, framework)
+    mkdocs = _load_mkdocs(item, where, framework)
     home = _optional_bool(item, "home", where, False)
     output, home_target = _target_output(
         item, where, name, framework, home, build, outputs, home_target
@@ -323,6 +347,8 @@ def _load_target(
             source=source,
             output=output,
             doxygen=doxygen,
+            jsdoc=jsdoc,
+            mkdocs=mkdocs,
             entry=_target_entry(item, where),
             home=home,
         ),
@@ -401,6 +427,71 @@ def _load_doxygen(
         ),
         warn_no_paramdoc=_optional_bool(
             raw, "warn_no_paramdoc", doxygen_where, True
+        ),
+    )
+
+
+def _load_jsdoc(
+    item: dict[str, Any],
+    where: str,
+    root: Path,
+    source: Path,
+    framework: str,
+) -> JsDocConfig | None:
+    raw = item.get("jsdoc", {})
+    if not isinstance(raw, dict):
+        raise ConfigError(f"{where}.jsdoc must be a table")
+    if framework != "jsdoc":
+        if raw:
+            raise ConfigError(f"{where}.jsdoc requires framework = 'jsdoc'")
+        return None
+
+    jsdoc_where = f"{where}.jsdoc"
+    _reject_unknown(
+        raw,
+        {"exclude_pattern", "include_pattern", "inputs", "readme"},
+        jsdoc_where,
+    )
+    inputs = _path_list(
+        raw, "inputs", jsdoc_where, root, default=(source,)
+    )
+    if not inputs:
+        raise ConfigError(f"{jsdoc_where}.inputs must not be empty")
+    return JsDocConfig(
+        inputs=inputs,
+        readme=_optional_path(raw, "readme", jsdoc_where, root),
+        include_pattern=_optional_string(
+            raw, "include_pattern", jsdoc_where, r".+\.(c|m)?jsx?$"
+        ),
+        exclude_pattern=_optional_string(
+            raw, "exclude_pattern", jsdoc_where
+        ),
+    )
+
+
+def _load_mkdocs(
+    item: dict[str, Any], where: str, framework: str
+) -> MkDocsConfig | None:
+    raw = item.get("mkdocs", {})
+    if not isinstance(raw, dict):
+        raise ConfigError(f"{where}.mkdocs must be a table")
+    if framework != "mkdocs":
+        if raw:
+            raise ConfigError(
+                f"{where}.mkdocs requires framework = 'mkdocs'"
+            )
+        return None
+
+    mkdocs_where = f"{where}.mkdocs"
+    _reject_unknown(
+        raw, {"extra_javascript", "extra_stylesheets"}, mkdocs_where
+    )
+    return MkDocsConfig(
+        extra_javascript=_string_list(
+            raw, "extra_javascript", mkdocs_where
+        ),
+        extra_stylesheets=_string_list(
+            raw, "extra_stylesheets", mkdocs_where
         ),
     )
 

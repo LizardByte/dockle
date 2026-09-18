@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 import tempfile
 import unittest
@@ -204,6 +205,27 @@ warn_no_paramdoc = false''',
         self.assertIn(f'dockle_version: "{__version__}"', native)
         self.assertIn("--strict", plan.command.args)
 
+    def test_mkdocs_plan_uses_typed_extra_assets(self) -> None:
+        configured = ALL_TARGETS_CONFIG.replace(
+            'framework = "mkdocs"\nsource = "markdown"',
+            '''framework = "mkdocs"
+source = "markdown"
+
+[targets.mkdocs]
+extra_stylesheets = ["https://example.invalid/project.css"]
+extra_javascript = ["_static/project.js"]''',
+        )
+        self.config_path.write_text(configured, encoding="utf-8")
+        config = load_config(self.config_path)
+
+        plan = BuildManager(config).plan(config.targets[2])
+        native = plan.generated_files[plan.work / "mkdocs.yml"]
+
+        self.assertIn("extra_css:", native)
+        self.assertIn('"https://example.invalid/project.css"', native)
+        self.assertIn("extra_javascript:", native)
+        self.assertIn('"_static/project.js"', native)
+
     def test_frozen_build_uses_bundled_python_generators(self) -> None:
         with patch.object(sys, "frozen", True, create=True):
             sphinx = self.manager.plan(self.config.targets[0])
@@ -232,6 +254,33 @@ warn_no_paramdoc = false''',
         )
         self.assertEqual(plan.command.args[1], "--configure")
         self.assertIn("--pedantic", plan.command.args)
+
+    def test_jsdoc_plan_uses_typed_inputs_and_readme(self) -> None:
+        readme = self.root / "README.md"
+        readme.write_text("# Project\n", encoding="utf-8")
+        configured = ALL_TARGETS_CONFIG.replace(
+            'framework = "jsdoc"\nsource = "javascript"',
+            '''framework = "jsdoc"
+source = "javascript"
+
+[targets.jsdoc]
+inputs = ["javascript"]
+readme = "README.md"
+include_pattern = ".+\\\\.js$"
+exclude_pattern = "generated/"''',
+        )
+        self.config_path.write_text(configured, encoding="utf-8")
+        config = load_config(self.config_path)
+
+        plan = BuildManager(config).plan(config.targets[3])
+        native = plan.generated_files[plan.work / "jsdoc.json"]
+        parsed = json.loads(native)
+
+        self.assertEqual(parsed["opts"]["readme"], str(readme.resolve()))
+        self.assertEqual(parsed["source"]["includePattern"], r".+\.js$")
+        self.assertEqual(
+            parsed["source"]["excludePattern"], "generated/"
+        )
 
     def test_jsdoc_plan_discovers_tutorials(self) -> None:
         source = self.config.targets[3].source
