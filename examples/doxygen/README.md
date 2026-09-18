@@ -34,5 +34,9 @@ python -m dockle check cpp
 python -m dockle build cpp
 ```
 
+Dockle also supplies `@tab`, `@tabs`, and `@tabs_grouped` authoring aliases.
+Named grouped tab sets synchronize matching labels; ordinary tab sets remain
+independent.
+
 Every example uses the same concepts and page structure so visual differences
 come from the generator integration rather than unrelated prose.

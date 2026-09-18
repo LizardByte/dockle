@@ -210,6 +210,8 @@ class ProjectDogfoodTests(unittest.TestCase):
             "A neutral custom admonition can contain A | B.}",
             reference,
         )
+        self.assertIn("@tabs_grouped{workflow|:|", reference)
+        self.assertIn("@tab{Configure|:|", reference)
 
     def test_component_references_are_composed_from_shared_source(self) -> None:
         common = (

@@ -181,7 +181,10 @@ extends the same syntax with attention, danger, error, hint, see-also, and todo
 alerts. Its generated Doxyfile also supplies matching Doxygen aliases for
 admonition types that Doxygen does not provide itself. Portable tab sets use
 semantic `details` markup and are upgraded by Dockle's self-contained client
-script. Dockle does not depend on `doxygen-awesome-css` or `doxyconfig`.
+script with keyboard navigation. An optional `data-dockle-tab-group` name links
+matching selections across tab sets and pages. Doxygen receives equivalent
+`@tab`, `@tabs`, and `@tabs_grouped` aliases without depending on
+`doxygen-awesome-css` or `doxyconfig`.
 
 ## Development
 

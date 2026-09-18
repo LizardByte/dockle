@@ -192,10 +192,41 @@ h6:hover > .headerlink,
   width: 1em;
 }
 
+@keyframes dockle-anchor-highlight {
+  0%,
+  35% {
+    background-color: color-mix(in srgb, var(--dockle-primary) 9%, transparent);
+    box-shadow:
+      inset 0.25rem 0 var(--dockle-primary),
+      0 0 0 0.2rem color-mix(in srgb, var(--dockle-primary) 12%, transparent);
+  }
+
+  100% {
+    background-color: transparent;
+    box-shadow:
+      inset 0.25rem 0 transparent,
+      0 0 0 0.2rem transparent;
+  }
+}
+
+.dockle-anchor-highlight {
+  animation: dockle-anchor-highlight 1.7s ease-out;
+  border-radius: 0.25rem;
+}
+
 @media (hover: none) {
   .dockle-heading-anchor {
     opacity: 0.72;
     visibility: visible;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dockle-anchor-highlight {
+    animation: none;
+    box-shadow:
+      inset 0.25rem 0 var(--dockle-primary),
+      0 0 0 0.2rem color-mix(in srgb, var(--dockle-primary) 12%, transparent);
   }
 }
 
@@ -597,6 +628,17 @@ dl.dockle-alert > dd {
   color: var(--dockle-primary);
 }
 
+.dockle-tab-list button:hover,
+.dockle-tab-list button:focus-visible {
+  background: color-mix(in srgb, var(--dockle-primary) 8%, transparent);
+  color: var(--dockle-primary);
+}
+
+.dockle-tab-list button:focus-visible {
+  outline: 2px solid var(--dockle-primary);
+  outline-offset: -2px;
+}
+
 .dockle-tab-panel {
   padding: 0.85rem 1rem;
 }
@@ -889,8 +931,7 @@ html[data-dockle-framework="rustdoc"] .sidebar::before {
 }
 
 .dockle-tree a:hover,
-.dockle-tree .current > a,
-.dockle-tree a.current,
+.dockle-tree a.dockle-current,
 .dockle-tree a[aria-current="page"] {
   background: color-mix(in srgb, var(--dockle-primary) 10%, transparent);
   color: var(--dockle-primary);
@@ -1277,13 +1318,23 @@ html[data-dockle-framework="doxygen"] #nav-tree-contents {
   margin: 0;
 }
 
+html[data-dockle-framework="doxygen"] #nav-tree ul.children_ul {
+  list-style: none;
+  margin: 0;
+  padding-left: 0.85rem !important;
+}
+
+html[data-dockle-framework="doxygen"] #nav-tree li {
+  margin: 0.25rem 0;
+}
+
 html[data-dockle-framework="doxygen"] #nav-tree .item {
   border-radius: 0.2rem;
   height: auto;
   line-height: 1.4;
   margin: 0;
   min-height: 1.9rem;
-  padding: 0.25rem 0;
+  padding: 0.25rem 0.35rem;
 }
 
 html[data-dockle-framework="doxygen"] #nav-tree .label {
@@ -1315,17 +1366,25 @@ html[data-dockle-framework="doxygen"] #page-nav ul.page-outline ul {
 }
 
 html[data-dockle-framework="doxygen"] #nav-tree .item:hover,
+html[data-dockle-framework="doxygen"] #nav-tree .dockle-current-item,
 html[data-dockle-framework="doxygen"] #nav-tree .selected {
   background: color-mix(in srgb, var(--dockle-primary) 10%, transparent);
   text-shadow: none;
 }
 
 html[data-dockle-framework="doxygen"] #nav-tree .selected a,
+html[data-dockle-framework="doxygen"] #nav-tree .dockle-current-item a,
 html[data-dockle-framework="doxygen"] #nav-tree .item:hover a,
 html[data-dockle-framework="doxygen"] #nav-tree a:hover {
   background-image: none !important;
   color: var(--dockle-primary) !important;
   text-decoration: none !important;
+}
+
+html[data-dockle-framework="doxygen"] .glow:not(.dockle-anchor-highlight) {
+  background: transparent !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
 }
 
 html[data-dockle-framework="doxygen"] div.fragment .clipboard {
@@ -1722,6 +1781,14 @@ html[data-dockle-framework="jsdoc"] body > nav ul {
   padding: 0;
 }
 
+html[data-dockle-framework="jsdoc"] body > nav ul ul {
+  padding-left: 0.85rem;
+}
+
+html[data-dockle-framework="jsdoc"] body > nav li {
+  margin: 0.25rem 0;
+}
+
 html[data-dockle-framework="jsdoc"] body > nav a {
   border-radius: 0.2rem;
   color: var(--dockle-muted);
@@ -1831,6 +1898,17 @@ html[data-dockle-framework="rustdoc"] {
     transparent
   );
   --sidebar-link-color: var(--dockle-primary);
+  --target-background-color: transparent;
+}
+
+html[data-dockle-framework="rustdoc"] #main-content :target {
+  border-right: 0 !important;
+}
+
+html[data-dockle-framework="rustdoc"] #main-content :target:not(.dockle-anchor-highlight) {
+  animation: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 html[data-dockle-framework="rustdoc"] .sidebar {

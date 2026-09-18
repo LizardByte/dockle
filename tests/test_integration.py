@@ -151,6 +151,11 @@ enabled = true
 ```
 
 @admonition{Portable separator |:| Accepts A | B.}
+
+@tabs_grouped{runtime|:|
+@tab{Python|:|Install from PyPI.}
+@tab{Node.js|:|Install from npm.}
+}
 """,
                 encoding="utf-8",
             )
@@ -191,6 +196,9 @@ entry = "README.md"
             self.assertGreaterEqual(html.count('class="keyword"'), 2)
             self.assertIn("dockle-alert", html)
             self.assertIn("Accepts A | B.", html)
+            self.assertIn("dockle-tabs-alias", html)
+            self.assertIn('data-dockle-tab-group="runtime"', html)
+            self.assertIn("dockle-tab-title", html)
             self.assertRegex(html, r"Doxygen [0-9]+\.[0-9]+")
 
     @unittest.skipUnless(

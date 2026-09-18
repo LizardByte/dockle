@@ -104,12 +104,15 @@ types with the same blockquote syntax.
 ## Tabs
 
 Portable tabs use semantic `details` elements and remain readable when
-JavaScript is disabled. Dockle upgrades them into an accessible tab set.
+JavaScript is disabled. Dockle upgrades them into an accessible tab set with
+arrow-key navigation. Give related sets the same optional
+`data-dockle-tab-group` name to link their selections; omit it when each set
+should behave independently.
 
 ### Source
 
 ```html
-<div class="dockle-tabs">
+<div class="dockle-tabs" data-dockle-tab-group="workflow">
   <details open>
     <summary>Configure</summary>
     <p>Dockle writes the native configuration.</p>
@@ -119,11 +122,22 @@ JavaScript is disabled. Dockle upgrades them into an accessible tab set.
     <p>The upstream generator builds semantic HTML.</p>
   </details>
 </div>
+
+<div class="dockle-tabs" data-dockle-tab-group="workflow">
+  <details open>
+    <summary>Configure</summary>
+    <p>Review the generated configuration before the build.</p>
+  </details>
+  <details>
+    <summary>Build</summary>
+    <p>Open the generated site after the build completes.</p>
+  </details>
+</div>
 ```
 
 ### Result
 
-<div class="dockle-tabs">
+<div class="dockle-tabs" data-dockle-tab-group="workflow">
   <details open>
     <summary>Configure</summary>
     <p>Dockle writes the native configuration.</p>
@@ -131,6 +145,17 @@ JavaScript is disabled. Dockle upgrades them into an accessible tab set.
   <details>
     <summary>Build</summary>
     <p>The upstream generator builds semantic HTML.</p>
+  </details>
+</div>
+
+<div class="dockle-tabs" data-dockle-tab-group="workflow">
+  <details open>
+    <summary>Configure</summary>
+    <p>Review the generated configuration before the build.</p>
+  </details>
+  <details>
+    <summary>Build</summary>
+    <p>Open the generated site after the build completes.</p>
   </details>
 </div>
 

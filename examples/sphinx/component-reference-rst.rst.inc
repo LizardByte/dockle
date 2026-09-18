@@ -147,16 +147,21 @@ Disclosure tabs
 ---------------
 
 Portable tab sets use semantic ``details`` elements so their content remains useful without JavaScript. Dockle upgrades
-matching groups into the same keyboard-accessible presentation used by the Markdown examples.
+them into the same keyboard-accessible presentation used by the Markdown examples. Sets with the same optional
+``data-dockle-tab-group`` name keep their selections linked.
 
 Source
 ~~~~~~
 
 .. code-block:: html
 
-   <div class="dockle-tabs">
+   <div class="dockle-tabs" data-dockle-tab-group="installer">
      <details open><summary>Python</summary><p>Install from PyPI.</p></details>
      <details><summary>Node.js</summary><p>Use the npm launcher.</p></details>
+   </div>
+   <div class="dockle-tabs" data-dockle-tab-group="installer">
+     <details open><summary>Python</summary><p>Run Dockle from the Python environment.</p></details>
+     <details><summary>Node.js</summary><p>Run the Dockle JSDoc launcher.</p></details>
    </div>
 
 Result
@@ -164,7 +169,11 @@ Result
 
 .. raw:: html
 
-   <div class="dockle-tabs">
+   <div class="dockle-tabs" data-dockle-tab-group="installer">
      <details open><summary>Python</summary><p>Install from PyPI.</p></details>
      <details><summary>Node.js</summary><p>Use the npm launcher.</p></details>
+   </div>
+   <div class="dockle-tabs" data-dockle-tab-group="installer">
+     <details open><summary>Python</summary><p>Run Dockle from the Python environment.</p></details>
+     <details><summary>Node.js</summary><p>Run the Dockle JSDoc launcher.</p></details>
    </div>

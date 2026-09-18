@@ -157,7 +157,9 @@
   const markCurrentNavigation = () => {
     const currentPath = normalizedPagePath(location.href);
     const selectors = {
+      doxygen: "#nav-tree .label > a[href]",
       jsdoc: "body > nav a[href]",
+      mkdocs: ".dockle-tree a[href]",
       rustdoc: ".sidebar a[href]",
       sphinx: ".dockle-tree a[href]",
     };
@@ -176,6 +178,13 @@
     const currentLinks = root.dataset.dockleFramework === "rustdoc"
       ? matches.slice(0, 1)
       : matches;
+    document.querySelectorAll(`${selector}.dockle-current`).forEach((link) => {
+      link.classList.remove("dockle-current");
+      link.removeAttribute("aria-current");
+    });
+    document.querySelectorAll("#nav-tree .dockle-current-item").forEach(
+      (item) => item.classList.remove("dockle-current-item"),
+    );
     if (root.dataset.dockleFramework === "rustdoc") {
       matches.slice(1).forEach((link) => {
         link.closest("li")?.classList.remove("current");
@@ -184,6 +193,7 @@
     currentLinks.forEach((link) => {
       link.classList.add("dockle-current");
       link.setAttribute("aria-current", "page");
+      link.closest("#nav-tree .item")?.classList.add("dockle-current-item");
     });
   };
   markCurrentNavigation();
@@ -300,43 +310,147 @@
     }
   });
 
+  const tabStorageKey = (group) => `dockle-tab-group:${group}`;
+  const storedTab = (group) => {
+    try {
+      return sessionStorage.getItem(tabStorageKey(group));
+    } catch {
+      return null;
+    }
+  };
+  const storeTab = (group, label) => {
+    try {
+      sessionStorage.setItem(tabStorageKey(group), label);
+    } catch {
+      // Tab linking still works within the current page without storage.
+    }
+  };
+  const selectTab = (tabSet, button, options = {}) => {
+    const { focus = false, synchronize = true } = options;
+    const buttons = [...tabSet.querySelectorAll(":scope > .dockle-tab-list > [role=tab]")];
+    const panels = [...tabSet.querySelectorAll(":scope > .dockle-tab-panel")];
+    const selectedIndex = buttons.indexOf(button);
+    if (selectedIndex < 0) {
+      return;
+    }
+    buttons.forEach((candidate, index) => {
+      const selected = index === selectedIndex;
+      candidate.setAttribute("aria-selected", String(selected));
+      candidate.tabIndex = selected ? 0 : -1;
+      panels[index].hidden = !selected;
+    });
+    if (focus) {
+      button.focus();
+    }
+    const group = tabSet.dataset.dockleTabGroup;
+    if (!group || !synchronize) {
+      return;
+    }
+    const label = button.dataset.dockleTabLabel;
+    storeTab(group, label);
+    document.querySelectorAll(".dockle-tabs[data-dockle-tab-group]")
+      .forEach((candidateSet) => {
+        if (candidateSet === tabSet
+            || candidateSet.dataset.dockleTabGroup !== group) {
+          return;
+        }
+        const matchingButton = [...candidateSet.querySelectorAll(
+          ":scope > .dockle-tab-list > [role=tab]",
+        )].find((candidate) => candidate.dataset.dockleTabLabel === label);
+        if (matchingButton) {
+          selectTab(candidateSet, matchingButton, { synchronize: false });
+        }
+      });
+  };
+
   document.querySelectorAll(".dockle-tabs").forEach((tabSet, setIndex) => {
     const details = [...tabSet.querySelectorAll(":scope > details")];
-    if (!details.length) {
+    const aliasList = tabSet.querySelector(":scope > ul");
+    const aliasItems = aliasList
+      ? [...aliasList.querySelectorAll(":scope > li")]
+      : [];
+    const sources = details.length
+      ? details.map((detail) => {
+        const title = detail.querySelector(":scope > summary");
+        return {
+          nodes: [...detail.childNodes].filter((node) => node !== title),
+          open: detail.open,
+          title: title?.textContent.trim(),
+        };
+      })
+      : aliasItems.map((item) => {
+        const title = item.querySelector(
+          ".dockle-tab-title, .tab-title",
+        );
+        const titleText = title?.textContent.trim();
+        title?.remove();
+        return {
+          nodes: [...item.childNodes],
+          open: false,
+          title: titleText,
+        };
+      });
+    if (!sources.length) {
       return;
     }
     const tabList = document.createElement("div");
     tabList.className = "dockle-tab-list";
     tabList.setAttribute("role", "tablist");
+    tabList.setAttribute(
+      "aria-label",
+      tabSet.dataset.dockleTabGroup || "Content tabs",
+    );
+    const requestedLabel = tabSet.dataset.dockleTabGroup
+      ? storedTab(tabSet.dataset.dockleTabGroup)
+      : null;
+    let selectedIndex = sources.findIndex((source) => source.open);
+    const requestedIndex = requestedLabel
+      ? sources.findIndex((source) => source.title === requestedLabel)
+      : -1;
+    selectedIndex = requestedIndex >= 0 ? requestedIndex : Math.max(selectedIndex, 0);
     const panels = [];
-    details.forEach((detail, tabIndex) => {
-      const summary = detail.querySelector(":scope > summary");
+    const buttons = [];
+    sources.forEach((source, tabIndex) => {
       const button = document.createElement("button");
       const panel = document.createElement("div");
-      const selected = detail.open || tabIndex === 0;
+      const selected = tabIndex === selectedIndex;
       button.type = "button";
       button.id = `dockle-tab-${setIndex}-${tabIndex}`;
-      button.textContent = summary?.textContent.trim() || `Tab ${tabIndex + 1}`;
+      button.textContent = source.title || `Tab ${tabIndex + 1}`;
+      button.dataset.dockleTabLabel = button.textContent;
       button.setAttribute("role", "tab");
       button.setAttribute("aria-selected", String(selected));
       button.setAttribute("aria-controls", `dockle-panel-${setIndex}-${tabIndex}`);
+      button.tabIndex = selected ? 0 : -1;
       panel.id = `dockle-panel-${setIndex}-${tabIndex}`;
       panel.className = "dockle-tab-panel";
       panel.setAttribute("role", "tabpanel");
       panel.setAttribute("aria-labelledby", button.id);
       panel.hidden = !selected;
-      [...detail.children].filter((child) => child !== summary).forEach((child) => panel.append(child));
+      source.nodes.forEach((node) => panel.append(node));
       button.addEventListener("click", () => {
-        tabList.querySelectorAll("[role=tab]").forEach((tab) => tab.setAttribute("aria-selected", String(tab === button)));
-        panels.forEach((candidate) => {
-          candidate.hidden = candidate !== panel;
-        });
+        selectTab(tabSet, button);
+      });
+      button.addEventListener("keydown", (event) => {
+        const keys = ["ArrowLeft", "ArrowRight", "Home", "End"];
+        if (!keys.includes(event.key)) {
+          return;
+        }
+        event.preventDefault();
+        const current = buttons.indexOf(button);
+        const indexes = {
+          ArrowLeft: (current - 1 + sources.length) % sources.length,
+          ArrowRight: (current + 1) % sources.length,
+          Home: 0,
+          End: sources.length - 1,
+        };
+        selectTab(tabSet, buttons[indexes[event.key]], { focus: true });
       });
       panels.push(panel);
+      buttons.push(button);
       tabList.append(button);
-      detail.replaceWith(panel);
     });
-    tabSet.prepend(tabList);
+    tabSet.replaceChildren(tabList, ...panels);
   });
 
   const copyText = async (text) => {
@@ -706,6 +820,69 @@
     });
   };
 
+  const setupAnchorHighlights = () => {
+    let activeTarget;
+    let clearTimer;
+    const targetForHash = (hash) => {
+      if (!hash || hash === "#") {
+        return null;
+      }
+      let identifier;
+      try {
+        identifier = decodeURIComponent(hash.slice(1));
+      } catch {
+        identifier = hash.slice(1);
+      }
+      const target = document.getElementById(identifier);
+      if (!target) {
+        return null;
+      }
+      const headingSelector = "h1, h2, h3, h4, h5, h6";
+      return target.matches(headingSelector)
+        ? target
+        : target.closest(headingSelector)
+          || target.querySelector(`:scope > :is(${headingSelector})`)
+          || target;
+    };
+    const highlightHashTarget = (hash = location.hash) => {
+      const target = targetForHash(hash);
+      if (!target) {
+        return;
+      }
+      activeTarget?.classList.remove("dockle-anchor-highlight");
+      clearTimeout(clearTimer);
+      document.querySelectorAll(".glow").forEach(
+        (element) => element.classList.remove("glow"),
+      );
+      target.classList.remove("dockle-anchor-highlight");
+      void target.offsetWidth;
+      target.classList.add("dockle-anchor-highlight");
+      activeTarget = target;
+      clearTimer = setTimeout(() => {
+        target.classList.remove("dockle-anchor-highlight");
+        if (activeTarget === target) {
+          activeTarget = null;
+        }
+      }, 1800);
+    };
+    window.addEventListener("hashchange", () => highlightHashTarget());
+    document.addEventListener("click", (event) => {
+      if (!(event.target instanceof Element)) {
+        return;
+      }
+      const link = event.target.closest("a[href]");
+      if (!link) {
+        return;
+      }
+      const destination = new URL(link.href, document.baseURI);
+      if (destination.hash
+          && normalizedPagePath(destination) === normalizedPagePath(location.href)) {
+        setTimeout(() => highlightHashTarget(destination.hash));
+      }
+    });
+    highlightHashTarget();
+  };
+
   const placeBuiltWithFooter = () => {
     const footer = document.querySelector("[data-dockle-built-with]");
     const destinations = {
@@ -892,6 +1069,55 @@
     }, true);
   };
 
+  const normalizeDoxygenSidebar = () => {
+    if (root.dataset.dockleFramework !== "doxygen") {
+      return;
+    }
+    const navTree = document.querySelector("#nav-tree");
+    if (!navTree) {
+      return;
+    }
+    const removePageFragments = () => {
+      const currentPath = normalizedPagePath(location.href);
+      navTree.querySelectorAll('a[href*="#"]').forEach((link) => {
+        const destination = new URL(link.href, document.baseURI);
+        if (destination.hash
+            && normalizedPagePath(destination) === currentPath) {
+          link.closest("li")?.remove();
+        }
+      });
+      navTree.querySelectorAll("ul.children_ul").forEach((list) => {
+        if (!list.querySelector(":scope > li")) {
+          list.remove();
+        }
+      });
+      const pageHeading = document.querySelector(
+        "#doc-content .contents h1.doxsection, #doc-content div.header .title",
+      );
+      const pageTitle = pageHeading?.textContent.replace(/\s+/g, " ").trim();
+      if (pageTitle) {
+        navTree.querySelectorAll(".label > a[href]").forEach((link) => {
+          const destination = new URL(link.href, document.baseURI);
+          if (!destination.hash
+              && normalizedPagePath(destination) === currentPath) {
+            const label = link.querySelector("span") || link;
+            label.textContent = pageTitle;
+          }
+        });
+      }
+      markCurrentNavigation();
+    };
+    removePageFragments();
+    if (navTree.dataset.dockleHierarchyNormalized === "true") {
+      return;
+    }
+    navTree.dataset.dockleHierarchyNormalized = "true";
+    new MutationObserver(removePageFragments).observe(navTree, {
+      childList: true,
+      subtree: true,
+    });
+  };
+
   const ensureCompatibilityPageToc = () => {
     const framework = root.dataset.dockleFramework;
     if (!["doxygen", "jsdoc", "rustdoc"].includes(framework)) {
@@ -1063,6 +1289,8 @@
     });
   });
 
+  normalizeDoxygenSidebar();
+  window.addEventListener("load", normalizeDoxygenSidebar);
   addDoxygenNavigation();
   addLanguageGalleries();
   applySyntaxHighlighting();
@@ -1079,6 +1307,7 @@
     finalizePageToc();
   }
   addHeadingPermalinks();
+  setupAnchorHighlights();
   renderIcons();
   updateThemeButtons();
 })();

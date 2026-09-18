@@ -83,6 +83,44 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertIn('#nav-tree a[href="javascript:void(0)"]', stylesheet)
         self.assertIn("a.dockle-current", stylesheet)
         self.assertIn("markCurrentNavigation", script)
+        self.assertIn('doxygen: "#nav-tree .label > a[href]"', script)
+        self.assertIn('mkdocs: ".dockle-tree a[href]"', script)
+        self.assertIn("normalizeDoxygenSidebar", script)
+        self.assertIn('a[href*="#"]', script)
+        self.assertIn("new MutationObserver(removePageFragments)", script)
+        self.assertIn(".dockle-current-item", stylesheet)
+        self.assertIn("#nav-tree ul.children_ul", stylesheet)
+        self.assertIn('body > nav li {', stylesheet)
+
+    def test_anchor_navigation_uses_one_shared_feedback_effect(self) -> None:
+        stylesheet = (
+            THEME_DIRECTORY / "static" / "dockle.css"
+        ).read_text(encoding="utf-8")
+        script = (THEME_DIRECTORY / "static" / "dockle.js").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("setupAnchorHighlights", script)
+        self.assertIn('window.addEventListener("hashchange"', script)
+        self.assertIn('target.classList.add("dockle-anchor-highlight")', script)
+        self.assertIn("@keyframes dockle-anchor-highlight", stylesheet)
+        self.assertIn(".dockle-anchor-highlight", stylesheet)
+        self.assertIn(":target:not(.dockle-anchor-highlight)", stylesheet)
+
+    def test_tabs_support_keyboard_navigation_and_named_groups(self) -> None:
+        stylesheet = (
+            THEME_DIRECTORY / "static" / "dockle.css"
+        ).read_text(encoding="utf-8")
+        script = (THEME_DIRECTORY / "static" / "dockle.js").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("data-dockle-tab-group", script)
+        self.assertIn("dockle-tab-title", script)
+        self.assertIn('["ArrowLeft", "ArrowRight", "Home", "End"]', script)
+        self.assertIn("sessionStorage.getItem", script)
+        self.assertIn("sessionStorage.setItem", script)
+        self.assertIn(".dockle-tab-list button:focus-visible", stylesheet)
 
     def test_sidebar_identity_stays_pinned_and_compacts_on_scroll(self) -> None:
         stylesheet = (

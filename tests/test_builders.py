@@ -132,6 +132,10 @@ class BuilderTests(unittest.TestCase):
         self.assertIn('"admonition{2|:|}', doxyfile)
         self.assertIn("\\1|:|note|:|info|:|\\2", doxyfile)
         self.assertIn('data-lucide=\\"\\3\\"', doxyfile)
+        self.assertIn('"tab{2|:|}', doxyfile)
+        self.assertIn('"tabs{1}', doxyfile)
+        self.assertIn('"tabs_grouped{2|:|}', doxyfile)
+        self.assertIn('data-dockle-tab-group=\\"\\1\\"', doxyfile)
         self.assertIn(
             "dockle-alert-\\2\\\"><dt",
             doxyfile,
