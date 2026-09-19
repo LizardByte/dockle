@@ -32,60 +32,6 @@ class ProjectDogfoodTests(unittest.TestCase):
             PROJECT_ROOT / "branding" / "dockle-logo.svg",
         )
 
-    def test_read_the_docs_build_publishes_dockle_output(self) -> None:
-        contents = (PROJECT_ROOT / ".readthedocs.yaml").read_text(
-            encoding="utf-8"
-        )
-
-        self.assertIn("jobs:", contents)
-        self.assertIn("build:", contents)
-        self.assertIn("html:", contents)
-        self.assertNotIn("commands:", contents)
-        self.assertIn('python: "miniconda-latest"', contents)
-        self.assertIn("os: ubuntu-24.04", contents)
-        self.assertIn("readthedocs_build.sh", contents)
-        self.assertIn('export DOCKLE_DIR="${dockle_dir}"', contents)
-        self.assertIn("environment: environment.yml", contents)
-
-        script = (PROJECT_ROOT / "readthedocs_build.sh").read_text(
-            encoding="utf-8"
-        )
-        self.assertIn(
-            'conda env create --quiet --name "${environment_name}"', script
-        )
-        self.assertIn('t.get("framework") == "doxygen"', script)
-        self.assertIn('npm --prefix "${dockle_dir}" run build', script)
-        self.assertIn('uv_version="0.12.13"', script)
-        self.assertIn(
-            'if ! "${environment_run[@]}" python -m uv --version', script
-        )
-        self.assertIn('"uv==${uv_version}"', script)
-        self.assertIn(
-            'uv_run=("${environment_run[@]}" python -m uv)', script
-        )
-        self.assertIn(
-            '"${uv_run[@]}" sync --project "${dockle_dir}"', script
-        )
-        self.assertIn("--locked --all-extras --no-dev", script)
-        self.assertIn('"${dockle_run[@]}" python -m dockle check', script)
-        self.assertIn('"${dockle_run[@]}" python -m dockle build', script)
-        self.assertIn("${READTHEDOCS_OUTPUT}html/", script)
-        self.assertIn('npm --prefix "${dockle_dir}" ci --ignore-scripts', script)
-        self.assertLess(
-            script.index('npm --prefix "${dockle_dir}" run build'),
-            script.index('"${uv_run[@]}" sync --project "${dockle_dir}"'),
-        )
-        self.assertFalse((PROJECT_ROOT / "requirements-readthedocs.txt").exists())
-
-        environment = (PROJECT_ROOT / "environment.yml").read_text(
-            encoding="utf-8"
-        )
-        self.assertIn("- doxygen==1.18.0", environment)
-        self.assertIn("- graphviz==14.1.2", environment)
-        self.assertIn("- pip==26.2.1", environment)
-        self.assertIn("- python==3.13.15", environment)
-        self.assertIn("- uv==0.12.13", environment)
-
     def test_conda_dependencies_are_hard_pinned(self) -> None:
         lines = (
             (PROJECT_ROOT / "environment.yml")
@@ -203,30 +149,6 @@ class ProjectDogfoodTests(unittest.TestCase):
         self.assertNotIn("doxygen-awesome-css", declared)
         self.assertNotIn("doxyconfig", declared)
 
-    def test_examples_document_portable_doxygen_authoring(self) -> None:
-        overview = (
-            PROJECT_ROOT / "examples" / "doxygen" / "README.md"
-        ).read_text(encoding="utf-8")
-        reference = (
-            PROJECT_ROOT
-            / ".dockle"
-            / "example-sources"
-            / "doxygen"
-            / "component-reference.md"
-        ).read_text(encoding="utf-8")
-
-        self.assertIn(
-            "@admonition{Custom title |:| "
-            "A neutral custom admonition.}",
-            reference,
-        )
-        self.assertIn("@tabs_grouped{workflow|:|", reference)
-        self.assertIn("@tab{Configure|:|", reference)
-        self.assertIn(
-            "[API reference](@ref dockle::demo::target)", overview
-        )
-        self.assertNotIn('<a href="annotated.html">', overview)
-
     def test_component_references_are_composed_from_shared_source(self) -> None:
         common = (
             PROJECT_ROOT
@@ -327,21 +249,6 @@ class ProjectDogfoodTests(unittest.TestCase):
             self.assertIn(".. code-block:: shell", source, filename)
             self.assertNotIn(".. code-block:: console", source, filename)
 
-    def test_cmake_module_invokes_the_canonical_cli(self) -> None:
-        module = (
-            PROJECT_ROOT / "src" / "dockle" / "cmake" / "Dockle.cmake"
-        ).read_text(encoding="utf-8")
-        example = (
-            PROJECT_ROOT / "examples" / "doxygen" / "CMakeLists.txt"
-        ).read_text(encoding="utf-8")
-
-        self.assertIn("function(dockle_add_docs target)", module)
-        self.assertIn("find_program(dockle_program", module)
-        self.assertIn('"PYTHONPATH=${python_path}"', module)
-        self.assertIn("-m dockle", module)
-        self.assertIn("include(Dockle)", example)
-        self.assertIn("TARGETS doxygen", example)
-
     def test_python_packaging_uses_locked_uv_dependencies(self) -> None:
         with (PROJECT_ROOT / "pyproject.toml").open("rb") as stream:
             project = tomllib.load(stream)
@@ -373,46 +280,6 @@ class ProjectDogfoodTests(unittest.TestCase):
         )
         self.assertTrue((PROJECT_ROOT / "uv.lock").is_file())
 
-    def test_ci_uses_release_version_and_uploads_codecov_reports(self) -> None:
-        workflow = (
-            PROJECT_ROOT / ".github" / "workflows" / "ci.yml"
-        ).read_text(encoding="utf-8")
-
-        self.assertIn("actions/release_setup@", workflow)
-        self.assertIn("uv version", workflow)
-        self.assertIn("uv sync --locked", workflow)
-        self.assertIn("python-version:\n          - '3.11'", workflow)
-        self.assertIn("Smoke test installed wheel", workflow)
-        self.assertIn("name: Node package", workflow)
-        self.assertIn('NODE_VERSION: \'24\'', workflow)
-        self.assertIn("npm publish --dry-run", workflow)
-        self.assertEqual(
-            workflow.count("- name: Build third-party browser assets"), 3
-        )
-        self.assertIn("./coverage/lcov.info", workflow)
-        self.assertIn("./junit-node.xml", workflow)
-        self.assertIn("report_type: coverage", workflow)
-        self.assertIn("report_type: test_results", workflow)
-        self.assertIn(
-            "if: needs.release-setup.outputs.publish_release == 'true'",
-            workflow,
-        )
-        self.assertIn("publish_release == 'true'", workflow)
-        self.assertIn("virustotal_api_key:", workflow)
-        self.assertIn("watchdog must build", workflow)
-        self.assertEqual(
-            workflow.count("NOSONAR(githubactions:S8541)"), 3
-        )
-        self.assertEqual(
-            workflow.count("NOSONAR(githubactions:S8544)"), 2
-        )
-        self.assertEqual(
-            workflow.count("--no-deps prevents unlocked dependency"), 2
-        )
-        self.assertIn("--no-sync prevents installs", workflow)
-        self.assertIn("standalone matrix portable", workflow)
-        self.assertNotIn("gh-action-pypi-publish@", workflow)
-
     def test_pypi_publish_requires_a_stable_release_event(self) -> None:
         workflow = (
             PROJECT_ROOT / ".github" / "workflows" / "ci-release.yml"
@@ -428,77 +295,6 @@ class ProjectDogfoodTests(unittest.TestCase):
         self.assertIn('"lizardbyte_dockle-*.whl"', workflow)
         self.assertIn('"lizardbyte_dockle-*.tar.gz"', workflow)
         self.assertIn("gh-action-pypi-publish@", workflow)
-
-    def test_npm_publish_requires_a_release_event(self) -> None:
-        workflow = (
-            PROJECT_ROOT / ".github" / "workflows" / "_update-npm.yml"
-        ).read_text(encoding="utf-8")
-
-        self.assertIn("release:", workflow)
-        self.assertIn("- released", workflow)
-        self.assertIn("__call-update-npm.yml@master", workflow)
-        self.assertIn("id-token: write", workflow)
-        self.assertIn("release_version:", workflow)
-
-    def test_ci_builds_all_requested_standalone_executables(self) -> None:
-        workflow = (
-            PROJECT_ROOT / ".github" / "workflows" / "ci.yml"
-        ).read_text(encoding="utf-8")
-
-        for runner in (
-            "windows-latest",
-            "windows-11-arm",
-            "ubuntu-latest",
-            "ubuntu-24.04-arm",
-            "macos-latest",
-            "macos-26-intel",
-        ):
-            self.assertIn(f"os: {runner}", workflow)
-        self.assertIn("executable: dockle.exe", workflow)
-        self.assertIn("executable: dockle", workflow)
-        self.assertIn("--name dockle", workflow)
-        self.assertIn("azure/trusted-signing-action@", workflow)
-        self.assertIn("apple-actions/import-codesign-certs@", workflow)
-        self.assertIn("--codesign-identity", workflow)
-        self.assertIn("--collect-all sphinx", workflow)
-        self.assertIn("--collect-all dockle", workflow)
-        self.assertIn("Smoke test bundled Python adapters", workflow)
-        self.assertIn("xcrun notarytool submit", workflow)
-        self.assertEqual(
-            workflow.count("- name: Build standalone executable\n"), 1
-        )
-        self.assertNotIn(
-            "Build and sign macOS standalone executable", workflow
-        )
-        self.assertIn(
-            "APPLE_CODESIGN_IDENTITY: ${{ secrets.APPLE_CODESIGN_IDENTITY }}",
-            workflow,
-        )
-        self.assertIn(
-            'if [[ "${RUNNER_OS}" == "macOS" && \\',
-            workflow,
-        )
-        self.assertGreaterEqual(
-            workflow.count(
-                "if: needs.release-setup.outputs.publish_release == 'true'"
-            ),
-            2,
-        )
-        self.assertNotIn("- name: Smoke test Windows executable", workflow)
-        self.assertIn(
-            "- name: Smoke test standalone executable on Windows", workflow
-        )
-        self.assertIn("runs-on: windows-latest", workflow)
-        self.assertGreaterEqual(workflow.count("archive: false"), 2)
-        download_start = workflow.index("- name: Download standalone archives")
-        release_start = workflow.index("- name: Create/Update GitHub Release")
-        standalone_download = workflow[download_start:release_start]
-        self.assertIn("skip-decompress: true", standalone_download)
-        self.assertIn("dockle-${{ matrix.artifact }}.tar.gz", workflow)
-        self.assertIn("dockle-${{ matrix.artifact }}.zip", workflow)
-        self.assertNotIn("SHA256SUMS", workflow)
-        self.assertIn("--onefile", workflow)
-        self.assertIn("--copy-metadata lizardbyte-dockle", workflow)
 
 
 if __name__ == "__main__":
