@@ -207,6 +207,9 @@ class ProjectDogfoodTests(unittest.TestCase):
         self.assertNotIn("doxyconfig", declared)
 
     def test_examples_document_portable_doxygen_authoring(self) -> None:
+        overview = (
+            PROJECT_ROOT / "examples" / "doxygen" / "README.md"
+        ).read_text(encoding="utf-8")
         reference = (
             PROJECT_ROOT
             / ".dockle"
@@ -222,6 +225,8 @@ class ProjectDogfoodTests(unittest.TestCase):
         )
         self.assertIn("@tabs_grouped{workflow|:|", reference)
         self.assertIn("@tab{Configure|:|", reference)
+        self.assertIn("[API reference](@ref annotated)", overview)
+        self.assertNotIn('<a href="annotated.html">', overview)
 
     def test_component_references_are_composed_from_shared_source(self) -> None:
         common = (
