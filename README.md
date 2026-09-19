@@ -211,13 +211,11 @@ matching selections across tab sets and pages. Doxygen receives equivalent
 
 ## Development
 
-Initialize the shared lint tooling and run the test suite:
+The centralized common-lint workflow handles repository linting on pull
+requests. Install the locked Python dependencies and run the test suite:
 
 ```shell
-git submodule update --init third-party/lizardbyte-common
 uv sync --locked --all-extras
-uv run --project third-party/lizardbyte-common --locked --only-group lint-c \
-  clang-format --dry-run --Werror examples/doxygen/include/dockle_demo.hpp
 $env:PYTHONPATH = "src"  # PowerShell
 python -m unittest discover -s tests -v
 python -m compileall -q src tests
