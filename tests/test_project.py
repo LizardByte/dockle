@@ -47,8 +47,10 @@ class ProjectDogfoodTests(unittest.TestCase):
             encoding="utf-8"
         )
 
-        self.assertIn("commands:", contents)
-        self.assertNotIn("jobs:", contents)
+        self.assertIn("jobs:", contents)
+        self.assertIn("build:", contents)
+        self.assertIn("html:", contents)
+        self.assertNotIn("commands:", contents)
         self.assertIn('python: "miniconda-latest"', contents)
         self.assertIn("readthedocs_build.sh", contents)
         self.assertIn('export DOCKLE_DIR="${dockle_dir}"', contents)
