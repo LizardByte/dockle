@@ -47,28 +47,45 @@ class ProjectDogfoodTests(unittest.TestCase):
             encoding="utf-8"
         )
 
-        self.assertIn("commands:", contents)
-        self.assertNotIn("jobs:", contents)
-        self.assertIn(
-            'conda env create --quiet --name "${READTHEDOCS_VERSION}"',
-            contents,
-        )
-        self.assertIn(
-            'conda run --no-capture-output --name "${READTHEDOCS_VERSION}" python -m dockle check',
-            contents,
-        )
-        self.assertIn(
-            'conda run --no-capture-output --name "${READTHEDOCS_VERSION}" python -m dockle build',
-            contents,
-        )
-        self.assertIn("${READTHEDOCS_OUTPUT}html/", contents)
-        self.assertIn("npm ci --ignore-scripts", contents)
-        self.assertLess(
-            contents.index("npm run build"),
-            contents.index("python -m pip install"),
-        )
-        self.assertIn('python: "miniforge3-26.3"', contents)
+        self.assertIn("jobs:", contents)
+        self.assertIn("build:", contents)
+        self.assertIn("html:", contents)
+        self.assertNotIn("commands:", contents)
+        self.assertIn('python: "miniconda-latest"', contents)
+        self.assertIn("os: ubuntu-24.04", contents)
+        self.assertIn("readthedocs_build.sh", contents)
+        self.assertIn('export DOCKLE_DIR="${dockle_dir}"', contents)
         self.assertIn("environment: environment.yml", contents)
+
+        script = (PROJECT_ROOT / "readthedocs_build.sh").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            'conda env create --quiet --name "${environment_name}"', script
+        )
+        self.assertIn('t.get("framework") == "doxygen"', script)
+        self.assertIn('npm --prefix "${dockle_dir}" run build', script)
+        self.assertIn('uv_version="0.12.13"', script)
+        self.assertIn(
+            'if ! "${environment_run[@]}" python -m uv --version', script
+        )
+        self.assertIn('"uv==${uv_version}"', script)
+        self.assertIn(
+            'uv_run=("${environment_run[@]}" python -m uv)', script
+        )
+        self.assertIn(
+            '"${uv_run[@]}" sync --project "${dockle_dir}"', script
+        )
+        self.assertIn("--locked --all-extras --no-dev", script)
+        self.assertIn('"${dockle_run[@]}" python -m dockle check', script)
+        self.assertIn('"${dockle_run[@]}" python -m dockle build', script)
+        self.assertIn("${READTHEDOCS_OUTPUT}html/", script)
+        self.assertIn('npm --prefix "${dockle_dir}" ci --ignore-scripts', script)
+        self.assertLess(
+            script.index('npm --prefix "${dockle_dir}" run build'),
+            script.index('"${uv_run[@]}" sync --project "${dockle_dir}"'),
+        )
+        self.assertFalse((PROJECT_ROOT / "requirements-readthedocs.txt").exists())
 
         environment = (PROJECT_ROOT / "environment.yml").read_text(
             encoding="utf-8"
@@ -77,6 +94,7 @@ class ProjectDogfoodTests(unittest.TestCase):
         self.assertIn("- graphviz==14.1.2", environment)
         self.assertIn("- pip==26.2.1", environment)
         self.assertIn("- python==3.13.15", environment)
+        self.assertIn("- uv==0.12.13", environment)
 
     def test_conda_dependencies_are_hard_pinned(self) -> None:
         lines = (
@@ -197,6 +215,9 @@ class ProjectDogfoodTests(unittest.TestCase):
         self.assertNotIn("doxyconfig", declared)
 
     def test_examples_document_portable_doxygen_authoring(self) -> None:
+        overview = (
+            PROJECT_ROOT / "examples" / "doxygen" / "README.md"
+        ).read_text(encoding="utf-8")
         reference = (
             PROJECT_ROOT
             / ".dockle"
@@ -207,11 +228,15 @@ class ProjectDogfoodTests(unittest.TestCase):
 
         self.assertIn(
             "@admonition{Custom title |:| "
-            "A neutral custom admonition can contain A | B.}",
+            "A neutral custom admonition.}",
             reference,
         )
         self.assertIn("@tabs_grouped{workflow|:|", reference)
         self.assertIn("@tab{Configure|:|", reference)
+        self.assertIn(
+            "[API reference](@ref dockle::demo::target)", overview
+        )
+        self.assertNotIn('<a href="annotated.html">', overview)
 
     def test_component_references_are_composed_from_shared_source(self) -> None:
         common = (
@@ -323,6 +348,7 @@ class ProjectDogfoodTests(unittest.TestCase):
 
         self.assertIn("function(dockle_add_docs target)", module)
         self.assertIn("find_program(dockle_program", module)
+        self.assertIn('"PYTHONPATH=${python_path}"', module)
         self.assertIn("-m dockle", module)
         self.assertIn("include(Dockle)", example)
         self.assertIn("TARGETS doxygen", example)

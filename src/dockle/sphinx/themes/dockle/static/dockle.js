@@ -325,6 +325,59 @@
       // Tab linking still works within the current page without storage.
     }
   };
+
+  const normalizeAliasTable = (panel) => {
+    const fragments = [];
+    const source = [...panel.childNodes].map((node) => {
+      if (node.nodeType === Node.COMMENT_NODE) {
+        return "";
+      }
+      if (node instanceof Element && node.matches(".fragment")) {
+        const marker = `\uE000${fragments.length}\uE001`;
+        fragments.push(node);
+        return marker;
+      }
+      return node.textContent || "";
+    }).join(" ");
+    const cells = source.split("|").map((cell) => cell.trim()).filter(Boolean);
+    const separator = /^[-\u2013\u2014:]+$/;
+    if (cells.length < 6
+        || cells[0].toLowerCase() !== "field"
+        || cells[1].toLowerCase() !== "value"
+        || !separator.test(cells[2])
+        || !separator.test(cells[3])) {
+      return;
+    }
+    const table = document.createElement("table");
+    table.className = "markdownTable dockle-alias-table";
+    const head = document.createElement("thead");
+    const headRow = document.createElement("tr");
+    cells.slice(0, 2).forEach((label) => {
+      const heading = document.createElement("th");
+      heading.textContent = label;
+      headRow.append(heading);
+    });
+    head.append(headRow);
+    table.append(head);
+    const body = document.createElement("tbody");
+    for (let index = 4; index + 1 < cells.length; index += 2) {
+      const row = document.createElement("tr");
+      cells.slice(index, index + 2).forEach((value) => {
+        const cell = document.createElement("td");
+        const marker = /\uE000(\d+)\uE001/.exec(value);
+        if (marker) {
+          cell.append(fragments[Number(marker[1])]);
+        } else {
+          cell.textContent = value;
+        }
+        row.append(cell);
+      });
+      body.append(row);
+    }
+    table.append(body);
+    panel.replaceChildren(table);
+  };
+
   const selectTab = (tabSet, button, options = {}) => {
     const { focus = false, synchronize = true } = options;
     const buttons = [...tabSet.querySelectorAll(":scope > .dockle-tab-list > [role=tab]")];
@@ -363,7 +416,8 @@
       });
   };
 
-  document.querySelectorAll(".dockle-tabs").forEach((tabSet, setIndex) => {
+  document.querySelectorAll(".dockle-tabs, .tabbed").forEach((tabSet, setIndex) => {
+    tabSet.classList.add("dockle-tabs");
     const details = [...tabSet.querySelectorAll(":scope > details")];
     const aliasList = tabSet.querySelector(":scope > ul");
     const aliasItems = aliasList
@@ -428,6 +482,7 @@
       panel.setAttribute("aria-labelledby", button.id);
       panel.hidden = !selected;
       source.nodes.forEach((node) => panel.append(node));
+      normalizeAliasTable(panel);
       button.addEventListener("click", () => {
         selectTab(tabSet, button);
       });
@@ -460,15 +515,56 @@
     await navigator.clipboard.writeText(text);
   };
 
+  const isBreakOnlyMarkup = (text) => {
+    const markup = text.trim().toLowerCase();
+    let offset = 0;
+    let found = false;
+    while (offset < markup.length) {
+      if (!markup.startsWith("<br", offset)) {
+        return false;
+      }
+      offset += 3;
+      while (/\s/.test(markup[offset] || "")) {
+        offset += 1;
+      }
+      if (markup[offset] === "/") {
+        offset += 1;
+        while (/\s/.test(markup[offset] || "")) {
+          offset += 1;
+        }
+      }
+      if (markup[offset] !== ">") {
+        return false;
+      }
+      offset += 1;
+      found = true;
+    }
+    return found;
+  };
+
   const codeText = (container) => {
     const lines = [...container.querySelectorAll(":scope > .line")];
     if (lines.length) {
-      return lines.map((line) => line.textContent).join("\n");
+      return lines.map((line) => {
+        const text = line.textContent.trim();
+        return isBreakOnlyMarkup(text) ? "" : line.textContent;
+      }).join("\n");
     }
     const source = container.matches("pre")
       ? container
       : container.querySelector("pre code, pre, code");
     return source?.innerText.replace(/\n$/, "") || "";
+  };
+
+  const normalizeDoxygenBlankCodeLines = () => {
+    if (root.dataset.dockleFramework !== "doxygen") {
+      return;
+    }
+    document.querySelectorAll("div.fragment > .line").forEach((line) => {
+      if (isBreakOnlyMarkup(line.textContent)) {
+        line.textContent = "";
+      }
+    });
   };
 
   const languageAliases = new Map([
@@ -946,6 +1042,7 @@
   const compatibilityHeadings = (framework) => {
     const headingSelectors = {
       doxygen: "#doc-content .contents h1.doxsection, "
+        + "#doc-content .contents h2.doxsection, "
         + "#doc-content .contents h2.groupheader, "
         + "#doc-content .contents h2.memtitle, "
         + "#doc-content .contents h3",
@@ -997,10 +1094,26 @@
   };
 
   const populatePageToc = (contents, framework) => {
-    if (contents.querySelector("a")) {
+    const headings = compatibilityHeadings(framework);
+    if (!headings.length) {
       return;
     }
-    const headings = compatibilityHeadings(framework);
+    const normalizeHash = (hash) => {
+      try {
+        return decodeURIComponent(hash);
+      } catch {
+        return hash;
+      }
+    };
+    const existingHashes = new Set(
+      [...contents.querySelectorAll("a[href]")].map((link) => {
+        try {
+          return normalizeHash(new URL(link.href, document.baseURI).hash);
+        } catch {
+          return "";
+        }
+      }),
+    );
     const list = document.createElement("ul");
     list.className = "page-outline";
     const levels = headings.map((heading) => Number(heading.tagName.slice(1)));
@@ -1008,6 +1121,9 @@
     headings.forEach((heading, index) => {
       const anchor = heading.querySelector(".anchor[id]");
       heading.id ||= anchor?.id || `dockle-section-${index + 1}`;
+      if (existingHashes.has(normalizeHash(`#${heading.id}`))) {
+        return;
+      }
       const item = document.createElement("li");
       const depth = Math.min(Number(heading.tagName.slice(1)) - baseLevel, 2);
       item.classList.add(`dockle-toc-depth-${depth}`);
@@ -1021,7 +1137,9 @@
       item.append(link);
       list.append(item);
     });
-    contents.append(list);
+    if (list.children.length) {
+      contents.append(list);
+    }
   };
 
   const addLanguageGalleryTocLinks = () => {
@@ -1100,20 +1218,8 @@
     if (!navTree) {
       return;
     }
-    const removePageFragments = () => {
+    const normalizeHierarchy = () => {
       const currentPath = normalizedPagePath(location.href);
-      navTree.querySelectorAll('a[href*="#"]').forEach((link) => {
-        const destination = new URL(link.href, document.baseURI);
-        if (destination.hash
-            && normalizedPagePath(destination) === currentPath) {
-          link.closest("li")?.remove();
-        }
-      });
-      navTree.querySelectorAll("ul.children_ul").forEach((list) => {
-        if (!list.querySelector(":scope > li")) {
-          list.remove();
-        }
-      });
       const pageHeading = document.querySelector(
         "#doc-content .contents h1.doxsection, #doc-content div.header .title",
       );
@@ -1132,12 +1238,12 @@
       }
       markCurrentNavigation();
     };
-    removePageFragments();
+    normalizeHierarchy();
     if (navTree.dataset.dockleHierarchyNormalized === "true") {
       return;
     }
     navTree.dataset.dockleHierarchyNormalized = "true";
-    new MutationObserver(removePageFragments).observe(navTree, {
+    new MutationObserver(normalizeHierarchy).observe(navTree, {
       childList: true,
       subtree: true,
     });
@@ -1162,6 +1268,9 @@
     );
     pageNav.classList.add("dockle-page-toc");
     const contents = pageTocContents(pageNav, framework);
+    if (framework === "doxygen") {
+      contents.replaceChildren();
+    }
     addPageTocTitle(contents);
     populatePageToc(contents, framework);
     root.classList.add("dockle-has-page-toc");
@@ -1318,6 +1427,7 @@
   window.addEventListener("load", normalizeDoxygenSidebar);
   addDoxygenNavigation();
   addLanguageGalleries();
+  normalizeDoxygenBlankCodeLines();
   applySyntaxHighlighting();
   addCodeCopyButtons();
   replaceRustdocIcons();
@@ -1334,5 +1444,6 @@
   addHeadingPermalinks();
   setupAnchorHighlights();
   renderIcons();
+  window.addEventListener("load", () => renderIcons());
   updateThemeButtons();
 })();

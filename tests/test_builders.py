@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+import json
 import sys
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 from stat import S_IXUSR
 from unittest.mock import patch
 
 from dockle import __version__
-from dockle.builders import BuildManager, Command
+from dockle.builders import BuildError, BuildManager, Command, RustdocBuilder
 from dockle.config import load_config
 
 ALL_TARGETS_CONFIG = """
@@ -69,7 +71,7 @@ class RecordingRunner:
         )
         (self.html_output / "index.html").write_text(
             f"<!doctype html><html{root}><head><title>Fixture</title>"
-            f"{favicon}</head><body><main>Docs</main></body></html>",
+            f"{favicon}</head><body><main><h1>Docs</h1></main></body></html>",
             encoding="utf-8",
         )
         if is_jsdoc:
@@ -109,6 +111,43 @@ class BuilderTests(unittest.TestCase):
         self.assertIn("-W", plan.command.args)
         self.assertNotIn("conf.py", plan.command.args)
 
+    def test_sphinx_plan_uses_typed_static_assets(self) -> None:
+        static = self.root / "sphinx-docs" / "_static"
+        static.mkdir()
+        extra_config = self.root / "sphinx-docs" / "extra_conf.py"
+        extra_config.write_text(
+            "extensions.append('example')\n", encoding="utf-8"
+        )
+        configured = ALL_TARGETS_CONFIG.replace(
+            'framework = "sphinx"\nsource = "sphinx-docs"',
+            '''framework = "sphinx"
+source = "sphinx-docs"
+
+[targets.sphinx]
+exclude_patterns = ["drafts/**"]
+static_paths = ["sphinx-docs/_static"]
+extra_stylesheets = ["project.css"]
+extra_javascript = ["project.js"]
+extra_config = "sphinx-docs/extra_conf.py"
+source_edit_link = "https://example.invalid/edit/{filename}"''',
+        )
+        self.config_path.write_text(configured, encoding="utf-8")
+        config = load_config(self.config_path)
+
+        plan = BuildManager(config).plan(config.targets[0])
+        conf = plan.generated_files[plan.work / "conf.py"]
+
+        self.assertIn("exclude_patterns = ['drafts/**']", conf)
+        self.assertIn(repr(str(static.resolve())), conf)
+        self.assertIn("html_css_files = ['project.css']", conf)
+        self.assertIn("html_js_files = ['project.js']", conf)
+        self.assertIn(
+            "'source_edit_link': 'https://example.invalid/edit/{filename}'",
+            conf,
+        )
+        self.assertIn(repr(str(extra_config.resolve())), conf)
+        self.assertIn("exec(compile(_dockle_extra_config.read_bytes()", conf)
+
     def test_doxygen_plan_uses_supported_extra_stylesheet_hook(self) -> None:
         (self.config.targets[1].source / "index").write_text(
             "# API\n", encoding="utf-8"
@@ -133,14 +172,124 @@ class BuilderTests(unittest.TestCase):
         self.assertIn("\\1|:|note|:|info|:|\\2", doxyfile)
         self.assertIn('data-lucide=\\"\\3\\"', doxyfile)
         self.assertIn('"tab{2|:|}', doxyfile)
+        self.assertNotIn('"tab_with_pipe{2|:|}', doxyfile)
+        self.assertIn('PREDEFINED               = "DOXYGEN"', doxyfile)
+        self.assertNotIn('"_WIN32"', doxyfile)
+        self.assertNotIn('"__linux__"', doxyfile)
         self.assertIn('"tabs{1}', doxyfile)
         self.assertIn('"tabs_grouped{2|:|}', doxyfile)
+        self.assertIn('"expander{2|:|}', doxyfile)
         self.assertIn('data-dockle-tab-group=\\"\\1\\"', doxyfile)
         self.assertIn(
             "dockle-alert-\\2\\\"><dt",
             doxyfile,
         )
         self.assertNotIn("dockle-alert- \\2", doxyfile)
+        self.assertIn("WARN_IF_UNDOC_ENUM_VAL   = YES", doxyfile)
+        self.assertIn("WARN_IF_UNDOCUMENTED     = YES", doxyfile)
+        self.assertIn("WARN_NO_PARAMDOC         = YES", doxyfile)
+
+    def test_doxygen_plan_uses_typed_project_settings(self) -> None:
+        custom_css = self.root / "cpp" / "custom.css"
+        custom_js = self.root / "cpp" / "custom.js"
+        main_page = self.root / "README.md"
+        fake_doxygen = self.root / "bin" / "doxygen"
+        fake_doxygen.parent.mkdir()
+        fake_doxygen.touch()
+        for path in (custom_css, custom_js, main_page):
+            path.touch()
+        configured = ALL_TARGETS_CONFIG.replace(
+            "[build]\nstrict = true",
+            '''[build]
+strict = true
+
+[tools]
+doxygen = "bin/doxygen"''',
+        ).replace(
+            'framework = "doxygen"\nsource = "cpp"',
+            '''framework = "doxygen"
+source = "cpp"
+
+[targets.doxygen]
+inputs = ["README.md", "cpp"]
+exclude_patterns = ["*/generated/*"]
+predefined = ["EXAMPLE=1"]
+extra_stylesheets = ["cpp/custom.css"]
+extra_files = ["cpp/custom.js"]
+aliases = ['example{1}=<strong>\\1</strong>']
+main_page = "README.md"
+dot_graph_max_nodes = 75
+optimize_output_java = true
+separate_member_pages = true
+generate_xml = true''',
+        )
+        self.config_path.write_text(configured, encoding="utf-8")
+        config = load_config(self.config_path)
+
+        with patch("dockle.builders.shutil.which", return_value=None):
+            plan = BuildManager(config).plan(config.targets[1])
+        doxyfile = plan.generated_files[plan.work / "Doxyfile"]
+        settings = config.targets[1].doxygen
+        assert settings is not None
+
+        self.assertIn(f'"{settings.main_page.as_posix()}"', doxyfile)
+        self.assertIn(
+            f'"{settings.extra_stylesheets[0].as_posix()}"', doxyfile
+        )
+        self.assertIn(f'"{settings.extra_files[0].as_posix()}"', doxyfile)
+        self.assertIn('"EXAMPLE=1"', doxyfile)
+        self.assertIn('EXCLUDE_PATTERNS         = "*/generated/*"', doxyfile)
+        self.assertRegex(doxyfile, r"(?m)^HAVE_DOT\s+= NO$")
+
+        fake_doxygen.with_name("dot").touch()
+        with patch("dockle.builders.shutil.which", return_value=None):
+            plan = BuildManager(config).plan(config.targets[1])
+        doxyfile = plan.generated_files[plan.work / "Doxyfile"]
+        self.assertRegex(doxyfile, r"(?m)^HAVE_DOT\s+= YES$")
+        self.assertIn("DOT_GRAPH_MAX_NODES      = 75", doxyfile)
+        self.assertIn("OPTIMIZE_OUTPUT_JAVA     = YES", doxyfile)
+        self.assertIn("SEPARATE_MEMBER_PAGES    = YES", doxyfile)
+        self.assertIn("GENERATE_XML             = YES", doxyfile)
+        self.assertIn("WARN_IF_UNDOC_ENUM_VAL   = YES", doxyfile)
+        self.assertIn("WARN_IF_UNDOCUMENTED     = YES", doxyfile)
+        self.assertIn("WARN_NO_PARAMDOC         = YES", doxyfile)
+        self.assertIn('ALIASES                += "example{1}', doxyfile)
+
+    def test_doxygen_plan_copies_local_project_logo(self) -> None:
+        logo = self.root / "logo.svg"
+        logo.write_text("<svg/>", encoding="utf-8")
+        self.config_path.write_text(
+            ALL_TARGETS_CONFIG.replace(
+                'description = "Example documentation"',
+                'description = "Example documentation"\nlogo = "logo.svg"',
+            ),
+            encoding="utf-8",
+        )
+        config = load_config(self.config_path)
+
+        plan = BuildManager(config).plan(config.targets[1])
+        doxyfile = plan.generated_files[plan.work / "Doxyfile"]
+
+        self.assertIn(f'"{logo.resolve().as_posix()}"', doxyfile)
+
+    def test_unpublished_doxygen_target_generates_xml_without_html(self) -> None:
+        configured = ALL_TARGETS_CONFIG.replace(
+            'framework = "doxygen"\nsource = "cpp"',
+            '''framework = "doxygen"
+source = "cpp"
+publish = false
+
+[targets.doxygen]
+generate_xml = true''',
+        )
+        self.config_path.write_text(configured, encoding="utf-8")
+        config = load_config(self.config_path)
+
+        plan = BuildManager(config).plan(config.targets[1])
+        doxyfile = plan.generated_files[plan.work / "Doxyfile"]
+
+        self.assertIn("GENERATE_HTML            = NO", doxyfile)
+        self.assertIn("GENERATE_XML             = YES", doxyfile)
 
     def test_mkdocs_plan_generates_only_dockle_owned_config(self) -> None:
         plan = self.manager.plan(self.config.targets[2])
@@ -158,6 +307,27 @@ class BuilderTests(unittest.TestCase):
         self.assertIn("      use_pygments: false", native)
         self.assertIn(f'dockle_version: "{__version__}"', native)
         self.assertIn("--strict", plan.command.args)
+
+    def test_mkdocs_plan_uses_typed_extra_assets(self) -> None:
+        configured = ALL_TARGETS_CONFIG.replace(
+            'framework = "mkdocs"\nsource = "markdown"',
+            '''framework = "mkdocs"
+source = "markdown"
+
+[targets.mkdocs]
+extra_stylesheets = ["https://example.invalid/project.css"]
+extra_javascript = ["_static/project.js"]''',
+        )
+        self.config_path.write_text(configured, encoding="utf-8")
+        config = load_config(self.config_path)
+
+        plan = BuildManager(config).plan(config.targets[2])
+        native = plan.generated_files[plan.work / "mkdocs.yml"]
+
+        self.assertIn("extra_css:", native)
+        self.assertIn('"https://example.invalid/project.css"', native)
+        self.assertIn("extra_javascript:", native)
+        self.assertIn('"_static/project.js"', native)
 
     def test_frozen_build_uses_bundled_python_generators(self) -> None:
         with patch.object(sys, "frozen", True, create=True):
@@ -188,6 +358,33 @@ class BuilderTests(unittest.TestCase):
         self.assertEqual(plan.command.args[1], "--configure")
         self.assertIn("--pedantic", plan.command.args)
 
+    def test_jsdoc_plan_uses_typed_inputs_and_readme(self) -> None:
+        readme = self.root / "README.md"
+        readme.write_text("# Project\n", encoding="utf-8")
+        configured = ALL_TARGETS_CONFIG.replace(
+            'framework = "jsdoc"\nsource = "javascript"',
+            '''framework = "jsdoc"
+source = "javascript"
+
+[targets.jsdoc]
+inputs = ["javascript"]
+readme = "README.md"
+include_pattern = ".+\\\\.js$"
+exclude_pattern = "generated/"''',
+        )
+        self.config_path.write_text(configured, encoding="utf-8")
+        config = load_config(self.config_path)
+
+        plan = BuildManager(config).plan(config.targets[3])
+        native = plan.generated_files[plan.work / "jsdoc.json"]
+        parsed = json.loads(native)
+
+        self.assertEqual(parsed["opts"]["readme"], str(readme.resolve()))
+        self.assertEqual(parsed["source"]["includePattern"], r".+\.js$")
+        self.assertEqual(
+            parsed["source"]["excludePattern"], "generated/"
+        )
+
     def test_jsdoc_plan_discovers_tutorials(self) -> None:
         source = self.config.targets[3].source
         (source / "tutorials").mkdir()
@@ -197,18 +394,70 @@ class BuilderTests(unittest.TestCase):
         self.assertIn('"tutorials"', native)
 
     def test_rustdoc_plan_uses_cargo_without_dependencies(self) -> None:
-        plan = self.manager.plan(self.config.targets[4])
+        with patch.dict("os.environ", {}, clear=True):
+            plan = self.manager.plan(self.config.targets[4])
 
         self.assertEqual(plan.command.args[1], "doc")
         self.assertIn("--no-deps", plan.command.args)
-        self.assertTrue(
-            plan.command.env["RUSTDOCFLAGS"].endswith("-D warnings")
+        self.assertEqual(plan.command.cwd, self.config.targets[4].source)
+        self.assertIn("--config", plan.command.args)
+        self.assertIn(
+            'build.rustdocflags=["-D","warnings"]', plan.command.args
         )
+        self.assertNotIn("RUSTDOCFLAGS", plan.command.env)
+
+    def test_rustdoc_plan_extends_explicit_environment_flags(self) -> None:
+        with patch.dict("os.environ", {"RUSTDOCFLAGS": "--cfg docsrs"}):
+            plan = self.manager.plan(self.config.targets[4])
+
+        self.assertEqual(
+            plan.command.env["RUSTDOCFLAGS"], "--cfg docsrs -D warnings"
+        )
+
+    def test_rustdoc_entry_selects_primary_workspace_crate(self) -> None:
+        target = replace(self.config.targets[4], entry="koko")
+        builder = RustdocBuilder(self.config, target, "cargo")
+        for crate in ("koko", "xtask"):
+            crate_output = target.output / crate
+            crate_output.mkdir(parents=True)
+            (crate_output / "index.html").write_text(
+                f"<h1>{crate}</h1>", encoding="utf-8"
+            )
+
+        builder._write_index()
+
+        index = (target.output / "index.html").read_text(encoding="utf-8")
+        self.assertIn("url=koko/", index)
+        self.assertIn('window.location.replace("koko/")', index)
+        self.assertNotIn("xtask", index)
+
+    def test_rustdoc_entry_must_match_generated_crate(self) -> None:
+        target = replace(self.config.targets[4], entry="missing")
+        builder = RustdocBuilder(self.config, target, "cargo")
+        crate_output = target.output / "koko"
+        crate_output.mkdir(parents=True)
+        (crate_output / "index.html").write_text(
+            "<h1>Koko</h1>", encoding="utf-8"
+        )
+
+        with self.assertRaisesRegex(BuildError, "rustdoc entry"):
+            builder._write_index()
 
     def test_build_writes_generated_config_and_themes_html(self) -> None:
         fake_tool = self.root / "fake-jsdoc"
         fake_tool.touch()
+        (self.root / "project.css").write_text("body {}", encoding="utf-8")
+        (self.root / "project.js").write_text("void 0", encoding="utf-8")
         configured = ALL_TARGETS_CONFIG.replace(
+            'framework = "jsdoc"\nsource = "javascript"',
+            '''framework = "jsdoc"
+source = "javascript"
+
+[targets.jsdoc]
+extra_files = ["project.css", "project.js"]
+extra_stylesheets = ["project.css"]
+extra_javascript = ["project.js"]''',
+        ).replace(
             "[build]\nstrict = true",
             '[build]\nstrict = true\n\n[tools]\njsdoc = "./fake-jsdoc"',
         )
@@ -227,6 +476,12 @@ class BuilderTests(unittest.TestCase):
         self.assertIn('"destination"', generated)
         self.assertIn('data-dockle-theme="jsdoc"', html)
         self.assertIn('data-dockle-framework="jsdoc"', html)
+        self.assertIn('<link rel="stylesheet" href="project.css">', html)
+        self.assertIn('<script defer src="project.js"></script>', html)
+        self.assertEqual(
+            (target.output / "project.js").read_text(encoding="utf-8"),
+            "void 0",
+        )
         self.assertTrue((target.output / "dockle.css").is_file())
         self.assertTrue((target.output / "dockle-favicon.svg").is_file())
         self.assertIn("data-dockle-favicon", html)
@@ -236,6 +491,44 @@ class BuilderTests(unittest.TestCase):
         self.assertIn('data-dockle-framework="portal"', portal)
         self.assertIn('href="jsdoc/"', portal)
         self.assertIn("data-dockle-favicon", portal)
+
+    def test_home_jsdoc_ignores_other_target_pages(self) -> None:
+        fake_tool = self.root / "fake-jsdoc"
+        fake_tool.touch()
+        configured = '''
+[project]
+name = "Example API"
+
+[build]
+strict = true
+
+[tools]
+jsdoc = "./fake-jsdoc"
+
+[[targets]]
+name = "jsdoc"
+framework = "jsdoc"
+source = "javascript"
+home = true
+
+[[targets]]
+name = "doxygen"
+framework = "doxygen"
+source = "cpp"
+'''
+        self.config_path.write_text(configured, encoding="utf-8")
+        config = load_config(self.config_path)
+        target = config.targets[0]
+        target.output.mkdir(parents=True)
+        unrelated = target.output / "doxygen" / "index.html"
+        unrelated.parent.mkdir()
+        unrelated.write_text("<html><body>Doxygen</body></html>", encoding="utf-8")
+        runner = RecordingRunner(target.output)
+
+        result = BuildManager(config, runner=runner).build((target,))
+
+        self.assertGreater(result[0].themed_pages, 0)
+        self.assertTrue(unrelated.is_file())
 
     def test_resolves_project_local_node_tool(self) -> None:
         executable = (
@@ -251,6 +544,84 @@ class BuilderTests(unittest.TestCase):
         plan = self.manager.plan(self.config.targets[3], require_tool=True)
 
         self.assertTrue(Path(plan.command.args[0]).samefile(executable))
+
+    def test_plan_rejects_targets_without_framework_settings(self) -> None:
+        cases = (
+            (self.config.targets[0], "sphinx"),
+            (self.config.targets[1], "doxygen"),
+            (self.config.targets[2], "mkdocs"),
+            (self.config.targets[3], "jsdoc"),
+        )
+        for target, framework in cases:
+            with self.subTest(framework=framework):
+                malformed = replace(target, **{framework: None})
+                with self.assertRaisesRegex(
+                    BuildError,
+                    rf"{framework} target is missing generated settings",
+                ):
+                    self.manager.plan(malformed)
+
+    def test_check_validates_every_typed_project_path(self) -> None:
+        self.config_path.write_text(
+            """
+[project]
+name = "Path checks"
+
+[[targets]]
+name = "doxygen"
+framework = "doxygen"
+source = "cpp"
+
+[targets.doxygen]
+inputs = ["cpp"]
+image_paths = ["missing-images"]
+include_paths = ["cpp"]
+extra_stylesheets = ["favicon.svg"]
+extra_files = ["favicon.svg"]
+main_page = "missing-main.md"
+
+[[targets]]
+name = "jsdoc"
+framework = "jsdoc"
+source = "javascript"
+
+[targets.jsdoc]
+inputs = ["javascript"]
+readme = "missing-readme.md"
+
+[[targets]]
+name = "sphinx"
+framework = "sphinx"
+source = "sphinx-docs"
+
+[targets.sphinx]
+static_paths = ["sphinx-docs"]
+extra_config = "missing-conf.py"
+
+[[targets]]
+name = "rustdoc"
+framework = "rustdoc"
+source = "rust"
+
+[targets.rustdoc]
+extra_files = ["missing-rustdoc.css"]
+""",
+            encoding="utf-8",
+        )
+        config = load_config(self.config_path)
+
+        checks = BuildManager(config).check(config.targets)
+
+        expected = (
+            config.root / "missing-images",
+            config.root / "missing-readme.md",
+            config.root / "missing-conf.py",
+            config.root / "missing-rustdoc.css",
+        )
+        self.assertEqual(
+            [problem for _, problem in checks],
+            [f"source does not exist: {path}" for path in expected],
+        )
 
     def test_full_build_removes_stale_target_output(self) -> None:
         fake_tool = self.root / "fake-sphinx"

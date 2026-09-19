@@ -33,11 +33,14 @@ const sharedAssets = path.resolve(
 );
 
 function assetName(prefix, source) {
+  if (/^https?:\/\//i.test(source)) {
+    return source;
+  }
   return source ? `${prefix}${path.extname(source).toLowerCase()}` : '';
 }
 
 function copyConfiguredAsset(source, destination) {
-  if (!source) {
+  if (!source || /^https?:\/\//i.test(source)) {
     return;
   }
   fs.copyFileSync(path.resolve(env.pwd, source), destination);

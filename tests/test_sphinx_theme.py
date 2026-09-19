@@ -47,6 +47,19 @@ class SphinxThemeTests(unittest.TestCase):
             .read_text(encoding="utf-8")
             .lower(),
         )
+        sphinx_layout = (THEME_DIRECTORY / "layout.html").read_text(
+            encoding="utf-8"
+        )
+        mkdocs_layout = (THEME_DIRECTORY / "main.html").read_text(
+            encoding="utf-8"
+        )
+        for layout in (sphinx_layout, mkdocs_layout):
+            self.assertLess(
+                layout.index("lucide.min.js"), layout.index("dockle.js")
+            )
+            self.assertLess(
+                layout.index("highlight.min.js"), layout.index("dockle.js")
+            )
 
     def test_theme_supports_auto_light_and_dark_modes(self) -> None:
         script = (THEME_DIRECTORY / "static" / "dockle.js").read_text(
@@ -86,8 +99,8 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertIn('doxygen: "#nav-tree .label > a[href]"', script)
         self.assertIn('mkdocs: ".dockle-tree a[href]"', script)
         self.assertIn("normalizeDoxygenSidebar", script)
-        self.assertIn('a[href*="#"]', script)
-        self.assertIn("new MutationObserver(removePageFragments)", script)
+        self.assertNotIn('link.closest("li")?.remove()', script)
+        self.assertIn("new MutationObserver(normalizeHierarchy)", script)
         self.assertIn(".dockle-current-item", stylesheet)
         self.assertIn("#nav-tree ul.children_ul", stylesheet)
         self.assertIn('body > nav li {', stylesheet)
@@ -125,7 +138,8 @@ class SphinxThemeTests(unittest.TestCase):
         )
 
         self.assertIn("if (label.textContent !== pageTitle)", script)
-        self.assertIn("new MutationObserver(removePageFragments)", script)
+        self.assertIn("new MutationObserver(normalizeHierarchy)", script)
+        self.assertNotIn("removePageFragments", script)
 
     def test_tabs_support_keyboard_navigation_and_named_groups(self) -> None:
         stylesheet = (
@@ -140,7 +154,11 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertIn('["ArrowLeft", "ArrowRight", "Home", "End"]', script)
         self.assertIn("sessionStorage.getItem", script)
         self.assertIn("sessionStorage.setItem", script)
+        self.assertIn("normalizeAliasTable", script)
+        self.assertIn("dockle-alias-table", stylesheet)
         self.assertIn(".dockle-tab-list button:focus-visible", stylesheet)
+        self.assertIn(".dockle-tab-panel[hidden]", stylesheet)
+        self.assertIn("display: none !important", stylesheet)
 
     def test_sidebar_identity_stays_pinned_and_compacts_on_scroll(self) -> None:
         stylesheet = (
@@ -215,6 +233,34 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertIn("dockle-compat-toc", script)
         self.assertIn(".dockle-compat-toc", stylesheet)
         self.assertIn("border-left: 0 !important", stylesheet)
+        self.assertIn("contents.replaceChildren()", script)
+        self.assertIn("#page-nav .dockle-toc-depth-1", stylesheet)
+
+    def test_sphinx_pages_can_link_to_their_authored_source(self) -> None:
+        layout = (THEME_DIRECTORY / "layout.html").read_text(encoding="utf-8")
+        theme = (THEME_DIRECTORY / "theme.toml").read_text(encoding="utf-8")
+        stylesheet = (
+            THEME_DIRECTORY / "static" / "dockle.css"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn('source_edit_link = ""', theme)
+        self.assertIn("sourcename[-4:] == '.txt'", layout)
+        self.assertIn(
+            "theme_source_edit_link|replace('{filename}', source_filename)",
+            layout,
+        )
+        self.assertIn("Edit this page", layout)
+        self.assertIn(".dockle-source-edit", stylesheet)
+
+    def test_sphinx_signatures_do_not_add_a_card_container(self) -> None:
+        stylesheet = (
+            THEME_DIRECTORY / "static" / "dockle.css"
+        ).read_text(encoding="utf-8")
+        signature = stylesheet.split(".sig-object {", 1)[1].split("}", 1)[0]
+
+        self.assertIn("background: transparent", signature)
+        self.assertIn("border: 0", signature)
+        self.assertIn("padding: 0", signature)
 
     def test_code_blocks_receive_shared_copy_controls(self) -> None:
         stylesheet = (
@@ -282,6 +328,9 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertIn('["shell-session", "console"]', script)
         self.assertIn('document.querySelectorAll("pre")', script)
         self.assertIn("code.textContent = source", script)
+        self.assertIn("isBreakOnlyMarkup", script)
+        self.assertNotIn("<br\\s*\\/?\\s*>", script)
+        self.assertIn("normalizeDoxygenBlankCodeLines", script)
         self.assertIn("globalThis.hljs.highlightElement", script)
         self.assertTrue(
             highlighter.startswith(

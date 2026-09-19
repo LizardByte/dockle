@@ -23,11 +23,6 @@ const pageTitle = title === 'Home' ? dockle.targetTitle : title;
   <script defer src="dockle.js" data-dockle-script></script>
 </head>
 <body>
-  <?js if (dockle.portalUrl) { ?>
-  <a class="dockle-home" href="<?js= safe(dockle.portalUrl) ?>" data-dockle-home>
-    <i data-lucide="arrow-left" aria-hidden="true"></i>All docs
-  </a>
-  <?js } ?>
   <a class="dockle-compat-brand" href="<?js= safe(dockle.projectUrl) ?>" data-dockle-brand>
     <strong><?js= safe(dockle.projectName) ?></strong>
     <?js if (dockle.projectVersion) { ?><span><?js= safe(dockle.projectVersion) ?></span><?js } ?>

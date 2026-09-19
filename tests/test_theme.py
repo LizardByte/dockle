@@ -2,19 +2,180 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from importlib.metadata import PackageNotFoundError
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 from dockle import __version__
-from dockle.config import ThemeConfig
+from dockle.config import (
+    BuildConfig,
+    DockleConfig,
+    ProjectConfig,
+    TargetConfig,
+    ThemeConfig,
+)
 from dockle.theme import (
     ThemeError,
+    _portal_path,
+    _theme_asset,
+    _update_home_portal,
     annotate_doxygen_code_languages,
     apply_theme,
     render_theme,
+    write_home_aliases,
 )
 
 
 class ThemeTests(unittest.TestCase):
+    def test_home_aliases_preserve_target_prefixed_deep_links(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "project"
+            output = root / "_site"
+            nested = output / "about"
+            nested.mkdir(parents=True)
+            (output / "index.html").write_text("home", encoding="utf-8")
+            (nested / "support.html").write_text("support", encoding="utf-8")
+            home = TargetConfig(
+                name="docs",
+                title="Docs",
+                description="",
+                framework="sphinx",
+                source=root / "docs",
+                output=output,
+                home=True,
+            )
+            config = DockleConfig(
+                path=root / "dockle.toml",
+                root=root,
+                project=ProjectConfig(name="Example"),
+                theme=ThemeConfig(),
+                build=BuildConfig(output=output, work=root / ".dockle"),
+                targets=(home,),
+            )
+
+            aliases = write_home_aliases(config)
+
+            self.assertEqual(aliases, 3)
+            self.assertIn(
+                'url=../index.html',
+                (output / "docs" / "index.html").read_text(encoding="utf-8"),
+            )
+            self.assertIn(
+                'url=../../about/support.html',
+                (output / "docs" / "about" / "support.html").read_text(
+                    encoding="utf-8"
+                ),
+            )
+            self.assertIn(
+                'url=../../../about/support.html',
+                (
+                    output
+                    / "docs"
+                    / "about"
+                    / "support"
+                    / "index.html"
+                ).read_text(encoding="utf-8"),
+            )
+
+    def test_home_portal_update_uses_generated_index_file(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "project"
+            output = root / "_site"
+            output.mkdir(parents=True)
+            portal = output / "index.html"
+            portal.write_text("<h1>Example</h1><p>Docs</p>", encoding="utf-8")
+            config = DockleConfig(
+                path=root / "dockle.toml",
+                root=root,
+                project=ProjectConfig(name="Example"),
+                theme=ThemeConfig(),
+                build=BuildConfig(output=output, work=root / ".dockle"),
+                targets=(),
+            )
+
+            updated = _update_home_portal(config, "<article>API</article>", True)
+
+            self.assertEqual(updated, portal.resolve())
+            self.assertIn(
+                '<div data-dockle-target-cards class="dockle-portal-grid"',
+                portal.read_text(encoding="utf-8"),
+            )
+
+    def test_portal_path_rejects_output_outside_project_root(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config = DockleConfig(
+                path=root / "dockle.toml",
+                root=root / "project",
+                project=ProjectConfig(name="Example"),
+                theme=ThemeConfig(),
+                build=BuildConfig(
+                    output=root / "outside",
+                    work=root / "project" / ".dockle",
+                ),
+                targets=(),
+            )
+
+            with self.assertRaisesRegex(
+                ThemeError, "build output must stay within project root"
+            ):
+                _portal_path(config)
+
+    def test_theme_asset_returns_source_path_without_packaged_asset(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            expected = (
+                root
+                / "checkout"
+                / "sphinx"
+                / "themes"
+                / "dockle"
+                / "static"
+                / "missing.js"
+            )
+            with (
+                patch("dockle.theme.__file__", root / "checkout" / "theme.py"),
+                patch(
+                    "dockle.theme.distribution",
+                    side_effect=PackageNotFoundError,
+                ),
+            ):
+                self.assertEqual(_theme_asset("missing.js"), expected)
+
+            installed = Mock(files=[])
+            with (
+                patch("dockle.theme.__file__", root / "checkout" / "theme.py"),
+                patch("dockle.theme.distribution", return_value=installed),
+            ):
+                self.assertEqual(_theme_asset("missing.js"), expected)
+
+    def test_theme_asset_falls_back_to_installed_distribution(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            relative_asset = Path(
+                "dockle",
+                "sphinx",
+                "themes",
+                "dockle",
+                "static",
+                "lucide.min.js",
+            )
+            installed_asset = root / "site-packages" / relative_asset
+            installed_asset.parent.mkdir(parents=True)
+            installed_asset.write_text("installed", encoding="utf-8")
+            installed = Mock(files=[relative_asset])
+            installed.locate_file.return_value = installed_asset
+
+            with (
+                patch("dockle.theme.__file__", root / "checkout" / "theme.py"),
+                patch("dockle.theme.distribution", return_value=installed),
+            ):
+                self.assertEqual(
+                    _theme_asset("lucide.min.js"), installed_asset
+                )
+
     def test_render_theme_includes_configured_tokens(self) -> None:
         stylesheet = render_theme(
             ThemeConfig(primary="#abcdef", dark_background="#010203")
@@ -54,8 +215,7 @@ class ThemeTests(unittest.TestCase):
                 document.index("dockle.js"),
             )
             self.assertIn('data-dockle-framework="rustdoc"', document)
-            self.assertIn("../../../index.html", document)
-            self.assertIn("data-dockle-home", document)
+            self.assertNotIn("data-dockle-home", document)
             self.assertIn("data-dockle-universal-search", document)
             self.assertIn('class="dockle-toolbar"', document)
             self.assertIn("Generated by", document)
@@ -118,6 +278,65 @@ class ThemeTests(unittest.TestCase):
             self.assertIn('data-dockle-language="clojure-repl"', document)
             self.assertNotIn('<div class="line"> 1c</div>', document)
             self.assertNotIn('<div class="line"> -repl</div>', document)
+
+    def test_doxygen_alias_fence_languages_are_restored_for_highlighting(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source"
+            output = root / "output"
+            source.mkdir()
+            output.mkdir()
+            (source / "README.md").write_text(
+                "@tab{Stable|:|```bash\n"
+                "    sunshine --version\n"
+                "    ```}\n",
+                encoding="utf-8",
+            )
+            html = output / "index.html"
+            html.write_text(
+                '<div class="fragment"><div class="line">'
+                "sunshine --version</div></div><!-- fragment -->",
+                encoding="utf-8",
+            )
+
+            count = annotate_doxygen_code_languages(output, source)
+
+            self.assertEqual(count, 1)
+            self.assertIn(
+                'data-dockle-language="bash"',
+                html.read_text(encoding="utf-8"),
+            )
+
+    def test_doxygen_blockquote_fences_keep_language_and_blank_lines(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source"
+            output = root / "output"
+            source.mkdir()
+            output.mkdir()
+            (source / "README.md").write_text(
+                "> ```bash\n> echo first\n>\n> echo second\n> ```\n",
+                encoding="utf-8",
+            )
+            html = output / "index.html"
+            html.write_text(
+                '<div class="fragment"><div class="line">echo first</div>'
+                '<div class="line">&lt;br&gt;&lt;br&gt;</div>'
+                '<div class="line">echo second</div></div><!-- fragment -->',
+                encoding="utf-8",
+            )
+
+            count = annotate_doxygen_code_languages(output, source)
+
+            self.assertEqual(count, 1)
+            self.assertIn(
+                'data-dockle-language="bash"',
+                html.read_text(encoding="utf-8"),
+            )
 
     def test_apply_theme_is_idempotent(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -187,6 +406,47 @@ class ThemeTests(unittest.TestCase):
             document = html.read_text(encoding="utf-8")
             self.assertTrue((output / "_dockle" / "logo.png").is_file())
             self.assertIn('data-dockle-logo-url="_dockle/logo.png"', document)
+
+    def test_apply_theme_exposes_remote_project_logo(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            html = output / "index.html"
+            html.write_text(
+                "<html><head></head><body></body></html>", encoding="utf-8"
+            )
+
+            apply_theme(
+                output,
+                "jsdoc",
+                "body {}",
+                logo="https://example.com/logo.png",
+            )
+
+            document = html.read_text(encoding="utf-8")
+            self.assertIn(
+                'data-dockle-logo-url="https://example.com/logo.png"',
+                document,
+            )
+
+    def test_apply_theme_exposes_remote_favicon(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            html = output / "index.html"
+            html.write_text(
+                "<html><head></head><body></body></html>", encoding="utf-8"
+            )
+
+            apply_theme(
+                output,
+                "jsdoc",
+                "body {}",
+                favicon="https://example.com/favicon.svg",
+            )
+
+            self.assertIn(
+                'href="https://example.com/favicon.svg"',
+                html.read_text(encoding="utf-8"),
+            )
 
     def test_apply_theme_replaces_favicon_for_every_framework(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

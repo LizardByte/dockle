@@ -6,10 +6,11 @@ import json
 import os
 import re
 import shutil
+import textwrap
 from collections.abc import Iterator
 from html import escape
 from html.parser import HTMLParser
-from importlib.metadata import PackageNotFoundError, version
+from importlib.metadata import PackageNotFoundError, distribution, version
 from pathlib import Path
 
 from dockle import __version__
@@ -56,12 +57,14 @@ _DOXYGEN_FRAGMENT_LINE = re.compile(
 _MARKDOWN_FENCE = re.compile(
     r"^(?P<indent> {0,3}+)(?P<fence>`{3,}+|~{3,}+)(?P<info>[^\r\n]*+)$"
 )
+_BLOCKQUOTE_PREFIX = re.compile(r"^(?: {0,3}>[ \t]?)+(?P<content>.*)$")
 _DOCKLE_URL = "https://github.com/LizardByte/dockle"
 _CSS_ASSET = "dockle.css"
 _SCRIPT_ASSET = "dockle.js"
 _LUCIDE_ASSET = "lucide.min.js"
 _HIGHLIGHT_ASSET = "highlight.min.js"
 _INDEX_FILE = "index.html"
+_HTML_GLOB = "*.html"
 _FRAMEWORKS = {
     "doxygen": ("Doxygen", "https://www.doxygen.nl/"),
     "jsdoc": ("JSDoc", "https://jsdoc.app/"),
@@ -160,11 +163,27 @@ class _TextContentParser(HTMLParser):
 
 
 def _theme_asset(name: str) -> Path:
-    return (
+    source_asset = (
         Path(__file__)
         .with_name("sphinx")
         .joinpath("themes", "dockle", "static", name)
     )
+    if source_asset.is_file():
+        return source_asset
+
+    relative_asset = Path(
+        "dockle", "sphinx", "themes", "dockle", "static", name
+    )
+    try:
+        installed = distribution("lizardbyte-dockle")
+    except PackageNotFoundError:
+        return source_asset
+    for packaged_file in installed.files or ():
+        if Path(packaged_file) == relative_asset:
+            installed_asset = Path(installed.locate_file(packaged_file))
+            if installed_asset.is_file():
+                return installed_asset
+    return source_asset
 
 
 def render_theme(theme: ThemeConfig) -> str:
@@ -196,15 +215,21 @@ def render_theme(theme: ThemeConfig) -> str:
     return f"{tokens}\n{base}"
 
 
-def annotate_doxygen_code_languages(output: Path, source: Path) -> int:
+def annotate_doxygen_code_languages(
+    output: Path, sources: Path | tuple[Path, ...]
+) -> int:
     """Restore Markdown fence languages that Doxygen drops from its HTML."""
 
-    languages = _fenced_code_languages(source)
+    source_paths = (sources,) if isinstance(sources, Path) else sources
+    languages: dict[str, set[str]] = {}
+    for source in source_paths:
+        for code, source_languages in _fenced_code_languages(source).items():
+            languages.setdefault(code, set()).update(source_languages)
     if not languages:
         return 0
 
     annotated = 0
-    for html_file in sorted(output.rglob("*.html")):
+    for html_file in sorted(output.rglob(_HTML_GLOB)):
         document = html_file.read_text(encoding="utf-8")
         existing = document.count("data-dockle-language")
         updated = _DOXYGEN_FRAGMENT.sub(
@@ -280,21 +305,55 @@ def _markdown_fences(markdown_file: Path) -> Iterator[tuple[str, list[str]]]:
     lines = markdown_file.read_text(encoding="utf-8").splitlines()
     index = 0
     while index < len(lines):
-        opening = _MARKDOWN_FENCE.match(lines[index])
+        opening, quoted = _markdown_fence_opening(lines[index])
         if opening is None:
             index += 1
             continue
         fence = opening.group("fence")
         closing = re.compile(
-            rf"^ {{0,3}}{re.escape(fence[0])}{{{len(fence)},}}[ \t]*$"
+            rf"^\s*{re.escape(fence[0])}{{{len(fence)},}}\}}?[ \t]*$"
         )
-        block: list[str] = []
+        block, index = _markdown_fence_block(lines, index + 1, quoted, closing)
+        normalized = textwrap.dedent("\n".join(block)).splitlines()
+        yield _fence_language(opening.group("info")), normalized
         index += 1
-        while index < len(lines) and closing.match(lines[index]) is None:
-            block.append(lines[index])
-            index += 1
-        yield _fence_language(opening.group("info")), block
+
+
+def _markdown_fence_opening(
+    line: str,
+) -> tuple[re.Match[str] | None, bool]:
+    opening_line, quoted = _markdown_fence_line(line)
+    opening = _MARKDOWN_FENCE.match(opening_line)
+    if opening is not None:
+        return opening, quoted
+    _, separator, alias_content = opening_line.partition("|:|")
+    if not separator:
+        return None, quoted
+    return _MARKDOWN_FENCE.match(alias_content.lstrip()), quoted
+
+
+def _markdown_fence_block(
+    lines: list[str],
+    index: int,
+    quoted: bool,
+    closing: re.Pattern[str],
+) -> tuple[list[str], int]:
+    block: list[str] = []
+    while index < len(lines):
+        block_line, _ = _markdown_fence_line(lines[index])
+        candidate = block_line if quoted else lines[index]
+        if closing.match(candidate) is not None:
+            break
+        block.append(candidate)
         index += 1
+    return block, index
+
+
+def _markdown_fence_line(line: str) -> tuple[str, bool]:
+    match = _BLOCKQUOTE_PREFIX.match(line)
+    if match is None:
+        return line, False
+    return match.group("content"), True
 
 
 def _fence_language(info: str) -> str:
@@ -311,8 +370,42 @@ def _doxygen_fragment_text(fragment: str) -> str:
     return "\n".join(lines)
 
 
+def _skip_whitespace(value: str, offset: int) -> int:
+    while offset < len(value) and value[offset].isspace():
+        offset += 1
+    return offset
+
+
+def _break_tag_end(markup: str, offset: int) -> int | None:
+    if not markup.startswith("<br", offset):
+        return None
+    offset = _skip_whitespace(markup, offset + 3)
+    if offset < len(markup) and markup[offset] == "/":
+        offset = _skip_whitespace(markup, offset + 1)
+    if offset >= len(markup) or markup[offset] != ">":
+        return None
+    return offset + 1
+
+
+def _is_break_only_markup(value: str) -> bool:
+    markup = value.strip().casefold()
+    offset = 0
+    while offset < len(markup):
+        next_offset = _break_tag_end(markup, offset)
+        if next_offset is None:
+            return False
+        offset = next_offset
+    return bool(markup)
+
+
 def _normalized_code(code: str) -> str:
-    return "\n".join(line.rstrip() for line in code.splitlines()).strip("\n")
+    lines = []
+    for line in code.splitlines():
+        normalized = line.rstrip()
+        if _is_break_only_markup(normalized):
+            normalized = ""
+        lines.append(normalized)
+    return "\n".join(lines).strip("\n")
 
 
 def apply_theme(
@@ -324,12 +417,12 @@ def apply_theme(
     project_name: str = "",
     project_version: str = "",
     target_title: str = "",
-    logo: Path | None = None,
-    favicon: Path | None = None,
+    logo: Path | str | None = None,
+    favicon: Path | str | None = None,
 ) -> int:
     """Inject shared assets, navigation, branding, and client search."""
 
-    html_files = sorted(output.rglob("*.html"))
+    html_files = sorted(output.rglob(_HTML_GLOB))
     if not html_files:
         raise ThemeError(
             f"{framework} did not generate any HTML files in {output}"
@@ -422,14 +515,14 @@ def _inject_theme_assets(
             f'data-dockle-theme="{framework}">\n'
         )
         document = _insert_before_head_end(document, link, html_file)
-    if _LUCIDE_ASSET not in document:
+    if "data-dockle-lucide" not in document:
         relative_lucide = _relative(asset_dir / _LUCIDE_ASSET, html_file)
         script = (
             f'<script defer src="{relative_lucide}" '
             "data-dockle-lucide></script>\n"
         )
         document = _insert_before_head_end(document, script, html_file)
-    if _HIGHLIGHT_ASSET not in document:
+    if "data-dockle-highlight" not in document:
         relative_highlight = _relative(
             asset_dir / _HIGHLIGHT_ASSET, html_file
         )
@@ -438,7 +531,7 @@ def _inject_theme_assets(
             "data-dockle-highlight></script>\n"
         )
         document = _insert_before_head_end(document, script, html_file)
-    if _SCRIPT_ASSET not in document:
+    if "data-dockle-script" not in document:
         relative_script = _relative(asset_dir / _SCRIPT_ASSET, html_file)
         script = (
             f'<script defer src="{relative_script}" '
@@ -535,33 +628,45 @@ def _relative(asset: Path, html_file: Path) -> str:
     return Path(os.path.relpath(asset, html_file.parent)).as_posix()
 
 
-def _copy_logo(logo: Path | None, asset_dir: Path) -> Path | None:
+def _copy_logo(logo: Path | str | None, asset_dir: Path) -> Path | str | None:
     if logo is None:
         return None
+    if isinstance(logo, str):
+        return logo
     destination = asset_dir / f"logo{logo.suffix.lower()}"
     shutil.copyfile(logo, destination)
     return destination
 
 
-def _copy_favicon(favicon: Path | None, asset_dir: Path) -> Path | None:
+def _copy_favicon(
+    favicon: Path | str | None, asset_dir: Path
+) -> Path | str | None:
     if favicon is None:
         return None
+    if isinstance(favicon, str):
+        return favicon
     destination = asset_dir / f"favicon{favicon.suffix.lower()}"
     shutil.copyfile(favicon, destination)
     return destination
 
 
+def _asset_url(asset: Path | str, html_file: Path) -> str:
+    if isinstance(asset, str):
+        return asset
+    return _relative(asset, html_file)
+
+
 def _inject_favicon(
     document: str,
     html_file: Path,
-    favicon_asset: Path | None,
+    favicon_asset: Path | str | None,
 ) -> str:
     if favicon_asset is None:
         return document
     document = _remove_favicon_links(document)
-    relative_favicon = _relative(favicon_asset, html_file)
+    relative_favicon = _asset_url(favicon_asset, html_file)
     link = (
-        f'<link rel="icon" href="{relative_favicon}" '
+        f'<link rel="icon" href="{escape(relative_favicon)}" '
         "data-dockle-favicon>\n"
     )
     return _insert_before_head_end(document, link, html_file)
@@ -644,7 +749,7 @@ def _page_decorations(
     project_name: str,
     project_version: str,
     target_title: str,
-    logo_asset: Path | None,
+    logo_asset: Path | str | None,
     include_theme_toggle: bool,
 ) -> str:
     relative_index = _relative(
@@ -652,9 +757,9 @@ def _page_decorations(
         html_file,
     )
     relative_root = _relative(output, html_file)
-    logo_url = _relative(logo_asset, html_file) if logo_asset else ""
+    logo_url = _asset_url(logo_asset, html_file) if logo_asset else ""
     search = f"""<div class="dockle-search dockle-universal-search"
-       data-dockle-universal-search data-dockle-logo-url="{logo_url}"
+       data-dockle-universal-search data-dockle-logo-url="{escape(logo_url)}"
        data-dockle-target-title="{escape(target_title)}">
     <i class="dockle-search-icon" data-lucide="search" aria-hidden="true"></i>
     <label class="visually-hidden" for="dockle-search-input">
@@ -669,19 +774,9 @@ def _page_decorations(
         aria-live="polite" hidden></ul>
   </div>"""
     links = ""
-    if portal is not None:
-        relative_portal = _relative(portal / _INDEX_FILE, html_file)
-        links += (
-            f'<a class="dockle-home" href="{relative_portal}" '
-            'data-dockle-home><i data-lucide="arrow-left" '
-            'aria-hidden="true"></i>All docs</a>'
-        )
-    if (
-        portal is not None
-        and project_name
-        and framework in {"doxygen", "jsdoc", "rustdoc"}
-    ):
-        relative_portal = _relative(portal / _INDEX_FILE, html_file)
+    if project_name and framework in {"doxygen", "jsdoc", "rustdoc"}:
+        brand_root = portal if portal is not None else output
+        relative_portal = _relative(brand_root / _INDEX_FILE, html_file)
         version = (
             f"<span>{escape(project_version)}</span>"
             if project_version
@@ -773,80 +868,172 @@ def write_portal(
     output = config.build.output
     output.mkdir(parents=True, exist_ok=True)
     home_target = next((target for target in config.targets if target.home), None)
-    card_targets = (
-        tuple(target for target in config.targets if not target.home)
-        if home_target is not None
-        else targets
-    )
+    card_targets = _portal_card_targets(config, targets, home_target)
     cards = _portal_cards(card_targets, output)
-    portal = output / _INDEX_FILE
+    portal = _portal_path(config)
     if home_target is not None and portal.is_file():
-        document = portal.read_text(encoding="utf-8")
-        cards_markup = (
-            '<div data-dockle-target-cards class="dockle-portal-grid" '
-            'aria-label="Documentation examples">\n'
-            f"{cards}\n"
-            "</div>"
-        )
-        document, replacements = _replace_element(
-            document,
-            _TARGET_CARDS_START,
-            "</div>",
-            cards_markup,
-            count=1,
-        )
-        if not replacements:
-            heading = _FIRST_H1_END.search(document)
-            if heading is None:
-                raise ThemeError(
-                    f"home target has no heading for comparison cards: {portal}"
-                )
-            document = (
-                f"{document[:heading.end()]}\n{cards_markup}"
-                f"{document[heading.end():]}"
-            )
-        portal.write_text(document, encoding="utf-8")
-        return portal
+        return _update_home_portal(config, cards, bool(card_targets))
 
     asset_dir = _write_theme_assets(output, stylesheet)
     logo_asset = _copy_logo(config.project.logo, asset_dir)
     favicon_asset = _copy_favicon(config.project.favicon, asset_dir)
-
-    version = (
-        f" <span>{escape(config.project.version)}</span>"
-        if config.project.version
-        else ""
+    document = _standalone_portal_document(
+        config,
+        cards,
+        logo_asset,
+        favicon_asset,
     )
-    repository = ""
-    if config.project.repository:
-        repository = (
-            '    <p class="dockle-portal-repository">'
-            f'<a href="{escape(config.project.repository)}">'
-            'Source repository<i data-lucide="external-link" '
-            'aria-hidden="true"></i></a></p>\n'
-        )
-    logo = ""
-    if logo_asset is not None:
-        logo = (
-            f'      <img class="dockle-portal-logo" '
-            f'src="_dockle/{escape(logo_asset.name)}" alt="">\n'
-        )
-    favicon = ""
-    if favicon_asset is not None:
-        favicon = (
-            f'  <link rel="icon" href="_dockle/{escape(favicon_asset.name)}" '
-            "data-dockle-favicon>\n"
-        )
-    project_docs = ""
-    if config.project.home is not None:
-        source = config.project.home.read_text(encoding="utf-8")
-        project_docs = (
-            '    <article class="dockle-portal-docs">\n'
-            f"{render_markdown(source)}\n"
-            "    </article>\n"
-        )
+    portal.write_text(document, encoding="utf-8")
+    return portal
 
-    document = f"""<!doctype html>
+
+def write_home_aliases(config: DockleConfig) -> int:
+    """Preserve target-prefixed links after publishing a target at the root."""
+
+    home_target = next((target for target in config.targets if target.home), None)
+    if home_target is None:
+        return 0
+
+    output = config.build.output.resolve()
+    alias_root = (output / home_target.name).resolve()
+    if alias_root.parent != output:
+        raise ThemeError(f"home alias must stay within build output: {alias_root}")
+    conflicts = tuple(
+        target
+        for target in config.targets
+        if target is not home_target
+        and (
+            target.output == alias_root
+            or target.output.is_relative_to(alias_root)
+            or alias_root.is_relative_to(target.output)
+        )
+    )
+    if conflicts:
+        names = ", ".join(target.name for target in conflicts)
+        raise ThemeError(f"home alias conflicts with target output: {names}")
+
+    html_files = tuple(
+        path.resolve()
+        for path in output.rglob(_HTML_GLOB)
+        if not path.is_symlink()
+        and not path.resolve().is_relative_to(alias_root)
+    )
+    aliases = 0
+    for html_file in html_files:
+        relative = html_file.relative_to(output)
+        destinations = [alias_root / relative]
+        if relative.name != _INDEX_FILE:
+            destinations.append(
+                alias_root / relative.with_suffix("") / _INDEX_FILE
+            )
+        for destination in destinations:
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            target = _relative(html_file, destination)
+            destination.write_text(
+                _redirect_document(target), encoding="utf-8"
+            )
+            aliases += 1
+    return aliases
+
+
+def _redirect_document(target: str) -> str:
+    escaped_target = escape(target, quote=True)
+    script_target = json.dumps(target)
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="robots" content="noindex">
+  <meta http-equiv="refresh" content="0; url={escaped_target}">
+  <link rel="canonical" href="{escaped_target}">
+  <title>Documentation moved</title>
+</head>
+<body>
+  <p>This documentation moved to <a href="{escaped_target}">{escaped_target}</a>.</p>
+  <script>location.replace(new URL({script_target}, document.baseURI).href + location.search + location.hash);</script>
+</body>
+</html>
+"""
+
+
+def _portal_path(config: DockleConfig) -> Path:
+    """Return the fixed portal file after validating the configured output."""
+
+    root = config.root.resolve()
+    output = config.build.output.resolve()
+    if output != root and not output.is_relative_to(root):
+        raise ThemeError(f"build output must stay within project root: {output}")
+    portal = (output / _INDEX_FILE).resolve()
+    if portal.parent != output:
+        raise ThemeError(f"portal path must stay within build output: {portal}")
+    return portal
+
+
+def _portal_card_targets(
+    config: DockleConfig,
+    targets: tuple[TargetConfig, ...],
+    home_target: TargetConfig | None,
+) -> tuple[TargetConfig, ...]:
+    candidates = config.targets if home_target is not None else targets
+    return tuple(
+        target for target in candidates if not target.home and target.publish
+    )
+
+
+def _update_home_portal(
+    config: DockleConfig, cards: str, has_cards: bool
+) -> Path:
+    output = config.build.output.resolve()
+    portals = [
+        candidate.resolve()
+        for candidate in output.glob(_INDEX_FILE)
+        if not candidate.is_symlink()
+    ]
+    if len(portals) != 1 or portals[0].parent != output:
+        raise ThemeError(f"home target has no safe portal file in {output}")
+    portal = portals[0]
+    if not has_cards:
+        return portal
+    document = portal.read_text(encoding="utf-8")
+    cards_markup = (
+        '<div data-dockle-target-cards class="dockle-portal-grid" '
+        'aria-label="Documentation examples">\n'
+        f"{cards}\n"
+        "</div>"
+    )
+    document, replacements = _replace_element(
+        document,
+        _TARGET_CARDS_START,
+        "</div>",
+        cards_markup,
+        count=1,
+    )
+    if not replacements:
+        heading = _FIRST_H1_END.search(document)
+        if heading is None:
+            raise ThemeError(
+                f"home target has no heading for comparison cards: {portal}"
+            )
+        document = (
+            f"{document[:heading.end()]}\n{cards_markup}"
+            f"{document[heading.end():]}"
+        )
+    portal.write_text(document, encoding="utf-8")
+    return portal
+
+
+def _standalone_portal_document(
+    config: DockleConfig,
+    cards: str,
+    logo_asset: Path | str | None,
+    favicon_asset: Path | str | None,
+) -> str:
+    version = _portal_version(config.project.version)
+    repository = _portal_repository(config.project.repository)
+    logo = _portal_logo(logo_asset)
+    favicon = _portal_favicon(favicon_asset)
+    project_docs = _portal_project_docs(config.project.home)
+    return f"""<!doctype html>
 <html lang="en" data-dockle-framework="portal">
 <head>
   <meta charset="utf-8">
@@ -870,12 +1057,12 @@ def write_portal(
     <section class="dockle-portal-grid" aria-label="Documentation examples">
 {cards}
     </section>
-{project_docs}{repository}  </main>
-  <footer class="dockle-footer dockle-built-with dockle-portal-built-with"
+{project_docs}{repository}    <footer class="dockle-footer dockle-built-with dockle-portal-built-with"
           data-dockle-built-with>
     Generated by <a href="{_DOCKLE_URL}">Dockle {__version__}<i
       data-lucide="external-link" aria-hidden="true"></i></a>.
-  </footer>
+    </footer>
+  </main>
   <button type="button" class="dockle-theme-toggle"
           data-dockle-theme-toggle aria-label="Color scheme: auto">
     <i data-lucide="monitor" aria-hidden="true"></i>
@@ -883,8 +1070,54 @@ def write_portal(
 </body>
 </html>
 """
-    portal.write_text(document, encoding="utf-8")
-    return portal
+
+
+def _portal_version(version: str) -> str:
+    return f" <span>{escape(version)}</span>" if version else ""
+
+
+def _portal_repository(repository: str) -> str:
+    if not repository:
+        return ""
+    return (
+        '    <p class="dockle-portal-repository">'
+        f'<a href="{escape(repository)}">Source repository'
+        '<i data-lucide="external-link" aria-hidden="true"></i>'
+        "</a></p>\n"
+    )
+
+
+def _portal_logo(asset: Path | str | None) -> str:
+    if asset is None:
+        return ""
+    return (
+        '      <img class="dockle-portal-logo" '
+        f'src="{escape(_portal_asset_url(asset))}" alt="">\n'
+    )
+
+
+def _portal_favicon(asset: Path | str | None) -> str:
+    if asset is None:
+        return ""
+    return (
+        f'  <link rel="icon" href="{escape(_portal_asset_url(asset))}" '
+        "data-dockle-favicon>\n"
+    )
+
+
+def _portal_asset_url(asset: Path | str) -> str:
+    return asset if isinstance(asset, str) else f"_dockle/{asset.name}"
+
+
+def _portal_project_docs(home: Path | None) -> str:
+    if home is None:
+        return ""
+    source = home.read_text(encoding="utf-8")
+    return (
+        '    <article class="dockle-portal-docs">\n'
+        f"{render_markdown(source)}\n"
+        "    </article>\n"
+    )
 
 
 def _portal_cards(

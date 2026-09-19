@@ -2,6 +2,32 @@ include_guard(GLOBAL)
 
 include(CMakeParseArguments)
 
+# Resolve the Dockle command for the calling scope.
+function(_dockle_resolve_command package_directory python_path)
+    if(DOCKLE_EXECUTABLE)
+        set(dockle_command "${DOCKLE_EXECUTABLE}")
+    elseif(EXISTS "${package_directory}/__init__.py")
+        # Run the implementation adjacent to this module so a source-submodule
+        # integration cannot silently use a different globally installed Dockle
+        # revision.
+        find_package(Python3 3.11 REQUIRED COMPONENTS Interpreter)
+        set(dockle_command
+            "${CMAKE_COMMAND}" -E env "PYTHONPATH=${python_path}"
+            "${Python3_EXECUTABLE}" -m dockle)
+    else()
+        find_program(dockle_program NAMES dockle dockle.exe)
+        if(dockle_program)
+            set(dockle_command "${dockle_program}")
+        else()
+            find_package(Python3 3.11 REQUIRED COMPONENTS Interpreter)
+            set(dockle_command "${Python3_EXECUTABLE}" -m dockle)
+        endif()
+    endif()
+    set(dockle_command
+        "${dockle_command}"
+        PARENT_SCOPE)
+endfunction()
+
 # Create a target that builds documentation through Dockle.
 #
 # dockle_add_docs(<target> [ALL] [CONFIG <dockle.toml>] [WORKING_DIRECTORY
@@ -29,8 +55,8 @@ function(dockle_add_docs target)
     if(NOT dockle_config)
         set(dockle_config "${CMAKE_SOURCE_DIR}/dockle.toml")
     elseif(NOT IS_ABSOLUTE "${dockle_config}")
-        cmake_path(ABSOLUTE_PATH dockle_config BASE_DIRECTORY
-                   "${CMAKE_CURRENT_SOURCE_DIR}" NORMALIZE)
+        get_filename_component(dockle_config "${dockle_config}" ABSOLUTE
+                               BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
     endif()
 
     if(NOT EXISTS "${dockle_config}")
@@ -38,22 +64,18 @@ function(dockle_add_docs target)
     endif()
 
     if(NOT DOCKLE_WORKING_DIRECTORY)
-        cmake_path(GET dockle_config PARENT_PATH dockle_working_directory)
+        get_filename_component(dockle_working_directory "${dockle_config}"
+                               DIRECTORY)
     else()
         set(dockle_working_directory "${DOCKLE_WORKING_DIRECTORY}")
     endif()
 
-    if(DOCKLE_EXECUTABLE)
-        set(dockle_command "${DOCKLE_EXECUTABLE}")
-    else()
-        find_program(dockle_program NAMES dockle dockle.exe)
-        if(dockle_program)
-            set(dockle_command "${dockle_program}")
-        else()
-            find_package(Python3 3.11 REQUIRED COMPONENTS Interpreter)
-            set(dockle_command "${Python3_EXECUTABLE}" -m dockle)
-        endif()
-    endif()
+    get_filename_component(dockle_package_directory "${CMAKE_CURRENT_LIST_DIR}"
+                           DIRECTORY)
+    get_filename_component(dockle_python_path "${dockle_package_directory}"
+                           DIRECTORY)
+    _dockle_resolve_command("${dockle_package_directory}"
+                            "${dockle_python_path}")
 
     set(dockle_arguments --config "${dockle_config}" build)
     list(APPEND dockle_arguments ${DOCKLE_TARGETS})

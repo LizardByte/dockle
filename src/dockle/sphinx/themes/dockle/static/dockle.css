@@ -68,6 +68,7 @@ html {
   font-size: 16px;
   line-height: 1.6;
   scroll-behavior: smooth;
+  scrollbar-gutter: stable;
 }
 
 *,
@@ -258,6 +259,21 @@ div.fragment,
   line-height: 1.5;
   overflow-x: auto;
   padding: 1rem;
+}
+
+.dockle-article img,
+html[data-dockle-framework="doxygen"] #doc-content .contents img {
+  height: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+html[data-dockle-framework="doxygen"] span.tt {
+  background: var(--dockle-code-background) !important;
+  border-radius: 0.2rem;
+  color: var(--dockle-content) !important;
+  font-family: var(--dockle-code-font);
+  padding: 0.12em 0.28em;
 }
 
 pre code {
@@ -451,6 +467,7 @@ div.fragment > code.hljs {
 }
 
 .dockle-code-block {
+  margin: 1rem 0 1.5rem;
   position: relative;
 }
 
@@ -462,6 +479,16 @@ div.fragment > code.hljs {
 
 div.fragment.dockle-code-block {
   padding-right: 3.25rem;
+}
+
+.dockle-tab-panel > .dockle-code-block:first-child,
+td > .dockle-code-block {
+  margin-top: 0;
+}
+
+.dockle-tab-panel > .dockle-code-block:last-child,
+td > .dockle-code-block {
+  margin-bottom: 0;
 }
 
 .dockle-copy-button {
@@ -498,10 +525,19 @@ div.fragment.dockle-code-block {
 }
 
 blockquote {
+  background: var(--dockle-background-secondary) !important;
   border-left: 0.25rem solid var(--dockle-primary);
-  color: var(--dockle-muted);
-  margin-left: 0;
-  padding-left: 1rem;
+  color: var(--dockle-content) !important;
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+}
+
+blockquote > :first-child {
+  margin-top: 0;
+}
+
+blockquote > :last-child {
+  margin-bottom: 0;
 }
 
 table {
@@ -522,6 +558,39 @@ td {
 th {
   background: var(--dockle-background-secondary) !important;
   color: var(--dockle-content) !important;
+}
+
+.dockle-alias-table {
+  display: table;
+  margin: 0;
+  width: 100%;
+}
+
+.sig-object {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  display: block;
+  font-family: var(--dockle-code-font);
+  overflow-wrap: anywhere;
+  padding: 0;
+}
+
+.sig-object .property {
+  color: var(--dockle-code-keyword);
+}
+
+.sig-object .sig-name {
+  color: var(--dockle-code-name);
+  font-weight: 700;
+}
+
+.sig-object .sig-paren {
+  color: var(--dockle-code-operator);
+}
+
+dl[class] > dd {
+  margin-left: 1rem;
 }
 
 .dockle-alert {
@@ -642,7 +711,13 @@ dl.dockle-alert > dd {
 }
 
 .dockle-tab-panel {
+  min-width: 0;
+  overflow-x: auto;
   padding: 0.85rem 1rem;
+}
+
+.dockle-tab-panel[hidden] {
+  display: none !important;
 }
 
 .dockle-tab-panel > :first-child {
@@ -1019,7 +1094,7 @@ html[data-dockle-framework="rustdoc"] .sidebar::before {
 }
 
 .dockle-compat-toc {
-  background: var(--dockle-background);
+  background: transparent;
   bottom: 2rem;
   max-height: none;
   overflow-y: auto;
@@ -1056,6 +1131,15 @@ html[data-dockle-framework="rustdoc"] .sidebar::before {
   margin-top: 3rem;
 }
 
+.dockle-source-edit {
+  align-items: center;
+  display: inline-flex;
+  float: right;
+  font-size: 0.85rem;
+  gap: 0.35rem;
+  margin: 0 0 1rem 1rem;
+}
+
 .dockle-page-links a,
 .dockle-page-links a:visited {
   align-items: center;
@@ -1087,9 +1171,12 @@ html[data-dockle-framework="rustdoc"] .sidebar::before {
 
 .dockle-page-links a span {
   display: block;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .dockle-next {
+  justify-content: flex-end;
   margin-left: auto;
   text-align: right;
 }
@@ -1404,6 +1491,11 @@ html[data-dockle-framework="doxygen"] div.fragment .clipboard {
   display: none !important;
 }
 
+html[data-dockle-framework="doxygen"] div.fragment,
+html[data-dockle-framework="doxygen"] div.fragment > .line {
+  color: var(--dockle-content) !important;
+}
+
 html[data-dockle-framework="doxygen"] div.fragment.dockle-code-block,
 html[data-dockle-framework="doxygen"] div.fragment.dockle-code-block > .line {
   font-family: var(--dockle-code-font) !important;
@@ -1541,6 +1633,14 @@ html[data-dockle-framework="doxygen"] #page-nav ul.page-outline {
 html[data-dockle-framework="doxygen"] #page-nav ul.page-outline li {
   line-height: 1.35;
   margin: 0.4rem 0;
+}
+
+html[data-dockle-framework="doxygen"] #page-nav .dockle-toc-depth-1 {
+  padding-left: 0.75rem;
+}
+
+html[data-dockle-framework="doxygen"] #page-nav .dockle-toc-depth-2 {
+  padding-left: 1.5rem;
 }
 
 html[data-dockle-framework="doxygen"] #page-nav ul.page-outline li a {
@@ -2130,6 +2230,16 @@ html[data-dockle-framework="rustdoc"] rustdoc-topbar {
 
   .dockle-on-this-page {
     display: none;
+  }
+}
+
+@media (min-width: 801px) and (max-width: 1499px) {
+  html[data-dockle-framework="doxygen"] #page-nav {
+    display: none !important;
+  }
+
+  html[data-dockle-framework="doxygen"].dockle-has-page-toc #doc-content {
+    margin-right: 0 !important;
   }
 }
 
