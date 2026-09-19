@@ -825,6 +825,75 @@ def write_portal(
     return portal
 
 
+def write_home_aliases(config: DockleConfig) -> int:
+    """Preserve target-prefixed links after publishing a target at the root."""
+
+    home_target = next((target for target in config.targets if target.home), None)
+    if home_target is None:
+        return 0
+
+    output = config.build.output.resolve()
+    alias_root = (output / home_target.name).resolve()
+    if alias_root.parent != output:
+        raise ThemeError(f"home alias must stay within build output: {alias_root}")
+    conflicts = tuple(
+        target
+        for target in config.targets
+        if target is not home_target
+        and (
+            target.output == alias_root
+            or target.output.is_relative_to(alias_root)
+            or alias_root.is_relative_to(target.output)
+        )
+    )
+    if conflicts:
+        names = ", ".join(target.name for target in conflicts)
+        raise ThemeError(f"home alias conflicts with target output: {names}")
+
+    html_files = tuple(
+        path.resolve()
+        for path in output.rglob("*.html")
+        if not path.is_symlink()
+        and not path.resolve().is_relative_to(alias_root)
+    )
+    aliases = 0
+    for html_file in html_files:
+        relative = html_file.relative_to(output)
+        destinations = [alias_root / relative]
+        if relative.name != _INDEX_FILE:
+            destinations.append(
+                alias_root / relative.with_suffix("") / _INDEX_FILE
+            )
+        for destination in destinations:
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            target = _relative(html_file, destination)
+            destination.write_text(
+                _redirect_document(target), encoding="utf-8"
+            )
+            aliases += 1
+    return aliases
+
+
+def _redirect_document(target: str) -> str:
+    escaped_target = escape(target, quote=True)
+    script_target = json.dumps(target)
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="robots" content="noindex">
+  <meta http-equiv="refresh" content="0; url={escaped_target}">
+  <link rel="canonical" href="{escaped_target}">
+  <title>Documentation moved</title>
+</head>
+<body>
+  <p>This documentation moved to <a href="{escaped_target}">{escaped_target}</a>.</p>
+  <script>location.replace(new URL({script_target}, document.baseURI).href + location.search + location.hash);</script>
+</body>
+</html>
+"""
+
+
 def _portal_path(config: DockleConfig) -> Path:
     """Return the fixed portal file after validating the configured output."""
 

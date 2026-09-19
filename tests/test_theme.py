@@ -7,7 +7,13 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from dockle import __version__
-from dockle.config import BuildConfig, DockleConfig, ProjectConfig, ThemeConfig
+from dockle.config import (
+    BuildConfig,
+    DockleConfig,
+    ProjectConfig,
+    TargetConfig,
+    ThemeConfig,
+)
 from dockle.theme import (
     ThemeError,
     _portal_path,
@@ -16,10 +22,61 @@ from dockle.theme import (
     annotate_doxygen_code_languages,
     apply_theme,
     render_theme,
+    write_home_aliases,
 )
 
 
 class ThemeTests(unittest.TestCase):
+    def test_home_aliases_preserve_target_prefixed_deep_links(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "project"
+            output = root / "_site"
+            nested = output / "about"
+            nested.mkdir(parents=True)
+            (output / "index.html").write_text("home", encoding="utf-8")
+            (nested / "support.html").write_text("support", encoding="utf-8")
+            home = TargetConfig(
+                name="docs",
+                title="Docs",
+                description="",
+                framework="sphinx",
+                source=root / "docs",
+                output=output,
+                home=True,
+            )
+            config = DockleConfig(
+                path=root / "dockle.toml",
+                root=root,
+                project=ProjectConfig(name="Example"),
+                theme=ThemeConfig(),
+                build=BuildConfig(output=output, work=root / ".dockle"),
+                targets=(home,),
+            )
+
+            aliases = write_home_aliases(config)
+
+            self.assertEqual(aliases, 3)
+            self.assertIn(
+                'url=../index.html',
+                (output / "docs" / "index.html").read_text(encoding="utf-8"),
+            )
+            self.assertIn(
+                'url=../../about/support.html',
+                (output / "docs" / "about" / "support.html").read_text(
+                    encoding="utf-8"
+                ),
+            )
+            self.assertIn(
+                'url=../../../about/support.html',
+                (
+                    output
+                    / "docs"
+                    / "about"
+                    / "support"
+                    / "index.html"
+                ).read_text(encoding="utf-8"),
+            )
+
     def test_home_portal_update_uses_generated_index_file(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "project"

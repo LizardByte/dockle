@@ -21,7 +21,9 @@ publishes a configured home target directly, adding a landing page only when a p
 
 Any framework can own the root, with cards to other published targets injected
 when needed. Project assets and metadata are configured once and then applied
-to every generated documentation set.
+to every generated documentation set. Redirect-only compatibility aliases under
+the home target's name preserve existing target-prefixed deep links without
+restoring a separate landing page.
 
 The Sphinx integration is a first-party `dockle` theme. Furo is a design reference, not a runtime dependency or base
 theme.

@@ -22,6 +22,7 @@ from dockle.theme import (
     annotate_doxygen_code_languages,
     apply_theme,
     render_theme,
+    write_home_aliases,
     write_portal,
 )
 
@@ -788,6 +789,7 @@ class BuildManager:
                 BuildResult(target=target, themed_pages=themed_pages)
             )
         write_portal(self.config, targets, stylesheet)
+        write_home_aliases(self.config)
         return tuple(results)
 
     def _resolve_tool(self, framework: str, *, required: bool) -> str:

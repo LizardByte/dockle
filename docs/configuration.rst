@@ -111,7 +111,8 @@ appearing in the published site.
 One published target of any framework may set ``home = true``. Dockle publishes that target at ``build.output``. When
 other published targets exist, Dockle injects comparison cards after its first heading; control their exact location
 with ``<div data-dockle-target-cards></div>`` in a raw HTML block. A home target cannot set ``output``; all other
-targets remain in their own directories below it.
+targets remain in their own directories below it. Redirect-only compatibility pages are generated beneath
+``build.output/<home target name>`` so target-prefixed deep links remain valid without adding a separate entry page.
 
 The supported framework names and ``entry`` behavior are:
 
