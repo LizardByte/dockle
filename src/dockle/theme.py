@@ -6,6 +6,7 @@ import json
 import os
 import re
 import shutil
+import textwrap
 from collections.abc import Iterator
 from html import escape
 from html.parser import HTMLParser
@@ -55,6 +56,9 @@ _DOXYGEN_FRAGMENT_LINE = re.compile(
 )
 _MARKDOWN_FENCE = re.compile(
     r"^(?P<indent> {0,3}+)(?P<fence>`{3,}+|~{3,}+)(?P<info>[^\r\n]*+)$"
+)
+_ALIAS_MARKDOWN_FENCE = re.compile(
+    r"^.*?\|:\|\s*(?P<fence>`{3,}+|~{3,}+)(?P<info>[^\r\n]*+)$"
 )
 _DOCKLE_URL = "https://github.com/LizardByte/dockle"
 _CSS_ASSET = "dockle.css"
@@ -304,18 +308,21 @@ def _markdown_fences(markdown_file: Path) -> Iterator[tuple[str, list[str]]]:
     while index < len(lines):
         opening = _MARKDOWN_FENCE.match(lines[index])
         if opening is None:
+            opening = _ALIAS_MARKDOWN_FENCE.match(lines[index])
+        if opening is None:
             index += 1
             continue
         fence = opening.group("fence")
         closing = re.compile(
-            rf"^ {{0,3}}{re.escape(fence[0])}{{{len(fence)},}}[ \t]*$"
+            rf"^\s*{re.escape(fence[0])}{{{len(fence)},}}\}}?[ \t]*$"
         )
         block: list[str] = []
         index += 1
         while index < len(lines) and closing.match(lines[index]) is None:
             block.append(lines[index])
             index += 1
-        yield _fence_language(opening.group("info")), block
+        normalized = textwrap.dedent("\n".join(block)).splitlines()
+        yield _fence_language(opening.group("info")), normalized
         index += 1
 
 
@@ -346,8 +353,8 @@ def apply_theme(
     project_name: str = "",
     project_version: str = "",
     target_title: str = "",
-    logo: Path | None = None,
-    favicon: Path | None = None,
+    logo: Path | str | None = None,
+    favicon: Path | str | None = None,
 ) -> int:
     """Inject shared assets, navigation, branding, and client search."""
 
@@ -444,14 +451,14 @@ def _inject_theme_assets(
             f'data-dockle-theme="{framework}">\n'
         )
         document = _insert_before_head_end(document, link, html_file)
-    if _LUCIDE_ASSET not in document:
+    if "data-dockle-lucide" not in document:
         relative_lucide = _relative(asset_dir / _LUCIDE_ASSET, html_file)
         script = (
             f'<script defer src="{relative_lucide}" '
             "data-dockle-lucide></script>\n"
         )
         document = _insert_before_head_end(document, script, html_file)
-    if _HIGHLIGHT_ASSET not in document:
+    if "data-dockle-highlight" not in document:
         relative_highlight = _relative(
             asset_dir / _HIGHLIGHT_ASSET, html_file
         )
@@ -460,7 +467,7 @@ def _inject_theme_assets(
             "data-dockle-highlight></script>\n"
         )
         document = _insert_before_head_end(document, script, html_file)
-    if _SCRIPT_ASSET not in document:
+    if "data-dockle-script" not in document:
         relative_script = _relative(asset_dir / _SCRIPT_ASSET, html_file)
         script = (
             f'<script defer src="{relative_script}" '
@@ -557,33 +564,45 @@ def _relative(asset: Path, html_file: Path) -> str:
     return Path(os.path.relpath(asset, html_file.parent)).as_posix()
 
 
-def _copy_logo(logo: Path | None, asset_dir: Path) -> Path | None:
+def _copy_logo(logo: Path | str | None, asset_dir: Path) -> Path | str | None:
     if logo is None:
         return None
+    if isinstance(logo, str):
+        return logo
     destination = asset_dir / f"logo{logo.suffix.lower()}"
     shutil.copyfile(logo, destination)
     return destination
 
 
-def _copy_favicon(favicon: Path | None, asset_dir: Path) -> Path | None:
+def _copy_favicon(
+    favicon: Path | str | None, asset_dir: Path
+) -> Path | str | None:
     if favicon is None:
         return None
+    if isinstance(favicon, str):
+        return favicon
     destination = asset_dir / f"favicon{favicon.suffix.lower()}"
     shutil.copyfile(favicon, destination)
     return destination
 
 
+def _asset_url(asset: Path | str, html_file: Path) -> str:
+    if isinstance(asset, str):
+        return asset
+    return _relative(asset, html_file)
+
+
 def _inject_favicon(
     document: str,
     html_file: Path,
-    favicon_asset: Path | None,
+    favicon_asset: Path | str | None,
 ) -> str:
     if favicon_asset is None:
         return document
     document = _remove_favicon_links(document)
-    relative_favicon = _relative(favicon_asset, html_file)
+    relative_favicon = _asset_url(favicon_asset, html_file)
     link = (
-        f'<link rel="icon" href="{relative_favicon}" '
+        f'<link rel="icon" href="{escape(relative_favicon)}" '
         "data-dockle-favicon>\n"
     )
     return _insert_before_head_end(document, link, html_file)
@@ -666,7 +685,7 @@ def _page_decorations(
     project_name: str,
     project_version: str,
     target_title: str,
-    logo_asset: Path | None,
+    logo_asset: Path | str | None,
     include_theme_toggle: bool,
 ) -> str:
     relative_index = _relative(
@@ -674,9 +693,9 @@ def _page_decorations(
         html_file,
     )
     relative_root = _relative(output, html_file)
-    logo_url = _relative(logo_asset, html_file) if logo_asset else ""
+    logo_url = _asset_url(logo_asset, html_file) if logo_asset else ""
     search = f"""<div class="dockle-search dockle-universal-search"
-       data-dockle-universal-search data-dockle-logo-url="{logo_url}"
+       data-dockle-universal-search data-dockle-logo-url="{escape(logo_url)}"
        data-dockle-target-title="{escape(target_title)}">
     <i class="dockle-search-icon" data-lucide="search" aria-hidden="true"></i>
     <label class="visually-hidden" for="dockle-search-input">
@@ -691,13 +710,6 @@ def _page_decorations(
         aria-live="polite" hidden></ul>
   </div>"""
     links = ""
-    if portal is not None:
-        relative_portal = _relative(portal / _INDEX_FILE, html_file)
-        links += (
-            f'<a class="dockle-home" href="{relative_portal}" '
-            'data-dockle-home><i data-lucide="arrow-left" '
-            'aria-hidden="true"></i>All docs</a>'
-        )
     if (
         portal is not None
         and project_name
@@ -796,13 +808,19 @@ def write_portal(
     output.mkdir(parents=True, exist_ok=True)
     home_target = next((target for target in config.targets if target.home), None)
     card_targets = (
-        tuple(target for target in config.targets if not target.home)
+        tuple(
+            target
+            for target in config.targets
+            if not target.home and target.publish
+        )
         if home_target is not None
-        else targets
+        else tuple(target for target in targets if target.publish)
     )
     cards = _portal_cards(card_targets, output)
     portal = output / _INDEX_FILE
     if home_target is not None and portal.is_file():
+        if not card_targets:
+            return portal
         document = portal.read_text(encoding="utf-8")
         cards_markup = (
             '<div data-dockle-target-cards class="dockle-portal-grid" '
@@ -849,14 +867,24 @@ def write_portal(
         )
     logo = ""
     if logo_asset is not None:
+        logo_url = (
+            logo_asset
+            if isinstance(logo_asset, str)
+            else f"_dockle/{escape(logo_asset.name)}"
+        )
         logo = (
             f'      <img class="dockle-portal-logo" '
-            f'src="_dockle/{escape(logo_asset.name)}" alt="">\n'
+            f'src="{escape(logo_url)}" alt="">\n'
         )
     favicon = ""
     if favicon_asset is not None:
+        favicon_url = (
+            favicon_asset
+            if isinstance(favicon_asset, str)
+            else f"_dockle/{escape(favicon_asset.name)}"
+        )
         favicon = (
-            f'  <link rel="icon" href="_dockle/{escape(favicon_asset.name)}" '
+            f'  <link rel="icon" href="{escape(favicon_url)}" '
             "data-dockle-favicon>\n"
         )
     project_docs = ""

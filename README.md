@@ -17,11 +17,11 @@
 Dockle is a configuration and presentation layer for documentation generators. A project describes itself once in
 `dockle.toml`; Dockle translates that model into temporary Sphinx, Doxygen, MkDocs, JSDoc, or rustdoc configuration,
 runs the underlying tool, and applies its own shared, Furo-inspired visual layer to the generated HTML. A full build
-also creates a landing page that connects every target into one publishable documentation site.
+publishes a configured home target directly, adding a landing page only when a project needs one.
 
-The root can itself be a Sphinx target, with cards to every framework example
-injected into its landing page. Project logos and metadata are configured once
-and then copied into every generated documentation set.
+Any framework can own the root, with cards to other published targets injected
+when needed. Project assets and metadata are configured once and then applied
+to every generated documentation set.
 
 The Sphinx integration is a first-party `dockle` theme. Furo is a design reference, not a runtime dependency or base
 theme.
@@ -29,7 +29,7 @@ theme.
 ## Why Dockle?
 
 - Keep framework-specific configuration out of consumer repositories.
-- Build several documentation targets and a root documentation portal from one command.
+- Build one or several documentation targets from one command.
 - Give prose and API references the same colors, typography, spacing, code blocks, tables, and responsive behavior.
 - Keep the generators replaceable: Dockle orchestrates them rather than attempting to parse every source format itself.
 
@@ -120,8 +120,10 @@ The configuration path can be changed with `dockle --config path/to/dockle.toml 
 whole output tree so removed targets cannot leave stale pages behind; a named-target build only replaces that target.
 Strict mode is opt-in for consumers; set `strict = true` when warnings should fail the build. Doxygen's individual
 documentation warning switches remain enabled by default. A Sphinx target can set `extra_config` to a Python fragment
-that Dockle executes after its generated `conf.py`, and a Doxygen target can set `generate_xml = true` when an extension
-such as Breathe needs XML alongside the native HTML output.
+that Dockle executes after its generated `conf.py`, and a Doxygen target can set `generate_xml = true` and
+`publish = false` when an extension such as Breathe needs XML without a separate public API site. On Read the Docs,
+Dockle derives the displayed version from `READTHEDOCS_VERSION` and preserves the configured width of all-zero versions
+for numeric pull-request builds.
 
 ## Review all five adapters
 

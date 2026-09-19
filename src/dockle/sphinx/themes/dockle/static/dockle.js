@@ -363,7 +363,8 @@
       });
   };
 
-  document.querySelectorAll(".dockle-tabs").forEach((tabSet, setIndex) => {
+  document.querySelectorAll(".dockle-tabs, .tabbed").forEach((tabSet, setIndex) => {
+    tabSet.classList.add("dockle-tabs");
     const details = [...tabSet.querySelectorAll(":scope > details")];
     const aliasList = tabSet.querySelector(":scope > ul");
     const aliasItems = aliasList

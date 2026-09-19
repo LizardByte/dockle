@@ -250,6 +250,25 @@ generate_xml = true''',
         self.assertIn("WARN_NO_PARAMDOC         = YES", doxyfile)
         self.assertIn('ALIASES                += "example{1}', doxyfile)
 
+    def test_unpublished_doxygen_target_generates_xml_without_html(self) -> None:
+        configured = ALL_TARGETS_CONFIG.replace(
+            'framework = "doxygen"\nsource = "cpp"',
+            '''framework = "doxygen"
+source = "cpp"
+publish = false
+
+[targets.doxygen]
+generate_xml = true''',
+        )
+        self.config_path.write_text(configured, encoding="utf-8")
+        config = load_config(self.config_path)
+
+        plan = BuildManager(config).plan(config.targets[1])
+        doxyfile = plan.generated_files[plan.work / "Doxyfile"]
+
+        self.assertIn("GENERATE_HTML            = NO", doxyfile)
+        self.assertIn("GENERATE_XML             = YES", doxyfile)
+
     def test_mkdocs_plan_generates_only_dockle_owned_config(self) -> None:
         plan = self.manager.plan(self.config.targets[2])
         native = plan.generated_files[plan.work / "mkdocs.yml"]

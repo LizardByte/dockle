@@ -68,9 +68,11 @@ Project metadata
 ----------------
 
 ``project.name`` is required. The optional ``version``, ``description``, ``repository``, ``author``, and ``copyright``
-values are translated into native metadata where a generator supports them. The optional ``logo`` and ``favicon``
-paths must name files within the project. Dockle copies the favicon into every generated backend and the portal. The
-portal always uses the name, description, version, and repository.
+values are translated into native metadata where a generator supports them. The optional ``logo`` and ``favicon`` may
+name files within the project or HTTP(S) URLs. Dockle copies local assets into every generated backend and uses remote
+assets directly. On Read the Docs, ``READTHEDOCS_VERSION`` overrides ``version``. A
+numeric pull-request version replaces the final component of an all-zero configured version (for example, ``0.0.0``
+becomes ``0.0.908``), preserving each project's version width.
 
 Theme tokens
 ------------
@@ -89,7 +91,7 @@ Build behavior
    Disposable native configurations and intermediate files. Defaults to ``.dockle``.
 
 ``build.strict``
-   Enables warning-as-error behavior in each adapter. Defaults to ``true``.
+   Enables warning-as-error behavior in each adapter. Defaults to ``false``.
 
 ``build.clean``
    Replaces generated output instead of merging into it. A full build owns and cleans the whole output tree; a build
@@ -102,12 +104,14 @@ Targets
 
 At least one ``[[targets]]`` table is required. ``name``, ``framework``, and ``source`` are required. Names use
 lowercase letters, numbers, hyphens, and underscores and become output directory names by default. ``title`` and
-``description`` label the target on the generated portal. ``output`` can select another directory below
-``build.output``.
+``description`` label the target on a generated multi-target portal. ``output`` can select another directory below
+``build.output``. Set ``publish = false`` when an adapter must generate non-HTML artifacts for another target without
+appearing in the published site.
 
-One Sphinx target may set ``home = true``. Dockle publishes that target at ``build.output`` and injects the comparison
-cards after its first heading. To control their exact location, add ``<div data-dockle-target-cards></div>`` in a raw
-HTML block. A home target cannot set ``output``; all other targets remain in their own directories below it.
+One published target of any framework may set ``home = true``. Dockle publishes that target at ``build.output``. When
+other published targets exist, Dockle injects comparison cards after its first heading; control their exact location
+with ``<div data-dockle-target-cards></div>`` in a raw HTML block. A home target cannot set ``output``; all other
+targets remain in their own directories below it.
 
 The supported framework names and ``entry`` behavior are:
 

@@ -4,9 +4,7 @@
 
 {% block extrahead %}
   {{ super() }}
-  <script defer src="{{ pathto('_static/lucide.min.js', 1)|e }}"></script>
-  <script defer src="{{ pathto('_static/highlight.min.js', 1)|e }}"></script>
-  <script defer src="{{ pathto('_static/dockle.js', 1)|e }}"></script>
+  <script defer src="{{ pathto('_static/dockle.js', 1)|e }}" data-dockle-script></script>
   <style>
     :root,
     :root[data-color-scheme="light"] {

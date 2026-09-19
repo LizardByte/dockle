@@ -3,6 +3,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from dockle.config import ConfigError, load_config
 
@@ -90,6 +91,38 @@ class ConfigTests(unittest.TestCase):
                 config.project.favicon,
                 (root / "favicon.svg").resolve(),
             )
+
+    def test_accepts_remote_project_assets(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "dockle.toml"
+            logo = "https://example.com/logo.png"
+            favicon = "https://example.com/favicon.svg"
+            path.write_text(
+                MINIMAL_CONFIG.replace(
+                    'name = "Example"',
+                    f'name = "Example"\nlogo = "{logo}"\nfavicon = "{favicon}"',
+                ),
+                encoding="utf-8",
+            )
+
+            project = load_config(path).project
+            self.assertEqual(project.logo, logo)
+            self.assertEqual(project.favicon, favicon)
+
+    def test_derives_project_version_from_read_the_docs(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "dockle.toml"
+            path.write_text(
+                MINIMAL_CONFIG.replace(
+                    'name = "Example"', 'name = "Example"\nversion = "0.0.0"'
+                ),
+                encoding="utf-8",
+            )
+
+            with patch.dict("os.environ", {"READTHEDOCS_VERSION": "908"}):
+                self.assertEqual(load_config(path).project.version, "0.0.908")
+            with patch.dict("os.environ", {"READTHEDOCS_VERSION": "latest"}):
+                self.assertEqual(load_config(path).project.version, "latest")
 
     def test_rejects_missing_project_asset(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -202,7 +235,7 @@ source = "src"
                 config.targets[1].output, config.build.output / "api"
             )
 
-    def test_rejects_non_sphinx_home_target(self) -> None:
+    def test_non_sphinx_home_target_owns_build_root(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "dockle.toml"
             path.write_text(
@@ -212,7 +245,30 @@ source = "src"
                 encoding="utf-8",
             )
 
-            with self.assertRaisesRegex(ConfigError, "home requires"):
+            config = load_config(path)
+
+            self.assertTrue(config.targets[0].home)
+            self.assertEqual(config.targets[0].output, config.build.output)
+
+    def test_loads_unpublished_target_and_rejects_unpublished_home(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "dockle.toml"
+            path.write_text(
+                MINIMAL_CONFIG.replace(
+                    'source = "docs"', 'source = "docs"\npublish = false'
+                ),
+                encoding="utf-8",
+            )
+            self.assertFalse(load_config(path).targets[0].publish)
+
+            path.write_text(
+                MINIMAL_CONFIG.replace(
+                    'source = "docs"',
+                    'source = "docs"\nhome = true\npublish = false',
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ConfigError, "home requires publish"):
                 load_config(path)
 
     def test_rejects_multiple_home_targets(self) -> None:

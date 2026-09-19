@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 import tomllib
 from collections.abc import Mapping
@@ -26,6 +27,7 @@ _TARGET_KEYS = {
     "framework",
     "source",
     "output",
+    "publish",
     "entry",
     "home",
 }
@@ -46,8 +48,8 @@ class ProjectConfig:
     author: str = ""
     copyright: str = ""
     home: Path | None = None
-    logo: Path | None = None
-    favicon: Path | None = None
+    logo: Path | str | None = None
+    favicon: Path | str | None = None
 
 
 @dataclass(frozen=True)
@@ -148,6 +150,7 @@ class TargetConfig:
     rustdoc: RustdocConfig | None = None
     entry: str = "index"
     home: bool = False
+    publish: bool = True
 
 
 @dataclass(frozen=True)
@@ -243,14 +246,16 @@ def _load_project(raw: dict[str, Any], root: Path) -> ProjectConfig:
     _reject_unknown(raw, allowed, "project")
     return ProjectConfig(
         name=_required_string(raw, "name", "project"),
-        version=_optional_string(raw, "version", "project"),
+        version=_readthedocs_version(
+            _optional_string(raw, "version", "project")
+        ),
         description=_optional_string(raw, "description", "project"),
         repository=_optional_string(raw, "repository", "project"),
         author=_optional_string(raw, "author", "project"),
         copyright=_optional_string(raw, "copyright", "project"),
         home=_optional_project_path(raw, "home", root),
-        logo=_optional_project_path(raw, "logo", root),
-        favicon=_optional_project_path(raw, "favicon", root),
+        logo=_optional_project_asset(raw, "logo", root),
+        favicon=_optional_project_asset(raw, "favicon", root),
     )
 
 
@@ -266,6 +271,30 @@ def _optional_project_path(
     if not resolved.is_file():
         raise ConfigError(f"project.{key} does not exist: {resolved}")
     return resolved
+
+
+def _optional_project_asset(
+    raw: dict[str, Any],
+    key: str,
+    root: Path,
+) -> Path | str | None:
+    value = _optional_string(raw, key, "project")
+    if value.startswith(("https://", "http://")):
+        return value
+    return _optional_project_path(raw, key, root)
+
+
+def _readthedocs_version(configured: str) -> str:
+    """Use the hosted version slug while preserving project version width."""
+
+    hosted = os.environ.get("READTHEDOCS_VERSION", "").strip()
+    if not hosted:
+        return configured
+    if hosted.isdecimal() and re.fullmatch(r"0(?:\.0)+", configured):
+        parts = configured.split(".")
+        parts[-1] = hosted
+        return ".".join(parts)
+    return hosted
 
 
 def _load_theme(raw: dict[str, Any]) -> ThemeConfig:
@@ -357,8 +386,11 @@ def _load_target(
     sphinx = _load_sphinx(item, where, root, framework)
     rustdoc = _load_rustdoc(item, where, root, framework)
     home = _optional_bool(item, "home", where, False)
+    publish = _optional_bool(item, "publish", where, True)
+    if home and not publish:
+        raise ConfigError(f"{where}.home requires publish = true")
     output, home_target = _target_output(
-        item, where, name, framework, home, build, outputs, home_target
+        item, where, name, home, build, outputs, home_target
     )
     if source == output or source.is_relative_to(output):
         raise ConfigError(
@@ -381,6 +413,7 @@ def _load_target(
             rustdoc=rustdoc,
             entry=_target_entry(item, where),
             home=home,
+            publish=publish,
         ),
         home_target,
     )
@@ -628,15 +661,12 @@ def _target_output(
     item: dict[str, Any],
     where: str,
     name: str,
-    framework: str,
     home: bool,
     build: BuildConfig,
     outputs: set[Path],
     home_target: str | None,
 ) -> tuple[Path, str | None]:
     if home:
-        if framework != "sphinx":
-            raise ConfigError(f"{where}.home requires framework = 'sphinx'")
         if "output" in item:
             raise ConfigError(f"{where}.output cannot be set for the home target")
         if home_target is not None:

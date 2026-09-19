@@ -18,6 +18,7 @@ from dockle import __version__
 from dockle.config import DockleConfig, TargetConfig
 from dockle.theme import (
     ThemeError,
+    _theme_asset,
     annotate_doxygen_code_languages,
     apply_theme,
     render_theme,
@@ -107,11 +108,13 @@ class Builder(ABC):
     def finalize(self, stylesheet: str) -> int:
         """Collect framework output and apply the compatibility theme."""
 
+        if not self.target.publish:
+            return 0
         return apply_theme(
             self.target.output,
             self.target.framework,
             stylesheet,
-            portal=self.config.build.output,
+            portal=(None if self.target.home else self.config.build.output),
             project_name=self.config.project.name,
             project_version=self.config.project.version,
             target_title=self.target.title,
@@ -177,7 +180,7 @@ class SphinxBuilder(Builder):
             f"html_js_files = {list(settings.extra_javascript)!r}",
             "",
         ]
-        if self.config.project.logo is not None:
+        if isinstance(self.config.project.logo, Path):
             lines.insert(
                 -2, f"html_logo = {str(self.config.project.logo)!r}"
             )
@@ -255,7 +258,7 @@ class DoxygenBuilder(Builder):
             "INPUT": _doxygen_paths(settings.inputs),
             "RECURSIVE": "YES",
             "EXTRACT_ALL": "NO",
-            "GENERATE_HTML": "YES",
+            "GENERATE_HTML": _doxygen_yes_no(self.target.publish),
             "HTML_OUTPUT": ".",
             "HTML_COLORSTYLE": "LIGHT",
             "HTML_COPY_CLIPBOARD": "NO",
@@ -561,6 +564,10 @@ class JsDocBuilder(Builder):
         """Validate the pages emitted by the native JSDoc template."""
 
         del stylesheet
+        if not self.target.publish:
+            return 0
+        for name in ("lucide.min.js", "highlight.min.js"):
+            shutil.copyfile(_theme_asset(name), self.target.output / name)
         html_files = sorted(self.target.output.rglob("*.html"))
         if not html_files:
             raise ThemeError(
