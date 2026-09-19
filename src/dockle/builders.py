@@ -577,17 +577,12 @@ class JsDocBuilder(Builder):
             shutil.copy2(extra_file, self.target.output / extra_file.name)
         for name in ("lucide.min.js", "highlight.min.js"):
             shutil.copyfile(_theme_asset(name), self.target.output / name)
-        html_files = sorted(self.target.output.rglob("*.html"))
-        if not html_files:
-            raise ThemeError(
-                f"jsdoc did not generate any HTML files in {self.target.output}"
-            )
-        for html_file in html_files:
+        html_files: list[Path] = []
+        for html_file in sorted(self.target.output.rglob("*.html")):
             document = html_file.read_text(encoding="utf-8")
             if 'data-dockle-framework="jsdoc"' not in document:
-                raise ThemeError(
-                    f"jsdoc did not use Dockle's native template: {html_file}"
-                )
+                continue
+            html_files.append(html_file)
             assets = [
                 *(
                     '<link rel="stylesheet" href="'
@@ -606,6 +601,11 @@ class JsDocBuilder(Builder):
                     "</head>", "\n".join(assets) + "\n</head>", 1
                 )
                 html_file.write_text(document, encoding="utf-8")
+        if not html_files:
+            raise ThemeError(
+                "jsdoc did not generate HTML with Dockle's native template in "
+                f"{self.target.output}"
+            )
         return len(html_files)
 
     def _asset_url(self, asset: str, html_file: Path) -> str:

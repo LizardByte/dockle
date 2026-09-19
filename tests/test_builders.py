@@ -71,7 +71,7 @@ class RecordingRunner:
         )
         (self.html_output / "index.html").write_text(
             f"<!doctype html><html{root}><head><title>Fixture</title>"
-            f"{favicon}</head><body><main>Docs</main></body></html>",
+            f"{favicon}</head><body><main><h1>Docs</h1></main></body></html>",
             encoding="utf-8",
         )
         if is_jsdoc:
@@ -491,6 +491,44 @@ extra_javascript = ["project.js"]''',
         self.assertIn('data-dockle-framework="portal"', portal)
         self.assertIn('href="jsdoc/"', portal)
         self.assertIn("data-dockle-favicon", portal)
+
+    def test_home_jsdoc_ignores_other_target_pages(self) -> None:
+        fake_tool = self.root / "fake-jsdoc"
+        fake_tool.touch()
+        configured = '''
+[project]
+name = "Example API"
+
+[build]
+strict = true
+
+[tools]
+jsdoc = "./fake-jsdoc"
+
+[[targets]]
+name = "jsdoc"
+framework = "jsdoc"
+source = "javascript"
+home = true
+
+[[targets]]
+name = "doxygen"
+framework = "doxygen"
+source = "cpp"
+'''
+        self.config_path.write_text(configured, encoding="utf-8")
+        config = load_config(self.config_path)
+        target = config.targets[0]
+        target.output.mkdir(parents=True)
+        unrelated = target.output / "doxygen" / "index.html"
+        unrelated.parent.mkdir()
+        unrelated.write_text("<html><body>Doxygen</body></html>", encoding="utf-8")
+        runner = RecordingRunner(target.output)
+
+        result = BuildManager(config, runner=runner).build((target,))
+
+        self.assertGreater(result[0].themed_pages, 0)
+        self.assertTrue(unrelated.is_file())
 
     def test_resolves_project_local_node_tool(self) -> None:
         executable = (
