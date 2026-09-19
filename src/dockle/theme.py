@@ -808,9 +808,9 @@ def write_portal(
     home_target = next((target for target in config.targets if target.home), None)
     card_targets = _portal_card_targets(config, targets, home_target)
     cards = _portal_cards(card_targets, output)
-    portal = output / _INDEX_FILE
+    portal = _portal_path(config)
     if home_target is not None and portal.is_file():
-        return _update_home_portal(portal, cards, bool(card_targets))
+        return _update_home_portal(config, cards, bool(card_targets))
 
     asset_dir = _write_theme_assets(output, stylesheet)
     logo_asset = _copy_logo(config.project.logo, asset_dir)
@@ -825,6 +825,19 @@ def write_portal(
     return portal
 
 
+def _portal_path(config: DockleConfig) -> Path:
+    """Return the fixed portal file after validating the configured output."""
+
+    root = config.root.resolve()
+    output = config.build.output.resolve()
+    if output != root and not output.is_relative_to(root):
+        raise ThemeError(f"build output must stay within project root: {output}")
+    portal = (output / _INDEX_FILE).resolve()
+    if portal.parent != output:
+        raise ThemeError(f"portal path must stay within build output: {portal}")
+    return portal
+
+
 def _portal_card_targets(
     config: DockleConfig,
     targets: tuple[TargetConfig, ...],
@@ -836,7 +849,10 @@ def _portal_card_targets(
     )
 
 
-def _update_home_portal(portal: Path, cards: str, has_cards: bool) -> Path:
+def _update_home_portal(
+    config: DockleConfig, cards: str, has_cards: bool
+) -> Path:
+    portal = _portal_path(config)
     if not has_cards:
         return portal
     document = portal.read_text(encoding="utf-8")

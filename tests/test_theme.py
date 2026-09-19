@@ -7,9 +7,10 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from dockle import __version__
-from dockle.config import ThemeConfig
+from dockle.config import BuildConfig, DockleConfig, ProjectConfig, ThemeConfig
 from dockle.theme import (
     ThemeError,
+    _portal_path,
     _theme_asset,
     annotate_doxygen_code_languages,
     apply_theme,
@@ -18,6 +19,26 @@ from dockle.theme import (
 
 
 class ThemeTests(unittest.TestCase):
+    def test_portal_path_rejects_output_outside_project_root(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config = DockleConfig(
+                path=root / "dockle.toml",
+                root=root / "project",
+                project=ProjectConfig(name="Example"),
+                theme=ThemeConfig(),
+                build=BuildConfig(
+                    output=root / "outside",
+                    work=root / "project" / ".dockle",
+                ),
+                targets=(),
+            )
+
+            with self.assertRaisesRegex(
+                ThemeError, "build output must stay within project root"
+            ):
+                _portal_path(config)
+
     def test_theme_asset_returns_source_path_without_packaged_asset(
         self,
     ) -> None:
