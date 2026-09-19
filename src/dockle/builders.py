@@ -311,9 +311,13 @@ class DoxygenBuilder(Builder):
             "QUIET": "YES",
             "DOT_GRAPH_MAX_NODES": str(settings.dot_graph_max_nodes),
         }
+        extra_files = list(settings.extra_files)
+        project_logo = self.config.project.logo
+        if isinstance(project_logo, Path) and project_logo not in extra_files:
+            extra_files.append(project_logo)
         optional_paths = {
             "EXCLUDE": settings.excludes,
-            "HTML_EXTRA_FILES": settings.extra_files,
+            "HTML_EXTRA_FILES": tuple(extra_files),
             "IMAGE_PATH": settings.image_paths,
             "INCLUDE_PATH": settings.include_paths,
         }
@@ -642,8 +646,25 @@ class RustdocBuilder(Builder):
                 f"cargo did not generate a crate index in {self.target.output}"
             )
 
-        if len(crates) == 1:
+        requested_entry = self.target.entry.removesuffix("/index.html")
+        requested_entry = requested_entry.removesuffix("/")
+        selected_crate = next(
+            (crate for crate in crates if crate.name == requested_entry),
+            None,
+        )
+        if self.target.entry != _INDEX_DOCUMENT.removesuffix(".html"):
+            if selected_crate is None:
+                raise BuildError(
+                    "rustdoc entry does not match a generated crate: "
+                    f"{self.target.entry}"
+                )
+            destination = f"{selected_crate.name}/"
+        elif len(crates) == 1:
             destination = f"{crates[0].name}/"
+        else:
+            destination = ""
+
+        if destination:
             script_destination = json.dumps(destination)
             head_extra = (
                 '<meta http-equiv="refresh" content="0; '
@@ -651,7 +672,8 @@ class RustdocBuilder(Builder):
                 "  <script>window.location.replace("
                 f"{script_destination});</script>"
             )
-            body = f'  <p>Continue to <a href="{escape(destination)}">{escape(crates[0].name)}</a>.</p>'
+            crate_name = destination.rstrip("/")
+            body = f'  <p>Continue to <a href="{escape(destination)}">{escape(crate_name)}</a>.</p>'
         else:
             head_extra = ""
             links = "\n".join(

@@ -244,6 +244,8 @@ def _load_project(raw: dict[str, Any], root: Path) -> ProjectConfig:
         "favicon",
     }
     _reject_unknown(raw, allowed, "project")
+    logo = _optional_project_asset(raw, "logo", root)
+    favicon = _optional_project_asset(raw, "favicon", root) or logo
     return ProjectConfig(
         name=_required_string(raw, "name", "project"),
         version=_readthedocs_version(
@@ -254,8 +256,8 @@ def _load_project(raw: dict[str, Any], root: Path) -> ProjectConfig:
         author=_optional_string(raw, "author", "project"),
         copyright=_optional_string(raw, "copyright", "project"),
         home=_optional_project_path(raw, "home", root),
-        logo=_optional_project_asset(raw, "logo", root),
-        favicon=_optional_project_asset(raw, "favicon", root),
+        logo=logo,
+        favicon=favicon,
     )
 
 

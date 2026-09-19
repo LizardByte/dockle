@@ -10,7 +10,7 @@ from stat import S_IXUSR
 from unittest.mock import patch
 
 from dockle import __version__
-from dockle.builders import BuildError, BuildManager, Command
+from dockle.builders import BuildError, BuildManager, Command, RustdocBuilder
 from dockle.config import load_config
 
 ALL_TARGETS_CONFIG = """
@@ -250,6 +250,23 @@ generate_xml = true''',
         self.assertIn("WARN_NO_PARAMDOC         = YES", doxyfile)
         self.assertIn('ALIASES                += "example{1}', doxyfile)
 
+    def test_doxygen_plan_copies_local_project_logo(self) -> None:
+        logo = self.root / "logo.svg"
+        logo.write_text("<svg/>", encoding="utf-8")
+        self.config_path.write_text(
+            ALL_TARGETS_CONFIG.replace(
+                'description = "Example documentation"',
+                'description = "Example documentation"\nlogo = "logo.svg"',
+            ),
+            encoding="utf-8",
+        )
+        config = load_config(self.config_path)
+
+        plan = BuildManager(config).plan(config.targets[1])
+        doxyfile = plan.generated_files[plan.work / "Doxyfile"]
+
+        self.assertIn(f'"{logo.resolve().as_posix()}"', doxyfile)
+
     def test_unpublished_doxygen_target_generates_xml_without_html(self) -> None:
         configured = ALL_TARGETS_CONFIG.replace(
             'framework = "doxygen"\nsource = "cpp"',
@@ -380,6 +397,35 @@ exclude_pattern = "generated/"''',
         self.assertTrue(
             plan.command.env["RUSTDOCFLAGS"].endswith("-D warnings")
         )
+
+    def test_rustdoc_entry_selects_primary_workspace_crate(self) -> None:
+        target = replace(self.config.targets[4], entry="koko")
+        builder = RustdocBuilder(self.config, target, "cargo")
+        for crate in ("koko", "xtask"):
+            crate_output = target.output / crate
+            crate_output.mkdir(parents=True)
+            (crate_output / "index.html").write_text(
+                f"<h1>{crate}</h1>", encoding="utf-8"
+            )
+
+        builder._write_index()
+
+        index = (target.output / "index.html").read_text(encoding="utf-8")
+        self.assertIn("url=koko/", index)
+        self.assertIn('window.location.replace("koko/")', index)
+        self.assertNotIn("xtask", index)
+
+    def test_rustdoc_entry_must_match_generated_crate(self) -> None:
+        target = replace(self.config.targets[4], entry="missing")
+        builder = RustdocBuilder(self.config, target, "cargo")
+        crate_output = target.output / "koko"
+        crate_output.mkdir(parents=True)
+        (crate_output / "index.html").write_text(
+            "<h1>Koko</h1>", encoding="utf-8"
+        )
+
+        with self.assertRaisesRegex(BuildError, "rustdoc entry"):
+            builder._write_index()
 
     def test_build_writes_generated_config_and_themes_html(self) -> None:
         fake_tool = self.root / "fake-jsdoc"

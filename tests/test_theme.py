@@ -309,6 +309,35 @@ class ThemeTests(unittest.TestCase):
                 html.read_text(encoding="utf-8"),
             )
 
+    def test_doxygen_blockquote_fences_keep_language_and_blank_lines(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source"
+            output = root / "output"
+            source.mkdir()
+            output.mkdir()
+            (source / "README.md").write_text(
+                "> ```bash\n> echo first\n>\n> echo second\n> ```\n",
+                encoding="utf-8",
+            )
+            html = output / "index.html"
+            html.write_text(
+                '<div class="fragment"><div class="line">echo first</div>'
+                '<div class="line">&lt;br&gt;&lt;br&gt;</div>'
+                '<div class="line">echo second</div></div><!-- fragment -->',
+                encoding="utf-8",
+            )
+
+            count = annotate_doxygen_code_languages(output, source)
+
+            self.assertEqual(count, 1)
+            self.assertIn(
+                'data-dockle-language="bash"',
+                html.read_text(encoding="utf-8"),
+            )
+
     def test_apply_theme_is_idempotent(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory)

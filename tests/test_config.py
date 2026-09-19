@@ -109,6 +109,22 @@ class ConfigTests(unittest.TestCase):
             self.assertEqual(project.logo, logo)
             self.assertEqual(project.favicon, favicon)
 
+    def test_project_logo_is_the_default_favicon(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "dockle.toml"
+            logo = "https://example.com/logo.svg"
+            path.write_text(
+                MINIMAL_CONFIG.replace(
+                    'name = "Example"', f'name = "Example"\nlogo = "{logo}"'
+                ),
+                encoding="utf-8",
+            )
+
+            project = load_config(path).project
+
+            self.assertEqual(project.logo, logo)
+            self.assertEqual(project.favicon, logo)
+
     def test_derives_project_version_from_read_the_docs(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "dockle.toml"

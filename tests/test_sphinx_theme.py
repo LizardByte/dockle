@@ -47,6 +47,19 @@ class SphinxThemeTests(unittest.TestCase):
             .read_text(encoding="utf-8")
             .lower(),
         )
+        sphinx_layout = (THEME_DIRECTORY / "layout.html").read_text(
+            encoding="utf-8"
+        )
+        mkdocs_layout = (THEME_DIRECTORY / "main.html").read_text(
+            encoding="utf-8"
+        )
+        for layout in (sphinx_layout, mkdocs_layout):
+            self.assertLess(
+                layout.index("lucide.min.js"), layout.index("dockle.js")
+            )
+            self.assertLess(
+                layout.index("highlight.min.js"), layout.index("dockle.js")
+            )
 
     def test_theme_supports_auto_light_and_dark_modes(self) -> None:
         script = (THEME_DIRECTORY / "static" / "dockle.js").read_text(
@@ -86,8 +99,8 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertIn('doxygen: "#nav-tree .label > a[href]"', script)
         self.assertIn('mkdocs: ".dockle-tree a[href]"', script)
         self.assertIn("normalizeDoxygenSidebar", script)
-        self.assertIn('a[href*="#"]', script)
-        self.assertIn("new MutationObserver(removePageFragments)", script)
+        self.assertNotIn('link.closest("li")?.remove()', script)
+        self.assertIn("new MutationObserver(normalizeHierarchy)", script)
         self.assertIn(".dockle-current-item", stylesheet)
         self.assertIn("#nav-tree ul.children_ul", stylesheet)
         self.assertIn('body > nav li {', stylesheet)
@@ -125,7 +138,8 @@ class SphinxThemeTests(unittest.TestCase):
         )
 
         self.assertIn("if (label.textContent !== pageTitle)", script)
-        self.assertIn("new MutationObserver(removePageFragments)", script)
+        self.assertIn("new MutationObserver(normalizeHierarchy)", script)
+        self.assertNotIn("removePageFragments", script)
 
     def test_tabs_support_keyboard_navigation_and_named_groups(self) -> None:
         stylesheet = (
@@ -140,6 +154,8 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertIn('["ArrowLeft", "ArrowRight", "Home", "End"]', script)
         self.assertIn("sessionStorage.getItem", script)
         self.assertIn("sessionStorage.setItem", script)
+        self.assertIn("normalizeAliasTable", script)
+        self.assertIn("dockle-alias-table", stylesheet)
         self.assertIn(".dockle-tab-list button:focus-visible", stylesheet)
 
     def test_sidebar_identity_stays_pinned_and_compacts_on_scroll(self) -> None:
@@ -282,6 +298,8 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertIn('["shell-session", "console"]', script)
         self.assertIn('document.querySelectorAll("pre")', script)
         self.assertIn("code.textContent = source", script)
+        self.assertIn("<br\\s*\\/?\\s*>", script)
+        self.assertIn("normalizeDoxygenBlankCodeLines", script)
         self.assertIn("globalThis.hljs.highlightElement", script)
         self.assertTrue(
             highlighter.startswith(
