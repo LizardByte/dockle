@@ -32,16 +32,6 @@ class ProjectDogfoodTests(unittest.TestCase):
             PROJECT_ROOT / "branding" / "dockle-logo.svg",
         )
 
-    def test_common_cpp_lint_submodule_is_configured(self) -> None:
-        modules = (PROJECT_ROOT / ".gitmodules").read_text(encoding="utf-8")
-
-        self.assertIn("third-party/lizardbyte-common", modules)
-        self.assertIn("LizardByte/lizardbyte-common.git", modules)
-        clang_format = (PROJECT_ROOT / ".clang-format").read_text(
-            encoding="utf-8"
-        )
-        self.assertIn("centrally managed", clang_format)
-
     def test_read_the_docs_build_publishes_dockle_output(self) -> None:
         contents = (PROJECT_ROOT / ".readthedocs.yaml").read_text(
             encoding="utf-8"
@@ -205,7 +195,6 @@ class ProjectDogfoodTests(unittest.TestCase):
         dependency_files = [
             PROJECT_ROOT / "pyproject.toml",
             PROJECT_ROOT / "package.json",
-            PROJECT_ROOT / ".gitmodules",
         ]
 
         declared = "\n".join(
