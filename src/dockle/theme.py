@@ -57,9 +57,6 @@ _DOXYGEN_FRAGMENT_LINE = re.compile(
 _MARKDOWN_FENCE = re.compile(
     r"^(?P<indent> {0,3}+)(?P<fence>`{3,}+|~{3,}+)(?P<info>[^\r\n]*+)$"
 )
-_ALIAS_MARKDOWN_FENCE = re.compile(
-    r"^.*?\|:\|\s*(?P<fence>`{3,}+|~{3,}+)(?P<info>[^\r\n]*+)$"
-)
 _DOCKLE_URL = "https://github.com/LizardByte/dockle"
 _CSS_ASSET = "dockle.css"
 _SCRIPT_ASSET = "dockle.js"
@@ -308,7 +305,9 @@ def _markdown_fences(markdown_file: Path) -> Iterator[tuple[str, list[str]]]:
     while index < len(lines):
         opening = _MARKDOWN_FENCE.match(lines[index])
         if opening is None:
-            opening = _ALIAS_MARKDOWN_FENCE.match(lines[index])
+            _, separator, alias_content = lines[index].partition("|:|")
+            if separator:
+                opening = _MARKDOWN_FENCE.match(alias_content.lstrip())
         if opening is None:
             index += 1
             continue
@@ -807,96 +806,79 @@ def write_portal(
     output = config.build.output
     output.mkdir(parents=True, exist_ok=True)
     home_target = next((target for target in config.targets if target.home), None)
-    card_targets = (
-        tuple(
-            target
-            for target in config.targets
-            if not target.home and target.publish
-        )
-        if home_target is not None
-        else tuple(target for target in targets if target.publish)
-    )
+    card_targets = _portal_card_targets(config, targets, home_target)
     cards = _portal_cards(card_targets, output)
     portal = output / _INDEX_FILE
     if home_target is not None and portal.is_file():
-        if not card_targets:
-            return portal
-        document = portal.read_text(encoding="utf-8")
-        cards_markup = (
-            '<div data-dockle-target-cards class="dockle-portal-grid" '
-            'aria-label="Documentation examples">\n'
-            f"{cards}\n"
-            "</div>"
-        )
-        document, replacements = _replace_element(
-            document,
-            _TARGET_CARDS_START,
-            "</div>",
-            cards_markup,
-            count=1,
-        )
-        if not replacements:
-            heading = _FIRST_H1_END.search(document)
-            if heading is None:
-                raise ThemeError(
-                    f"home target has no heading for comparison cards: {portal}"
-                )
-            document = (
-                f"{document[:heading.end()]}\n{cards_markup}"
-                f"{document[heading.end():]}"
-            )
-        portal.write_text(document, encoding="utf-8")
-        return portal
+        return _update_home_portal(portal, cards, bool(card_targets))
 
     asset_dir = _write_theme_assets(output, stylesheet)
     logo_asset = _copy_logo(config.project.logo, asset_dir)
     favicon_asset = _copy_favicon(config.project.favicon, asset_dir)
-
-    version = (
-        f" <span>{escape(config.project.version)}</span>"
-        if config.project.version
-        else ""
+    document = _standalone_portal_document(
+        config,
+        cards,
+        logo_asset,
+        favicon_asset,
     )
-    repository = ""
-    if config.project.repository:
-        repository = (
-            '    <p class="dockle-portal-repository">'
-            f'<a href="{escape(config.project.repository)}">'
-            'Source repository<i data-lucide="external-link" '
-            'aria-hidden="true"></i></a></p>\n'
-        )
-    logo = ""
-    if logo_asset is not None:
-        logo_url = (
-            logo_asset
-            if isinstance(logo_asset, str)
-            else f"_dockle/{escape(logo_asset.name)}"
-        )
-        logo = (
-            f'      <img class="dockle-portal-logo" '
-            f'src="{escape(logo_url)}" alt="">\n'
-        )
-    favicon = ""
-    if favicon_asset is not None:
-        favicon_url = (
-            favicon_asset
-            if isinstance(favicon_asset, str)
-            else f"_dockle/{escape(favicon_asset.name)}"
-        )
-        favicon = (
-            f'  <link rel="icon" href="{escape(favicon_url)}" '
-            "data-dockle-favicon>\n"
-        )
-    project_docs = ""
-    if config.project.home is not None:
-        source = config.project.home.read_text(encoding="utf-8")
-        project_docs = (
-            '    <article class="dockle-portal-docs">\n'
-            f"{render_markdown(source)}\n"
-            "    </article>\n"
-        )
+    portal.write_text(document, encoding="utf-8")
+    return portal
 
-    document = f"""<!doctype html>
+
+def _portal_card_targets(
+    config: DockleConfig,
+    targets: tuple[TargetConfig, ...],
+    home_target: TargetConfig | None,
+) -> tuple[TargetConfig, ...]:
+    candidates = config.targets if home_target is not None else targets
+    return tuple(
+        target for target in candidates if not target.home and target.publish
+    )
+
+
+def _update_home_portal(portal: Path, cards: str, has_cards: bool) -> Path:
+    if not has_cards:
+        return portal
+    document = portal.read_text(encoding="utf-8")
+    cards_markup = (
+        '<div data-dockle-target-cards class="dockle-portal-grid" '
+        'aria-label="Documentation examples">\n'
+        f"{cards}\n"
+        "</div>"
+    )
+    document, replacements = _replace_element(
+        document,
+        _TARGET_CARDS_START,
+        "</div>",
+        cards_markup,
+        count=1,
+    )
+    if not replacements:
+        heading = _FIRST_H1_END.search(document)
+        if heading is None:
+            raise ThemeError(
+                f"home target has no heading for comparison cards: {portal}"
+            )
+        document = (
+            f"{document[:heading.end()]}\n{cards_markup}"
+            f"{document[heading.end():]}"
+        )
+    portal.write_text(document, encoding="utf-8")
+    return portal
+
+
+def _standalone_portal_document(
+    config: DockleConfig,
+    cards: str,
+    logo_asset: Path | str | None,
+    favicon_asset: Path | str | None,
+) -> str:
+    version = _portal_version(config.project.version)
+    repository = _portal_repository(config.project.repository)
+    logo = _portal_logo(logo_asset)
+    favicon = _portal_favicon(favicon_asset)
+    project_docs = _portal_project_docs(config.project.home)
+    return f"""<!doctype html>
 <html lang="en" data-dockle-framework="portal">
 <head>
   <meta charset="utf-8">
@@ -933,8 +915,54 @@ def write_portal(
 </body>
 </html>
 """
-    portal.write_text(document, encoding="utf-8")
-    return portal
+
+
+def _portal_version(version: str) -> str:
+    return f" <span>{escape(version)}</span>" if version else ""
+
+
+def _portal_repository(repository: str) -> str:
+    if not repository:
+        return ""
+    return (
+        '    <p class="dockle-portal-repository">'
+        f'<a href="{escape(repository)}">Source repository'
+        '<i data-lucide="external-link" aria-hidden="true"></i>'
+        "</a></p>\n"
+    )
+
+
+def _portal_logo(asset: Path | str | None) -> str:
+    if asset is None:
+        return ""
+    return (
+        '      <img class="dockle-portal-logo" '
+        f'src="{escape(_portal_asset_url(asset))}" alt="">\n'
+    )
+
+
+def _portal_favicon(asset: Path | str | None) -> str:
+    if asset is None:
+        return ""
+    return (
+        f'  <link rel="icon" href="{escape(_portal_asset_url(asset))}" '
+        "data-dockle-favicon>\n"
+    )
+
+
+def _portal_asset_url(asset: Path | str) -> str:
+    return asset if isinstance(asset, str) else f"_dockle/{asset.name}"
+
+
+def _portal_project_docs(home: Path | None) -> str:
+    if home is None:
+        return ""
+    source = home.read_text(encoding="utf-8")
+    return (
+        '    <article class="dockle-portal-docs">\n'
+        f"{render_markdown(source)}\n"
+        "    </article>\n"
+    )
 
 
 def _portal_cards(
