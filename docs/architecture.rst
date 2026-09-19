@@ -51,9 +51,8 @@ deleted before each build. The first schema deliberately exposes only concepts s
 
 * project name, version, description, repository, author, and copyright;
 * theme colors and font stacks;
-* output/work directories and strict/clean behavior; and
+* output/work directories and strict/clean behavior;
 * named targets with a title, description, framework, source, output, entry document, and optional Sphinx home role;
-  and
 * typed, namespaced settings for generator behavior that has no portable equivalent, beginning with Doxygen inputs,
   paths, definitions, assets, warnings, graph limits, and aliases.
 

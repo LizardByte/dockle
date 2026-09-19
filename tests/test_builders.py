@@ -128,7 +128,8 @@ exclude_patterns = ["drafts/**"]
 static_paths = ["sphinx-docs/_static"]
 extra_stylesheets = ["project.css"]
 extra_javascript = ["project.js"]
-extra_config = "sphinx-docs/extra_conf.py"''',
+extra_config = "sphinx-docs/extra_conf.py"
+source_edit_link = "https://example.invalid/edit/{filename}"''',
         )
         self.config_path.write_text(configured, encoding="utf-8")
         config = load_config(self.config_path)
@@ -140,6 +141,10 @@ extra_config = "sphinx-docs/extra_conf.py"''',
         self.assertIn(repr(str(static.resolve())), conf)
         self.assertIn("html_css_files = ['project.css']", conf)
         self.assertIn("html_js_files = ['project.js']", conf)
+        self.assertIn(
+            "'source_edit_link': 'https://example.invalid/edit/{filename}'",
+            conf,
+        )
         self.assertIn(repr(str(extra_config.resolve())), conf)
         self.assertIn("exec(compile(_dockle_extra_config.read_bytes()", conf)
 
@@ -389,13 +394,24 @@ exclude_pattern = "generated/"''',
         self.assertIn('"tutorials"', native)
 
     def test_rustdoc_plan_uses_cargo_without_dependencies(self) -> None:
-        plan = self.manager.plan(self.config.targets[4])
+        with patch.dict("os.environ", {}, clear=True):
+            plan = self.manager.plan(self.config.targets[4])
 
         self.assertEqual(plan.command.args[1], "doc")
         self.assertIn("--no-deps", plan.command.args)
         self.assertEqual(plan.command.cwd, self.config.targets[4].source)
-        self.assertTrue(
-            plan.command.env["RUSTDOCFLAGS"].endswith("-D warnings")
+        self.assertIn("--config", plan.command.args)
+        self.assertIn(
+            'build.rustdocflags=["-D","warnings"]', plan.command.args
+        )
+        self.assertNotIn("RUSTDOCFLAGS", plan.command.env)
+
+    def test_rustdoc_plan_extends_explicit_environment_flags(self) -> None:
+        with patch.dict("os.environ", {"RUSTDOCFLAGS": "--cfg docsrs"}):
+            plan = self.manager.plan(self.config.targets[4])
+
+        self.assertEqual(
+            plan.command.env["RUSTDOCFLAGS"], "--cfg docsrs -D warnings"
         )
 
     def test_rustdoc_entry_selects_primary_workspace_crate(self) -> None:
@@ -430,7 +446,18 @@ exclude_pattern = "generated/"''',
     def test_build_writes_generated_config_and_themes_html(self) -> None:
         fake_tool = self.root / "fake-jsdoc"
         fake_tool.touch()
+        (self.root / "project.css").write_text("body {}", encoding="utf-8")
+        (self.root / "project.js").write_text("void 0", encoding="utf-8")
         configured = ALL_TARGETS_CONFIG.replace(
+            'framework = "jsdoc"\nsource = "javascript"',
+            '''framework = "jsdoc"
+source = "javascript"
+
+[targets.jsdoc]
+extra_files = ["project.css", "project.js"]
+extra_stylesheets = ["project.css"]
+extra_javascript = ["project.js"]''',
+        ).replace(
             "[build]\nstrict = true",
             '[build]\nstrict = true\n\n[tools]\njsdoc = "./fake-jsdoc"',
         )
@@ -449,6 +476,12 @@ exclude_pattern = "generated/"''',
         self.assertIn('"destination"', generated)
         self.assertIn('data-dockle-theme="jsdoc"', html)
         self.assertIn('data-dockle-framework="jsdoc"', html)
+        self.assertIn('<link rel="stylesheet" href="project.css">', html)
+        self.assertIn('<script defer src="project.js"></script>', html)
+        self.assertEqual(
+            (target.output / "project.js").read_text(encoding="utf-8"),
+            "void 0",
+        )
         self.assertTrue((target.output / "dockle.css").is_file())
         self.assertTrue((target.output / "dockle-favicon.svg").is_file())
         self.assertIn("data-dockle-favicon", html)

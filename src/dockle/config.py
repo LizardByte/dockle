@@ -105,6 +105,9 @@ class JsDocConfig:
     readme: Path | None = None
     include_pattern: str = r".+\.(c|m)?jsx?$"
     exclude_pattern: str = ""
+    extra_files: tuple[Path, ...] = ()
+    extra_javascript: tuple[str, ...] = ()
+    extra_stylesheets: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -124,6 +127,7 @@ class SphinxConfig:
     extra_javascript: tuple[str, ...] = ()
     extra_stylesheets: tuple[str, ...] = ()
     extra_config: Path | None = None
+    source_edit_link: str = ""
 
 
 @dataclass(frozen=True)
@@ -530,7 +534,15 @@ def _load_jsdoc(
     jsdoc_where = f"{where}.jsdoc"
     _reject_unknown(
         raw,
-        {"exclude_pattern", "include_pattern", "inputs", "readme"},
+        {
+            "exclude_pattern",
+            "extra_files",
+            "extra_javascript",
+            "extra_stylesheets",
+            "include_pattern",
+            "inputs",
+            "readme",
+        },
         jsdoc_where,
     )
     inputs = _path_list(
@@ -546,6 +558,13 @@ def _load_jsdoc(
         ),
         exclude_pattern=_optional_string(
             raw, "exclude_pattern", jsdoc_where
+        ),
+        extra_files=_path_list(raw, "extra_files", jsdoc_where, root),
+        extra_javascript=_string_list(
+            raw, "extra_javascript", jsdoc_where
+        ),
+        extra_stylesheets=_string_list(
+            raw, "extra_stylesheets", jsdoc_where
         ),
     )
 
@@ -598,10 +617,18 @@ def _load_sphinx(
             "extra_javascript",
             "extra_stylesheets",
             "extra_config",
+            "source_edit_link",
             "static_paths",
         },
         sphinx_where,
     )
+    source_edit_link = _optional_string(
+        raw, "source_edit_link", sphinx_where
+    )
+    if source_edit_link and "{filename}" not in source_edit_link:
+        raise ConfigError(
+            f"{sphinx_where}.source_edit_link must contain {{filename}}"
+        )
     return SphinxConfig(
         exclude_patterns=_string_list(raw, "exclude_patterns", sphinx_where),
         static_paths=_path_list(raw, "static_paths", sphinx_where, root),
@@ -612,6 +639,7 @@ def _load_sphinx(
             raw, "extra_stylesheets", sphinx_where
         ),
         extra_config=_optional_path(raw, "extra_config", sphinx_where, root),
+        source_edit_link=source_edit_link,
     )
 
 

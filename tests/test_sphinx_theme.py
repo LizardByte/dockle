@@ -157,6 +157,8 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertIn("normalizeAliasTable", script)
         self.assertIn("dockle-alias-table", stylesheet)
         self.assertIn(".dockle-tab-list button:focus-visible", stylesheet)
+        self.assertIn(".dockle-tab-panel[hidden]", stylesheet)
+        self.assertIn("display: none !important", stylesheet)
 
     def test_sidebar_identity_stays_pinned_and_compacts_on_scroll(self) -> None:
         stylesheet = (
@@ -231,6 +233,32 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertIn("dockle-compat-toc", script)
         self.assertIn(".dockle-compat-toc", stylesheet)
         self.assertIn("border-left: 0 !important", stylesheet)
+        self.assertIn("contents.replaceChildren()", script)
+        self.assertIn("#page-nav .dockle-toc-depth-1", stylesheet)
+
+    def test_sphinx_pages_can_link_to_their_authored_source(self) -> None:
+        layout = (THEME_DIRECTORY / "layout.html").read_text(encoding="utf-8")
+        theme = (THEME_DIRECTORY / "theme.toml").read_text(encoding="utf-8")
+        stylesheet = (
+            THEME_DIRECTORY / "static" / "dockle.css"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn('source_edit_link = ""', theme)
+        self.assertIn(
+            "theme_source_edit_link|replace('{filename}', sourcename)", layout
+        )
+        self.assertIn("Edit this page", layout)
+        self.assertIn(".dockle-source-edit", stylesheet)
+
+    def test_sphinx_signatures_do_not_add_a_card_container(self) -> None:
+        stylesheet = (
+            THEME_DIRECTORY / "static" / "dockle.css"
+        ).read_text(encoding="utf-8")
+        signature = stylesheet.split(".sig-object {", 1)[1].split("}", 1)[0]
+
+        self.assertIn("background: transparent", signature)
+        self.assertIn("border: 0", signature)
+        self.assertIn("padding: 0", signature)
 
     def test_code_blocks_receive_shared_copy_controls(self) -> None:
         stylesheet = (

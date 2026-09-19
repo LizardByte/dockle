@@ -52,6 +52,7 @@ class ProjectDogfoodTests(unittest.TestCase):
         self.assertIn("html:", contents)
         self.assertNotIn("commands:", contents)
         self.assertIn('python: "miniconda-latest"', contents)
+        self.assertIn("os: ubuntu-lts-latest", contents)
         self.assertIn("readthedocs_build.sh", contents)
         self.assertIn('export DOCKLE_DIR="${dockle_dir}"', contents)
         self.assertIn("environment: environment.yml", contents)
@@ -63,22 +64,20 @@ class ProjectDogfoodTests(unittest.TestCase):
             'conda env create --quiet --name "${environment_name}"', script
         )
         self.assertIn('t.get("framework") == "doxygen"', script)
-        self.assertIn("python_run=(python)", script)
-        self.assertIn("requirements-readthedocs.txt", script)
-        self.assertIn('"${python_run[@]}" -m dockle check', script)
-        self.assertIn('"${python_run[@]}" -m dockle build', script)
-        self.assertIn("${READTHEDOCS_OUTPUT}html/", script)
-        self.assertIn("npm ci --ignore-scripts", script)
-        self.assertLess(
-            script.index("npm run build"),
-            script.index('"${python_run[@]}" -m pip install'),
+        self.assertIn('npm --prefix "${dockle_dir}" run build', script)
+        self.assertIn(
+            '"${uv_run[@]}" sync --project "${dockle_dir}"', script
         )
-
-        requirements = (
-            PROJECT_ROOT / "requirements-readthedocs.txt"
-        ).read_text(encoding="utf-8")
-        self.assertIn("lizardbyte_dockle-2026.918.203650", requirements)
-        self.assertNotIn("lizardbyte-dockle[all]", requirements)
+        self.assertIn("--locked --all-extras --no-dev", script)
+        self.assertIn('"${dockle_run[@]}" python -m dockle check', script)
+        self.assertIn('"${dockle_run[@]}" python -m dockle build', script)
+        self.assertIn("${READTHEDOCS_OUTPUT}html/", script)
+        self.assertIn('npm --prefix "${dockle_dir}" ci --ignore-scripts', script)
+        self.assertLess(
+            script.index('npm --prefix "${dockle_dir}" run build'),
+            script.index('"${uv_run[@]}" sync --project "${dockle_dir}"'),
+        )
+        self.assertFalse((PROJECT_ROOT / "requirements-readthedocs.txt").exists())
 
         environment = (PROJECT_ROOT / "environment.yml").read_text(
             encoding="utf-8"
@@ -87,6 +86,7 @@ class ProjectDogfoodTests(unittest.TestCase):
         self.assertIn("- graphviz==14.1.2", environment)
         self.assertIn("- pip==26.2.1", environment)
         self.assertIn("- python==3.13.15", environment)
+        self.assertIn("- uv==0.12.13", environment)
 
     def test_conda_dependencies_are_hard_pinned(self) -> None:
         lines = (

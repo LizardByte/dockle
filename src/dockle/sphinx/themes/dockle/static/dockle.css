@@ -567,13 +567,13 @@ th {
 }
 
 .sig-object {
-  background: var(--dockle-code-background);
-  border: 1px solid var(--dockle-border);
-  border-radius: var(--dockle-radius);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   display: block;
   font-family: var(--dockle-code-font);
   overflow-wrap: anywhere;
-  padding: 0.65rem 0.8rem;
+  padding: 0;
 }
 
 .sig-object .property {
@@ -714,6 +714,10 @@ dl.dockle-alert > dd {
   min-width: 0;
   overflow-x: auto;
   padding: 0.85rem 1rem;
+}
+
+.dockle-tab-panel[hidden] {
+  display: none !important;
 }
 
 .dockle-tab-panel > :first-child {
@@ -1090,7 +1094,7 @@ html[data-dockle-framework="rustdoc"] .sidebar::before {
 }
 
 .dockle-compat-toc {
-  background: var(--dockle-background);
+  background: transparent;
   bottom: 2rem;
   max-height: none;
   overflow-y: auto;
@@ -1125,6 +1129,15 @@ html[data-dockle-framework="rustdoc"] .sidebar::before {
   gap: 1rem;
   justify-content: space-between;
   margin-top: 3rem;
+}
+
+.dockle-source-edit {
+  align-items: center;
+  display: inline-flex;
+  float: right;
+  font-size: 0.85rem;
+  gap: 0.35rem;
+  margin: 0 0 1rem 1rem;
 }
 
 .dockle-page-links a,
@@ -1620,6 +1633,14 @@ html[data-dockle-framework="doxygen"] #page-nav ul.page-outline {
 html[data-dockle-framework="doxygen"] #page-nav ul.page-outline li {
   line-height: 1.35;
   margin: 0.4rem 0;
+}
+
+html[data-dockle-framework="doxygen"] #page-nav .dockle-toc-depth-1 {
+  padding-left: 0.75rem;
+}
+
+html[data-dockle-framework="doxygen"] #page-nav .dockle-toc-depth-2 {
+  padding-left: 1.5rem;
 }
 
 html[data-dockle-framework="doxygen"] #page-nav ul.page-outline li a {

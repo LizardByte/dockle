@@ -152,6 +152,7 @@ class SphinxBuilder(Builder):
             "code_font": self.config.theme.code_font,
             "repository_url": self.config.project.repository,
             "target_title": self.target.title,
+            "source_edit_link": settings.source_edit_link,
             "dockle_version": __version__,
             "dockle_url": "https://github.com/LizardByte/dockle",
         }
@@ -569,6 +570,11 @@ class JsDocBuilder(Builder):
         del stylesheet
         if not self.target.publish:
             return 0
+        settings = self.target.jsdoc
+        if settings is None:
+            raise BuildError("jsdoc target is missing generated settings")
+        for extra_file in settings.extra_files:
+            shutil.copy2(extra_file, self.target.output / extra_file.name)
         for name in ("lucide.min.js", "highlight.min.js"):
             shutil.copyfile(_theme_asset(name), self.target.output / name)
         html_files = sorted(self.target.output.rglob("*.html"))
@@ -582,7 +588,35 @@ class JsDocBuilder(Builder):
                 raise ThemeError(
                     f"jsdoc did not use Dockle's native template: {html_file}"
                 )
+            assets = [
+                *(
+                    '<link rel="stylesheet" href="'
+                    f'{escape(self._asset_url(asset, html_file), quote=True)}">'
+                    for asset in settings.extra_stylesheets
+                ),
+                *(
+                    '<script defer src="'
+                    f'{escape(self._asset_url(asset, html_file), quote=True)}">'
+                    "</script>"
+                    for asset in settings.extra_javascript
+                ),
+            ]
+            if assets:
+                document = document.replace(
+                    "</head>", "\n".join(assets) + "\n</head>", 1
+                )
+                html_file.write_text(document, encoding="utf-8")
         return len(html_files)
+
+    def _asset_url(self, asset: str, html_file: Path) -> str:
+        if asset.startswith(("https://", "http://")):
+            return asset
+        return Path(
+            os.path.relpath(
+                self.target.output / Path(asset).name,
+                html_file.parent,
+            )
+        ).as_posix()
 
 
 class RustdocBuilder(Builder):
@@ -604,8 +638,13 @@ class RustdocBuilder(Builder):
         ]
         env: dict[str, str] = {}
         if self.config.build.strict:
-            existing_flags = os.environ.get("RUSTDOCFLAGS", "")
-            env["RUSTDOCFLAGS"] = f"{existing_flags} -D warnings".strip()
+            existing_flags = os.environ.get("RUSTDOCFLAGS", "").strip()
+            if existing_flags:
+                env["RUSTDOCFLAGS"] = f"{existing_flags} -D warnings"
+            else:
+                args.extend(
+                    ["--config", 'build.rustdocflags=["-D","warnings"]']
+                )
         return BuildPlan(
             target=self.target,
             command=Command(tuple(args), manifest.parent, env),
@@ -725,6 +764,7 @@ def _required_paths(target: TargetConfig) -> tuple[Path, ...]:
         paths.extend(target.jsdoc.inputs)
         if target.jsdoc.readme is not None:
             paths.append(target.jsdoc.readme)
+        paths.extend(target.jsdoc.extra_files)
     if target.sphinx is not None:
         paths.extend(target.sphinx.static_paths)
         if target.sphinx.extra_config is not None:

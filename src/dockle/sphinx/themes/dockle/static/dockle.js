@@ -1268,6 +1268,9 @@
     );
     pageNav.classList.add("dockle-page-toc");
     const contents = pageTocContents(pageNav, framework);
+    if (framework === "doxygen") {
+      contents.replaceChildren();
+    }
     addPageTocTitle(contents);
     populatePageToc(contents, framework);
     root.classList.add("dockle-has-page-toc");

@@ -2,7 +2,6 @@
 set -euo pipefail
 
 dockle_dir="$(cd -- "${DOCKLE_DIR:-$(dirname -- "${BASH_SOURCE[0]}")}" && pwd -P)"
-project_dir="$(pwd -P)"
 environment_name="${READTHEDOCS_VERSION:-dockle-docs}"
 environment_file="${dockle_dir}/environment.yml"
 uses_doxygen="$(
@@ -13,23 +12,25 @@ uses_doxygen="$(
 if [[ "${uses_doxygen}" == "True" ]]; then
   echo "Creating the Dockle documentation environment from ${environment_file}"
   conda env create --quiet --name "${environment_name}" --file "${environment_file}"
-  python_run=(conda run --no-capture-output --name "${environment_name}" python)
+  environment_run=(conda run --no-capture-output --name "${environment_name}")
 else
   echo "Using the Read the Docs Python environment; this project has no Doxygen target"
-  python_run=(python)
+  environment_run=()
 fi
 
-if [[ "${project_dir}" == "${dockle_dir}" ]]; then
-  npm ci --ignore-scripts
-  npm run build
-  "${python_run[@]}" -m pip install '.[all]'
-else
-  "${python_run[@]}" -m pip install --requirement "${dockle_dir}/requirements-readthedocs.txt"
-  export PYTHONPATH="${dockle_dir}/src${PYTHONPATH:+:${PYTHONPATH}}"
-fi
+npm --prefix "${dockle_dir}" ci --ignore-scripts
+npm --prefix "${dockle_dir}" run build
+
+uv_run=("${environment_run[@]}" uv)
+"${uv_run[@]}" sync --project "${dockle_dir}" --locked --all-extras --no-dev
+dockle_run=(
+  "${uv_run[@]}" run --project "${dockle_dir}" --locked --all-extras --no-dev --no-sync
+)
 
 if [[ -f docs/requirements.txt ]]; then
-  "${python_run[@]}" -m pip install --requirement docs/requirements.txt
+  "${uv_run[@]}" pip install \
+    --python "${dockle_dir}/.venv/bin/python" \
+    --requirement docs/requirements.txt
 fi
 
 if [[ -f readthedocs_pre_build.sh ]]; then
@@ -37,8 +38,8 @@ if [[ -f readthedocs_pre_build.sh ]]; then
   ./readthedocs_pre_build.sh
 fi
 
-"${python_run[@]}" -m dockle check
-"${python_run[@]}" -m dockle build
+"${dockle_run[@]}" python -m dockle check
+"${dockle_run[@]}" python -m dockle build
 
 if [[ -f readthedocs_post_build.sh ]]; then
   chmod +x readthedocs_post_build.sh

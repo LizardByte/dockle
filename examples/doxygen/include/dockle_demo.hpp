@@ -37,22 +37,22 @@ namespace dockle::demo {
         generator_(generator),
         policy_(policy) {}
 
-    /** Return the stable target name.
-     * @return Stable target name.
+    /** Access the name used to identify this target.
+     * @return The stable output-directory name.
      */
     [[nodiscard]] constexpr std::string_view name() const noexcept {
       return name_;
     }
 
-    /** Return the configured generator.
-     * @return Configured generator name.
+    /** Access this target's native documentation generator.
+     * @return The configured generator name.
      */
     [[nodiscard]] constexpr std::string_view generator() const noexcept {
       return generator_;
     }
 
-    /** Return the configured warning policy.
-     * @return Configured warning policy.
+    /** Inspect how generator warnings affect the build.
+     * @return The configured warning policy.
      */
     [[nodiscard]] constexpr warning_policy policy() const noexcept {
       return policy_;

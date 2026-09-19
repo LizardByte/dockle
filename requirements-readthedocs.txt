@@ -1,4 +1,0 @@
-https://github.com/LizardByte/dockle/releases/download/v2026.918.203650/lizardbyte_dockle-2026.918.203650-py3-none-any.whl
-mkdocs>=1.6
-myst-parser>=4.0
-sphinx>=8.1

@@ -169,14 +169,7 @@ a second native configuration file:
    Native presentation switches used by projects such as C# API references.
 
 ``warn_if_undoc_enum_val``, ``warn_if_undocumented``, and ``warn_no_paramdoc``
-   Strict documentation checks. All three default to ``true`` to preserve the shared
-   LizardByte Doxygen contract.
-
-The generated Doxyfile also carries the portable behavior formerly supplied by
-the shared ``doxyconfig-Doxyfile``: recursive Markdown-aware input, GitHub
-heading IDs, graph generation when Graphviz is available, source-path
-stripping, deterministic sorting, and strict incomplete, enum-value,
-documentation, and parameter warnings.
+   Strict documentation checks. All three default to ``true``.
 
 JSDoc target settings
 ---------------------
@@ -193,6 +186,12 @@ different parts of the repository:
 ``include_pattern`` and ``exclude_pattern``
    Regular expressions applied by JSDoc while discovering source files. The
    include pattern defaults to JavaScript and JSX variants.
+
+``extra_files``
+   Project files copied to the JSDoc output root.
+
+``extra_stylesheets`` and ``extra_javascript``
+   Copied asset names or absolute web URLs injected into every generated page.
 
 MkDocs target settings
 ----------------------
@@ -219,6 +218,10 @@ must expose:
 ``extra_stylesheets`` and ``extra_javascript``
    Asset names from the configured static directories, or absolute web URLs.
    Dockle's theme assets remain in place.
+
+``source_edit_link``
+   URL template for an ``Edit this page`` link. Dockle replaces
+   ``{filename}`` with the current Sphinx source filename.
 
 rustdoc target settings
 -----------------------

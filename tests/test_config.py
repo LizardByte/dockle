@@ -393,6 +393,7 @@ warn_no_paramdoc = false
             (root / "docs").mkdir()
             (root / "src").mkdir()
             (root / "README.md").touch()
+            (root / "project.js").touch()
             path = root / "dockle.toml"
             path.write_text(
                 MINIMAL_CONFIG.replace(
@@ -402,6 +403,9 @@ warn_no_paramdoc = false
 [targets.jsdoc]
 inputs = ["src"]
 readme = "README.md"
+extra_files = ["project.js"]
+extra_javascript = ["project.js"]
+extra_stylesheets = ["https://example.invalid/project.css"]
 
 [[targets]]
 name = "website"
@@ -423,6 +427,14 @@ extra_stylesheets = ["https://example.invalid/project.css"]
             assert mkdocs is not None
             self.assertEqual(jsdoc.inputs, ((root / "src").resolve(),))
             self.assertEqual(jsdoc.readme, (root / "README.md").resolve())
+            self.assertEqual(
+                jsdoc.extra_files, ((root / "project.js").resolve(),)
+            )
+            self.assertEqual(jsdoc.extra_javascript, ("project.js",))
+            self.assertEqual(
+                jsdoc.extra_stylesheets,
+                ("https://example.invalid/project.css",),
+            )
             self.assertEqual(
                 mkdocs.extra_javascript, ("_static/project.js",)
             )
@@ -446,6 +458,7 @@ static_paths = ["docs/_static"]
 extra_javascript = ["project.js"]
 extra_stylesheets = ["project.css"]
 extra_config = "docs/extra_conf.py"
+source_edit_link = "https://example.invalid/edit/{filename}"
 ''',
                 encoding="utf-8",
             )
@@ -463,6 +476,25 @@ extra_config = "docs/extra_conf.py"
                 sphinx.extra_config,
                 (root / "docs" / "extra_conf.py").resolve(),
             )
+            self.assertEqual(
+                sphinx.source_edit_link,
+                "https://example.invalid/edit/{filename}",
+            )
+
+    def test_sphinx_source_edit_link_requires_filename_placeholder(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "dockle.toml"
+            path.write_text(
+                MINIMAL_CONFIG
+                + """
+[targets.sphinx]
+source_edit_link = "https://example.invalid/edit"
+""",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ConfigError, "must contain.*filename"):
+                load_config(path)
 
     def test_loads_typed_rustdoc_extra_files(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
