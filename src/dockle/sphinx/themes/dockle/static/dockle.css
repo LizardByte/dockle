@@ -1129,13 +1129,14 @@ html[data-dockle-framework="rustdoc"] .sidebar::before {
   margin: 0 0 1rem 1rem;
 }
 
-.dockle-page-action,
-.dockle-page-action:visited {
+a.dockle-page-action,
+a.dockle-page-action:link,
+a.dockle-page-action:visited {
   align-items: center;
   background: var(--dockle-background-secondary);
   border: 1px solid var(--dockle-border);
   border-radius: 50%;
-  color: var(--dockle-content);
+  color: var(--dockle-content) !important;
   display: inline-flex;
   flex: 0 0 2.6rem;
   height: 2.6rem;
@@ -1145,10 +1146,10 @@ html[data-dockle-framework="rustdoc"] .sidebar::before {
   width: 2.6rem;
 }
 
-.dockle-page-action:hover,
-.dockle-page-action:focus-visible {
+a.dockle-page-action:hover,
+a.dockle-page-action:focus-visible {
   border-color: var(--dockle-primary);
-  color: var(--dockle-primary);
+  color: var(--dockle-primary) !important;
 }
 
 .dockle-page-action:focus-visible {
@@ -1585,7 +1586,21 @@ html[data-dockle-framework="doxygen"] #doc-content div.header {
 
 html[data-dockle-framework="doxygen"] #doc-content .headertitle {
   margin: 0;
+  max-width: calc(var(--dockle-content-width) + 8rem);
   padding: 0;
+  position: relative;
+}
+
+html[data-dockle-framework="doxygen"]
+  #doc-content
+  .headertitle
+  > .dockle-page-actions {
+  float: none;
+  margin: 0;
+  position: absolute;
+  right: var(--dockle-content-gutter);
+  top: 2rem;
+  z-index: 1;
 }
 
 html[data-dockle-framework="doxygen"] div.contents {
@@ -1603,6 +1618,7 @@ html[data-dockle-framework="doxygen"] div.header .title {
   margin: 0;
   max-width: calc(var(--dockle-content-width) + 8rem);
   padding: 2rem var(--dockle-content-gutter);
+  padding-right: calc(var(--dockle-content-gutter) + 3.1rem);
 }
 
 html[data-dockle-framework="doxygen"] #doc-content .contents,
@@ -2457,5 +2473,17 @@ html[data-dockle-framework="rustdoc"] rustdoc-topbar {
   html[data-dockle-framework="doxygen"] div.header .title,
   html[data-dockle-framework="doxygen"] div.contents {
     padding: 1rem;
+  }
+
+  html[data-dockle-framework="doxygen"]
+    #doc-content
+    .headertitle
+    > .dockle-page-actions {
+    right: 1rem;
+    top: 1rem;
+  }
+
+  html[data-dockle-framework="doxygen"] div.header .title {
+    padding-right: 4.1rem;
   }
 }

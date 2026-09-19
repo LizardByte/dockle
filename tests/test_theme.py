@@ -240,8 +240,9 @@ class ThemeTests(unittest.TestCase):
     def test_repository_action_is_added_for_every_framework(self) -> None:
         content = {
             "doxygen": (
-                '<div id="doc-content"><div class="contents">'
-                "<h1>Docs</h1></div></div>"
+                '<div id="doc-content"><div class="header">'
+                '<div class="headertitle"><div class="title">Docs</div></div>'
+                '</div><div class="contents"><h1>Docs</h1></div></div>'
             ),
             "jsdoc": '<div id="main"><h1>Docs</h1></div>',
             "mkdocs": '<article class="dockle-article"><h1>Docs</h1></article>',
@@ -299,8 +300,12 @@ class ThemeTests(unittest.TestCase):
                     )
                     if framework == "doxygen":
                         self.assertLess(
-                            document.index('class="contents"'),
+                            document.index('class="headertitle"'),
                             document.index("data-dockle-repository-action"),
+                        )
+                        self.assertLess(
+                            document.index("data-dockle-repository-action"),
+                            document.index('class="title"'),
                         )
 
     def test_doxygen_fence_languages_are_restored_for_highlighting(

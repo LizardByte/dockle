@@ -45,6 +45,10 @@ _TARGET_CARDS_START = re.compile(
 _PAGE_CONTENT_STARTS = {
     "doxygen": (
         re.compile(
+            r'<div\b[^>]*\bclass=["\'][^"\']*\bheadertitle\b[^"\']*["\'][^>]*>',
+            re.IGNORECASE,
+        ),
+        re.compile(
             r'<div\b[^>]*\bclass=["\'][^"\']*\bcontents\b[^"\']*["\'][^>]*>',
             re.IGNORECASE,
         ),

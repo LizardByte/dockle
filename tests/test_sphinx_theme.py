@@ -269,6 +269,12 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertIn(".dockle-page-actions", stylesheet)
         self.assertIn(".dockle-page-action", stylesheet)
         self.assertIn(".dockle-repository-icon", stylesheet)
+        self.assertIn("color: var(--dockle-content) !important", stylesheet)
+        self.assertIn(".headertitle\n  > .dockle-page-actions", stylesheet)
+        doxygen_title = stylesheet.split(
+            'html[data-dockle-framework="doxygen"] div.header .title {', 1
+        )[1].split("}", 1)[0]
+        self.assertIn("padding-right", doxygen_title)
 
     def test_sphinx_signatures_do_not_add_a_card_container(self) -> None:
         stylesheet = (
