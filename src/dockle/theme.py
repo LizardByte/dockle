@@ -63,6 +63,7 @@ _SCRIPT_ASSET = "dockle.js"
 _LUCIDE_ASSET = "lucide.min.js"
 _HIGHLIGHT_ASSET = "highlight.min.js"
 _INDEX_FILE = "index.html"
+_HTML_GLOB = "*.html"
 _FRAMEWORKS = {
     "doxygen": ("Doxygen", "https://www.doxygen.nl/"),
     "jsdoc": ("JSDoc", "https://jsdoc.app/"),
@@ -227,7 +228,7 @@ def annotate_doxygen_code_languages(
         return 0
 
     annotated = 0
-    for html_file in sorted(output.rglob("*.html")):
+    for html_file in sorted(output.rglob(_HTML_GLOB)):
         document = html_file.read_text(encoding="utf-8")
         existing = document.count("data-dockle-language")
         updated = _DOXYGEN_FRAGMENT.sub(
@@ -357,7 +358,7 @@ def apply_theme(
 ) -> int:
     """Inject shared assets, navigation, branding, and client search."""
 
-    html_files = sorted(output.rglob("*.html"))
+    html_files = sorted(output.rglob(_HTML_GLOB))
     if not html_files:
         raise ThemeError(
             f"{framework} did not generate any HTML files in {output}"
@@ -852,7 +853,7 @@ def write_home_aliases(config: DockleConfig) -> int:
 
     html_files = tuple(
         path.resolve()
-        for path in output.rglob("*.html")
+        for path in output.rglob(_HTML_GLOB)
         if not path.is_symlink()
         and not path.resolve().is_relative_to(alias_root)
     )
