@@ -225,7 +225,9 @@ class ProjectDogfoodTests(unittest.TestCase):
         )
         self.assertIn("@tabs_grouped{workflow|:|", reference)
         self.assertIn("@tab{Configure|:|", reference)
-        self.assertIn("[API reference](@ref annotated)", overview)
+        self.assertIn(
+            "[API reference](@ref dockle::demo::target)", overview
+        )
         self.assertNotIn('<a href="annotated.html">', overview)
 
     def test_component_references_are_composed_from_shared_source(self) -> None:
