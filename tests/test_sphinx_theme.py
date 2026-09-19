@@ -244,8 +244,10 @@ class SphinxThemeTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
 
         self.assertIn('source_edit_link = ""', theme)
+        self.assertIn("sourcename[-4:] == '.txt'", layout)
         self.assertIn(
-            "theme_source_edit_link|replace('{filename}', sourcename)", layout
+            "theme_source_edit_link|replace('{filename}', source_filename)",
+            layout,
         )
         self.assertIn("Edit this page", layout)
         self.assertIn(".dockle-source-edit", stylesheet)

@@ -73,7 +73,8 @@
       <main class="dockle-main">
         <article class="dockle-article">
           {% if theme_source_edit_link and sourcename %}
-            <a class="dockle-source-edit" href="{{ theme_source_edit_link|replace('{filename}', sourcename)|e }}">
+            {% set source_filename = sourcename[:-4] if sourcename[-4:] == '.txt' else sourcename %}
+            <a class="dockle-source-edit" href="{{ theme_source_edit_link|replace('{filename}', source_filename)|e }}">
               <i data-lucide="square-pen" aria-hidden="true"></i>Edit this page
             </a>
           {% endif %}
