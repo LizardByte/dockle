@@ -12,6 +12,7 @@ from dockle.theme import (
     ThemeError,
     _portal_path,
     _theme_asset,
+    _update_home_portal,
     annotate_doxygen_code_languages,
     apply_theme,
     render_theme,
@@ -19,6 +20,30 @@ from dockle.theme import (
 
 
 class ThemeTests(unittest.TestCase):
+    def test_home_portal_update_uses_generated_index_file(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "project"
+            output = root / "_site"
+            output.mkdir(parents=True)
+            portal = output / "index.html"
+            portal.write_text("<h1>Example</h1><p>Docs</p>", encoding="utf-8")
+            config = DockleConfig(
+                path=root / "dockle.toml",
+                root=root,
+                project=ProjectConfig(name="Example"),
+                theme=ThemeConfig(),
+                build=BuildConfig(output=output, work=root / ".dockle"),
+                targets=(),
+            )
+
+            updated = _update_home_portal(config, "<article>API</article>", True)
+
+            self.assertEqual(updated, portal.resolve())
+            self.assertIn(
+                '<div data-dockle-target-cards class="dockle-portal-grid"',
+                portal.read_text(encoding="utf-8"),
+            )
+
     def test_portal_path_rejects_output_outside_project_root(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

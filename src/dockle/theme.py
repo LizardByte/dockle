@@ -852,7 +852,15 @@ def _portal_card_targets(
 def _update_home_portal(
     config: DockleConfig, cards: str, has_cards: bool
 ) -> Path:
-    portal = _portal_path(config)
+    output = config.build.output.resolve()
+    portals = [
+        candidate.resolve()
+        for candidate in output.glob(_INDEX_FILE)
+        if not candidate.is_symlink()
+    ]
+    if len(portals) != 1 or portals[0].parent != output:
+        raise ThemeError(f"home target has no safe portal file in {output}")
+    portal = portals[0]
     if not has_cards:
         return portal
     document = portal.read_text(encoding="utf-8")
