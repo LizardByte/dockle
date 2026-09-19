@@ -490,6 +490,10 @@ class ProjectDogfoodTests(unittest.TestCase):
         )
         self.assertIn("runs-on: windows-latest", workflow)
         self.assertGreaterEqual(workflow.count("archive: false"), 2)
+        download_start = workflow.index("- name: Download standalone archives")
+        release_start = workflow.index("- name: Create/Update GitHub Release")
+        standalone_download = workflow[download_start:release_start]
+        self.assertIn("skip-decompress: true", standalone_download)
         self.assertIn("dockle-${{ matrix.artifact }}.tar.gz", workflow)
         self.assertIn("dockle-${{ matrix.artifact }}.zip", workflow)
         self.assertNotIn("SHA256SUMS", workflow)
