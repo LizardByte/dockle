@@ -52,7 +52,7 @@ class ProjectDogfoodTests(unittest.TestCase):
         self.assertIn("html:", contents)
         self.assertNotIn("commands:", contents)
         self.assertIn('python: "miniconda-latest"', contents)
-        self.assertIn("os: ubuntu-lts-latest", contents)
+        self.assertIn("os: ubuntu-24.04", contents)
         self.assertIn("readthedocs_build.sh", contents)
         self.assertIn('export DOCKLE_DIR="${dockle_dir}"', contents)
         self.assertIn("environment: environment.yml", contents)
