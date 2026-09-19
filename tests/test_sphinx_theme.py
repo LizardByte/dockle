@@ -298,7 +298,8 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertIn('["shell-session", "console"]', script)
         self.assertIn('document.querySelectorAll("pre")', script)
         self.assertIn("code.textContent = source", script)
-        self.assertIn("<br\\s*\\/?\\s*>", script)
+        self.assertIn("isBreakOnlyMarkup", script)
+        self.assertNotIn("<br\\s*\\/?\\s*>", script)
         self.assertIn("normalizeDoxygenBlankCodeLines", script)
         self.assertIn("globalThis.hljs.highlightElement", script)
         self.assertTrue(

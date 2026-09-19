@@ -515,12 +515,39 @@
     await navigator.clipboard.writeText(text);
   };
 
+  const isBreakOnlyMarkup = (text) => {
+    const markup = text.trim().toLowerCase();
+    let offset = 0;
+    let found = false;
+    while (offset < markup.length) {
+      if (!markup.startsWith("<br", offset)) {
+        return false;
+      }
+      offset += 3;
+      while (/\s/.test(markup[offset] || "")) {
+        offset += 1;
+      }
+      if (markup[offset] === "/") {
+        offset += 1;
+        while (/\s/.test(markup[offset] || "")) {
+          offset += 1;
+        }
+      }
+      if (markup[offset] !== ">") {
+        return false;
+      }
+      offset += 1;
+      found = true;
+    }
+    return found;
+  };
+
   const codeText = (container) => {
     const lines = [...container.querySelectorAll(":scope > .line")];
     if (lines.length) {
       return lines.map((line) => {
         const text = line.textContent.trim();
-        return /^(?:<br\s*\/?\s*>)+$/i.test(text) ? "" : line.textContent;
+        return isBreakOnlyMarkup(text) ? "" : line.textContent;
       }).join("\n");
     }
     const source = container.matches("pre")
@@ -534,7 +561,7 @@
       return;
     }
     document.querySelectorAll("div.fragment > .line").forEach((line) => {
-      if (/^(?:<br\s*\/?\s*>)+$/i.test(line.textContent.trim())) {
+      if (isBreakOnlyMarkup(line.textContent)) {
         line.textContent = "";
       }
     });

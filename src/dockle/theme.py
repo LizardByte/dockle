@@ -353,11 +353,32 @@ def _doxygen_fragment_text(fragment: str) -> str:
     return "\n".join(lines)
 
 
+def _is_break_only_markup(value: str) -> bool:
+    markup = value.strip().casefold()
+    offset = 0
+    found = False
+    while offset < len(markup):
+        if not markup.startswith("<br", offset):
+            return False
+        offset += 3
+        while offset < len(markup) and markup[offset].isspace():
+            offset += 1
+        if offset < len(markup) and markup[offset] == "/":
+            offset += 1
+            while offset < len(markup) and markup[offset].isspace():
+                offset += 1
+        if offset >= len(markup) or markup[offset] != ">":
+            return False
+        offset += 1
+        found = True
+    return found
+
+
 def _normalized_code(code: str) -> str:
     lines = []
     for line in code.splitlines():
         normalized = line.rstrip()
-        if re.fullmatch(r"(?:<br\s*/?\s*>)+", normalized.strip(), re.I):
+        if _is_break_only_markup(normalized):
             normalized = ""
         lines.append(normalized)
     return "\n".join(lines).strip("\n")
