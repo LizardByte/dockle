@@ -89,7 +89,7 @@
             <div class="dockle-page-actions" aria-label="Page actions" data-dockle-repository-action>
               {% if theme_repository_url %}
                 <a class="dockle-page-action dockle-repository-link" href="{{ theme_repository_url|e }}"
-                   aria-label="Source repository" title="Source repository">
+                   target="_blank" rel="noopener noreferrer" title="Source repository">
                   {{ repository_icon(theme_repository_url) }}
                   <span class="visually-hidden">Source repository</span>
                 </a>
@@ -98,7 +98,7 @@
                 {% set source_filename = sourcename[:-4] if sourcename[-4:] == '.txt' else sourcename %}
                 <a class="dockle-page-action dockle-source-edit"
                    href="{{ theme_source_edit_link|replace('{filename}', source_filename)|e }}"
-                   aria-label="Edit this page" title="Edit this page">
+                   target="_blank" rel="noopener noreferrer" title="Edit this page">
                   <i data-lucide="pencil" aria-hidden="true"></i>
                   <span class="visually-hidden">Edit this page</span>
                 </a>

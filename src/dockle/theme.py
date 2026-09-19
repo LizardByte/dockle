@@ -45,7 +45,7 @@ _TARGET_CARDS_START = re.compile(
 _PAGE_CONTENT_STARTS = {
     "doxygen": (
         re.compile(
-            r'<div\b[^>]*\bid=["\']doc-content["\'][^>]*>',
+            r'<div\b[^>]*\bclass=["\'][^"\']*\bcontents\b[^"\']*["\'][^>]*>',
             re.IGNORECASE,
         ),
     ),
@@ -662,7 +662,8 @@ def _repository_action(repository: str) -> str:
         'data-dockle-repository-action>'
         '<a class="dockle-page-action dockle-repository-link" '
         f'href="{escape(repository, quote=True)}" '
-        'aria-label="Source repository" title="Source repository">'
+        'target="_blank" rel="noopener noreferrer" '
+        'title="Source repository">'
         f'{icon}<span class="visually-hidden">Source repository</span>'
         "</a></div>"
     )

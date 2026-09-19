@@ -258,6 +258,10 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertIn('data-dockle-repository-service="github"', layout)
         self.assertIn('data-dockle-repository-service="gitlab"', layout)
         self.assertIn('data-dockle-repository-service="generic"', layout)
+        self.assertEqual(layout.count('target="_blank"'), 2)
+        self.assertEqual(layout.count('rel="noopener noreferrer"'), 2)
+        self.assertNotIn('aria-label="Source repository"', layout)
+        self.assertNotIn('aria-label="Edit this page"', layout)
         self.assertLess(
             layout.index("dockle-repository-link"),
             layout.index("dockle-source-edit"),
