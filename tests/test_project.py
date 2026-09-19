@@ -296,5 +296,6 @@ class ProjectDogfoodTests(unittest.TestCase):
         self.assertIn('"lizardbyte_dockle-*.tar.gz"', workflow)
         self.assertIn("gh-action-pypi-publish@", workflow)
 
+
 if __name__ == "__main__":
     unittest.main()
