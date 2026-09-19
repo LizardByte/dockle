@@ -46,15 +46,12 @@ const repositoryService = normalizedRepositoryUrl.includes('github')
           data-dockle-search-results="dockle-search-input"
           aria-live="polite" hidden></ul>
     </div>
-    <button type="button" class="dockle-theme-toggle"
-            data-dockle-theme-toggle aria-label="Color scheme: auto">
-      <i data-lucide="monitor" aria-hidden="true"></i>
-    </button>
   </div>
 
   <div id="main">
-    <?js if (repositoryUrl) { ?>
-    <div class="dockle-page-actions" aria-label="Page actions" data-dockle-repository-action>
+    <div class="dockle-page-actions" aria-label="Page actions"
+         data-dockle-repository-action>
+      <?js if (repositoryUrl) { ?>
       <a class="dockle-page-action dockle-repository-link" href="<?js= safe(repositoryUrl) ?>"
          target="_blank" rel="noopener noreferrer" title="Source repository">
         <?js if (repositoryService === 'github') { ?>
@@ -72,8 +69,12 @@ const repositoryService = normalizedRepositoryUrl.includes('github')
         <?js } ?>
         <span class="visually-hidden">Source repository</span>
       </a>
+      <?js } ?>
+      <button type="button" class="dockle-theme-toggle"
+              data-dockle-theme-toggle aria-label="Color scheme: auto">
+        <i data-lucide="sun-moon" aria-hidden="true"></i>
+      </button>
     </div>
-    <?js } ?>
     <?js if (title !== 'Home') { ?><h1 class="page-title"><?js= safe(title) ?></h1><?js } ?>
     <?js= content ?>
     <footer class="dockle-footer dockle-built-with" data-dockle-built-with>

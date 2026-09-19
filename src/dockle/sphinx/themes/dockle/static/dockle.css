@@ -1158,6 +1158,7 @@ a.dockle-page-action:focus-visible {
 }
 
 .dockle-page-action .lucide,
+.dockle-theme-toggle .lucide,
 .dockle-repository-icon {
   height: 1.2rem;
   width: 1.2rem;
@@ -1618,7 +1619,7 @@ html[data-dockle-framework="doxygen"] div.header .title {
   margin: 0;
   max-width: calc(var(--dockle-content-width) + 8rem);
   padding: 2rem var(--dockle-content-gutter);
-  padding-right: calc(var(--dockle-content-gutter) + 3.1rem);
+  padding-right: calc(var(--dockle-content-gutter) + 6.2rem);
 }
 
 html[data-dockle-framework="doxygen"] #doc-content .contents,
@@ -2484,6 +2485,6 @@ html[data-dockle-framework="rustdoc"] rustdoc-topbar {
   }
 
   html[data-dockle-framework="doxygen"] div.header .title {
-    padding-right: 4.1rem;
+    padding-right: 7.2rem;
   }
 }

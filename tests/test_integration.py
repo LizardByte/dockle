@@ -256,8 +256,12 @@ source_edit_link = "https://github.com/example/project/blob/main/docs/{filename}
             self.assertEqual(html.count('target="_blank"'), 2)
             self.assertEqual(html.count('rel="noopener noreferrer"'), 2)
             self.assertLess(
-                html.index("dockle-repository-link"),
                 html.index("dockle-source-edit"),
+                html.index("dockle-repository-link"),
+            )
+            self.assertLess(
+                html.index("dockle-repository-link"),
+                html.index("data-dockle-theme-toggle"),
             )
             self.assertRegex(html, r"Sphinx [0-9]+\.[0-9]+")
 
