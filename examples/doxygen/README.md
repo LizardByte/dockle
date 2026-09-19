@@ -12,7 +12,7 @@ the shared presentation layer through supported Doxygen hooks.
 | Page | Purpose |
 | --- | --- |
 | [Component reference](component-reference.md) | Authoring syntax beside rendered results |
-| [API reference](annotated.html) | Framework-native C++ API output |
+| [API reference](@ref dockle::demo::target) | Framework-native C++ API output |
 
 ## Use Dockle with Doxygen
 

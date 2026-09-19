@@ -27,6 +27,7 @@ dockle.dockleVersion ||= packageMetadata.version;
 dockle.projectName ||= consumer.name || 'Documentation';
 dockle.projectUrl ||= repositoryUrl(consumer.repository) || 'index.html';
 dockle.projectVersion ||= consumer.version || '';
+dockle.repositoryUrl ||= repositoryUrl(consumer.repository) || '';
 dockle.targetTitle ||= dockle.projectName;
 
 module.exports = require('./src/dockle/jsdoc_template/publish');

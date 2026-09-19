@@ -43,20 +43,38 @@ Complete example
    home = true
 
    [[targets]]
-   name = "guide"
-   title = "User guide"
-   description = "Tutorials and configuration reference."
-   framework = "sphinx"
-   source = "docs"
-   entry = "index"
+   name = "api"
+   title = "API reference"
+   description = "Public headers and authored guides."
+   framework = "doxygen"
+   source = "."
+
+   [targets.doxygen]
+   inputs = ["README.md", "docs", "include"]
+   excludes = ["docs/private"]
+   exclude_patterns = ["*/generated/*"]
+   image_paths = ["docs/images"]
+   include_paths = ["include"]
+   predefined = ["EXAMPLE_PUBLIC_API=1"]
+   extra_stylesheets = ["docs/project.css"]
+   extra_files = ["docs/project.js"]
+   aliases = ['example_link{1}=<a href="\\1">Example</a>']
+   main_page = "README.md"
+   dot_graph_max_nodes = 75
+   warn_if_undocumented = true
+   warn_no_paramdoc = true
 
 Project metadata
 ----------------
 
 ``project.name`` is required. The optional ``version``, ``description``, ``repository``, ``author``, and ``copyright``
-values are translated into native metadata where a generator supports them. The optional ``logo`` and ``favicon``
-paths must name files within the project. Dockle copies the favicon into every generated backend and the portal. The
-portal always uses the name, description, version, and repository.
+values are translated into native metadata where a generator supports them. Every generated documentation backend
+automatically exposes a repository button when ``repository`` is set, with GitHub and GitLab icons plus a generic Git
+fallback for other services. The optional ``logo`` and ``favicon`` may name files within the project or HTTP(S) URLs.
+Dockle copies local assets into every generated backend and uses remote assets directly. On Read the Docs,
+``READTHEDOCS_VERSION`` overrides ``version``. A
+numeric pull-request version replaces the final component of an all-zero configured version (for example, ``0.0.0``
+becomes ``0.0.908``), preserving each project's version width.
 
 Theme tokens
 ------------
@@ -75,7 +93,7 @@ Build behavior
    Disposable native configurations and intermediate files. Defaults to ``.dockle``.
 
 ``build.strict``
-   Enables warning-as-error behavior in each adapter. Defaults to ``true``.
+   Enables warning-as-error behavior in each adapter. Defaults to ``false``.
 
 ``build.clean``
    Replaces generated output instead of merging into it. A full build owns and cleans the whole output tree; a build
@@ -88,12 +106,15 @@ Targets
 
 At least one ``[[targets]]`` table is required. ``name``, ``framework``, and ``source`` are required. Names use
 lowercase letters, numbers, hyphens, and underscores and become output directory names by default. ``title`` and
-``description`` label the target on the generated portal. ``output`` can select another directory below
-``build.output``.
+``description`` label the target on a generated multi-target portal. ``output`` can select another directory below
+``build.output``. Set ``publish = false`` when an adapter must generate non-HTML artifacts for another target without
+appearing in the published site.
 
-One Sphinx target may set ``home = true``. Dockle publishes that target at ``build.output`` and injects the comparison
-cards after its first heading. To control their exact location, add ``<div data-dockle-target-cards></div>`` in a raw
-HTML block. A home target cannot set ``output``; all other targets remain in their own directories below it.
+One published target of any framework may set ``home = true``. Dockle publishes that target at ``build.output``. When
+other published targets exist, Dockle injects comparison cards after its first heading; control their exact location
+with ``<div data-dockle-target-cards></div>`` in a raw HTML block. A home target cannot set ``output``; all other
+targets remain in their own directories below it. Redirect-only compatibility pages are generated beneath
+``build.output/<home target name>`` so target-prefixed deep links remain valid without adding a separate entry page.
 
 The supported framework names and ``entry`` behavior are:
 
@@ -109,6 +130,111 @@ rustdoc     Cargo and Rust            Reserved; ``source`` names a crate directo
 
 Each non-home output directory must be unique and must remain below ``build.output``. Entry paths cannot be absolute
 or escape the source directory.
+
+Doxygen target settings
+-----------------------
+
+Dockle always generates the Doxyfile. A Doxygen target can add a typed
+``[targets.doxygen]`` table for project-specific behavior without introducing
+a second native configuration file:
+
+``inputs``
+   Source files and directories. Defaults to the target ``source``.
+
+``excludes`` and ``exclude_patterns``
+   Paths and glob patterns omitted from Doxygen's recursive input scan.
+
+``image_paths`` and ``include_paths``
+   Additional image lookup and source include directories.
+
+``predefined``
+   Project-specific preprocessor definitions. Dockle defines only ``DOXYGEN``
+   by default; platform and feature macros belong here because they change
+   which project declarations are visible.
+
+``extra_stylesheets`` and ``extra_files``
+   Project CSS, JavaScript, images, or other files copied through Doxygen's
+   supported HTML hooks. Dockle's stylesheet always remains first.
+
+``aliases``
+   Complete project-specific Doxygen alias definitions. Dockle adds these after
+   its shared alert, tab, color, example, and expander aliases.
+
+``main_page``
+   Markdown main page anywhere inside the project. When omitted, Dockle uses
+   ``source / entry`` if that file exists.
+
+``dot_graph_max_nodes``
+   Graph node limit from 0 through 10000. Defaults to ``50``.
+
+``optimize_output_java`` and ``separate_member_pages``
+   Native presentation switches used by projects such as C# API references.
+
+``warn_if_undoc_enum_val``, ``warn_if_undocumented``, and ``warn_no_paramdoc``
+   Strict documentation checks. All three default to ``true``.
+
+JSDoc target settings
+---------------------
+
+Use ``[targets.jsdoc]`` when the API source and authored landing page live in
+different parts of the repository:
+
+``inputs``
+   JavaScript source files and directories. Defaults to the target ``source``.
+
+``readme``
+   Authored JSDoc landing page anywhere inside the project.
+
+``include_pattern`` and ``exclude_pattern``
+   Regular expressions applied by JSDoc while discovering source files. The
+   include pattern defaults to JavaScript and JSX variants.
+
+``extra_files``
+   Project files copied to the JSDoc output root.
+
+``extra_stylesheets`` and ``extra_javascript``
+   Copied asset names or absolute web URLs injected into every generated page.
+
+MkDocs target settings
+----------------------
+
+Use ``[targets.mkdocs]`` to attach project assets through MkDocs' supported
+configuration hooks:
+
+``extra_stylesheets`` and ``extra_javascript``
+   Local paths relative to the documentation source, or absolute web URLs.
+   Dockle's theme assets remain in place.
+
+Sphinx target settings
+----------------------
+
+Use ``[targets.sphinx]`` for authored assets that the generated ``conf.py``
+must expose:
+
+``exclude_patterns``
+   Source patterns Sphinx should omit.
+
+``static_paths``
+   Static asset directories inside the project.
+
+``extra_stylesheets`` and ``extra_javascript``
+   Asset names from the configured static directories, or absolute web URLs.
+   Dockle's theme assets remain in place.
+
+``source_edit_link``
+   URL template for the page's pencil button. Dockle replaces ``{filename}``
+   with the current Sphinx source filename.
+
+rustdoc target settings
+-----------------------
+
+Use ``[targets.rustdoc]`` when crate-local HTML hooks reference supporting
+assets:
+
+``extra_files``
+   Project files copied beside every generated rustdoc HTML page. Cargo runs
+   from the manifest directory so its local ``.cargo/config.toml`` and HTML
+   hook paths are honored.
 
 Tool resolution
 ---------------
