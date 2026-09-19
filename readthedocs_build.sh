@@ -22,14 +22,14 @@ fi
 npm --prefix "${dockle_dir}" ci --ignore-scripts
 npm --prefix "${dockle_dir}" run build
 
-if ! "${environment_run[@]}" uv --version >/dev/null 2>&1; then
+if ! "${environment_run[@]}" python -m uv --version >/dev/null 2>&1; then
   echo "Installing uv==${uv_version} in the Read the Docs Python environment"
   "${environment_run[@]}" python -m pip install \
     --disable-pip-version-check \
     "uv==${uv_version}"
 fi
 
-uv_run=("${environment_run[@]}" uv)
+uv_run=("${environment_run[@]}" python -m uv)
 "${uv_run[@]}" sync --project "${dockle_dir}" --locked --all-extras --no-dev
 dockle_run=(
   "${uv_run[@]}" run --project "${dockle_dir}" --locked --all-extras --no-dev --no-sync

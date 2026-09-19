@@ -67,9 +67,12 @@ class ProjectDogfoodTests(unittest.TestCase):
         self.assertIn('npm --prefix "${dockle_dir}" run build', script)
         self.assertIn('uv_version="0.12.13"', script)
         self.assertIn(
-            'if ! "${environment_run[@]}" uv --version', script
+            'if ! "${environment_run[@]}" python -m uv --version', script
         )
         self.assertIn('"uv==${uv_version}"', script)
+        self.assertIn(
+            'uv_run=("${environment_run[@]}" python -m uv)', script
+        )
         self.assertIn(
             '"${uv_run[@]}" sync --project "${dockle_dir}"', script
         )
