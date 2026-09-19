@@ -28,6 +28,6 @@ dist/
 .coverage
 coverage/
 junit-python.xml
-junit-node.xml
+junit.xml
 .pytest_cache/
 .ruff_cache/

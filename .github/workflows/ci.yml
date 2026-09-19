@@ -226,64 +226,13 @@ jobs:
 
   node-package:
     name: Node package
-    needs:
-      - release-setup
     permissions:
-      contents: read
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-
-      - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v7.0.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Set package version
-        env:
-          RELEASE_VERSION: ${{ needs.release-setup.outputs.release_version }}
-        run: npm version "${RELEASE_VERSION}" --no-git-tag-version
-
-      - name: Install Node.js dependencies
-        run: npm ci --ignore-scripts
-
-      - name: Test Node.js package
-        id: node-test
-        run: npm test
-
-      - name: Check Node.js package contents
-        run: npm publish --dry-run
-
-      - name: Upload Node.js test coverage
-        if: >-
-          always() &&
-          (steps.node-test.outcome == 'success' || steps.node-test.outcome == 'failure') &&
-          startsWith(github.repository, 'LizardByte/')
-        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5  # v7.1.1
-        with:
-          disable_search: true
-          fail_ci_if_error: true
-          files: ./coverage/lcov.info
-          flags: node-${{ env.NODE_VERSION }}
-          report_type: coverage
-          token: ${{ secrets.CODECOV_TOKEN }}
-          verbose: true
-
-      - name: Upload Node.js test results
-        if: >-
-          always() &&
-          (steps.node-test.outcome == 'success' || steps.node-test.outcome == 'failure') &&
-          startsWith(github.repository, 'LizardByte/')
-        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5  # v7.1.1
-        with:
-          disable_search: true
-          fail_ci_if_error: true
-          files: ./junit-node.xml
-          flags: node-${{ env.NODE_VERSION }}
-          report_type: test_results
-          token: ${{ secrets.CODECOV_TOKEN }}
-          verbose: true
+      contents: write  # required for release_setup action
+    uses: LizardByte/.github/.github/workflows/__call-ci-node.yml@master
+    with:
+      create_release: false
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   standalone:
     name: Standalone (${{ matrix.artifact }})

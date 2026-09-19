@@ -55,7 +55,7 @@
     "sync:lucide": "node scripts/sync-lucide.mjs",
     "test": "npm run test:unit && npm run test:lint",
     "test:lint": "eslint publish.js eslint.config.mjs bin scripts src/dockle/jsdoc_template src/dockle/sphinx/themes/dockle/static/dockle.js tests-js",
-    "test:unit": "c8 --all --include=publish.js --include=bin/*.cjs --include=src/dockle/jsdoc_template/*.js --reporter=lcov --reporter=text node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=junit-node.xml tests-js/jsdoc-template.test.mjs",
+    "test:unit": "c8 --all --include=publish.js --include=bin/*.cjs --include=src/dockle/jsdoc_template/*.js --reporter=json --reporter=text node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=junit.xml tests-js/jsdoc-template.test.mjs",
     "test:package": "npm pack --dry-run"
   },
   "dependencies": {
@@ -67,7 +67,7 @@
     "c8": "10.1.3",
     "eslint": "10.11.0",
     "globals": "17.12.0",
-    "highlightjs-fixtures": "https://github.com/highlightjs/highlight.js/archive/refs/tags/11.12.0.tar.gz",
+    "highlightjs-fixtures": "github:highlightjs/highlight.js#11.12.0",
     "lucide": "1.47.0"
   }
 }

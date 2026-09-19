@@ -109,8 +109,7 @@ class ProjectDogfoodTests(unittest.TestCase):
         self.assertRegex(version, r"^\d+\.\d+\.\d+$")
         self.assertEqual(
             fixtures,
-            "https://github.com/highlightjs/highlight.js/"
-            f"archive/refs/tags/{version}.tar.gz",
+            f"github:highlightjs/highlight.js#{version}",
         )
         self.assertTrue(
             runtime.startswith(
