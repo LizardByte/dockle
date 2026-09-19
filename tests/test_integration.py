@@ -218,11 +218,15 @@ entry = "README.md"
                 """
 [project]
 name = "Example"
+repository = "https://github.com/example/project"
 
 [[targets]]
 name = "docs"
 framework = "sphinx"
 source = "docs"
+
+[targets.sphinx]
+source_edit_link = "https://github.com/example/project/blob/main/docs/{filename}"
 """,
                 encoding="utf-8",
             )
@@ -238,6 +242,21 @@ source = "docs"
             self.assertIn("_static/dockle.css", html)
             self.assertNotIn("data-dockle-home", html)
             self.assertIn('aria-current="page"', html)
+            self.assertIn(
+                'class="dockle-page-action dockle-repository-link"', html
+            )
+            self.assertIn(
+                'data-dockle-repository-service="github"', html
+            )
+            self.assertIn(
+                'href="https://github.com/example/project/blob/main/docs/index.rst"',
+                html,
+            )
+            self.assertIn('data-lucide="pencil"', html)
+            self.assertLess(
+                html.index("dockle-repository-link"),
+                html.index("dockle-source-edit"),
+            )
             self.assertRegex(html, r"Sphinx [0-9]+\.[0-9]+")
 
     @unittest.skipUnless(

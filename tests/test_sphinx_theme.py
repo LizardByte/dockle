@@ -236,7 +236,7 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertIn("contents.replaceChildren()", script)
         self.assertIn("#page-nav .dockle-toc-depth-1", stylesheet)
 
-    def test_sphinx_pages_can_link_to_their_authored_source(self) -> None:
+    def test_sphinx_pages_expose_repository_and_source_actions(self) -> None:
         layout = (THEME_DIRECTORY / "layout.html").read_text(encoding="utf-8")
         theme = (THEME_DIRECTORY / "theme.toml").read_text(encoding="utf-8")
         stylesheet = (
@@ -250,7 +250,21 @@ class SphinxThemeTests(unittest.TestCase):
             layout,
         )
         self.assertIn("Edit this page", layout)
-        self.assertIn(".dockle-source-edit", stylesheet)
+        self.assertIn('data-lucide="pencil"', layout)
+        self.assertNotIn('data-lucide="square-pen"', layout)
+        self.assertIn('class="dockle-page-actions"', layout)
+        self.assertIn("data-dockle-repository-action", layout)
+        self.assertIn('class="dockle-page-action dockle-repository-link"', layout)
+        self.assertIn('data-dockle-repository-service="github"', layout)
+        self.assertIn('data-dockle-repository-service="gitlab"', layout)
+        self.assertIn('data-dockle-repository-service="generic"', layout)
+        self.assertLess(
+            layout.index("dockle-repository-link"),
+            layout.index("dockle-source-edit"),
+        )
+        self.assertIn(".dockle-page-actions", stylesheet)
+        self.assertIn(".dockle-page-action", stylesheet)
+        self.assertIn(".dockle-repository-icon", stylesheet)
 
     def test_sphinx_signatures_do_not_add_a_card_container(self) -> None:
         stylesheet = (

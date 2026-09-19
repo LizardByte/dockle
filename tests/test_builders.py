@@ -350,6 +350,9 @@ extra_javascript = ["_static/project.js"]''',
         self.assertIn('"template"', native)
         self.assertIn('"dockleVersion"', native)
         self.assertIn('"projectName": "Example API"', native)
+        self.assertIn(
+            '"repositoryUrl": "https://example.invalid/project"', native
+        )
         self.assertIn('"targetTitle": "Jsdoc"', native)
         self.assertIn('"stylesheet"', native)
         self.assertIn(

@@ -26,12 +26,18 @@ framework = "sphinx"
 source = "docs"
 home = true
 
+[targets.sphinx]
+source_edit_link = "https://github.com/LizardByte/dockle/blob/master/docs/{filename}"
+
 [[targets]]
 name = "sphinx"
 title = "Sphinx example"
 description = "Python with matching reStructuredText and Markdown authoring references."
 framework = "sphinx"
 source = ".dockle/example-sources/sphinx"
+
+[targets.sphinx]
+source_edit_link = "https://github.com/LizardByte/dockle/blob/master/examples/sphinx/{filename}"
 
 [[targets]]
 name = "doxygen"

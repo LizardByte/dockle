@@ -119,6 +119,7 @@ class Builder(ABC):
             project_name=self.config.project.name,
             project_version=self.config.project.version,
             target_title=self.target.title,
+            repository=self.config.project.repository,
             logo=self.config.project.logo,
             favicon=self.config.project.favicon,
         )
@@ -229,6 +230,7 @@ class SphinxBuilder(Builder):
             project_name=self.config.project.name,
             project_version=self.config.project.version,
             target_title=self.target.title,
+            repository=self.config.project.repository,
             logo=self.config.project.logo,
             favicon=self.config.project.favicon,
         )
@@ -538,6 +540,7 @@ class JsDocBuilder(Builder):
                     "projectName": self.config.project.name,
                     "projectUrl": portal,
                     "projectVersion": self.config.project.version,
+                    "repositoryUrl": self.config.project.repository,
                     "stylesheet": str(self._theme_file()),
                     "targetTitle": self.target.title,
                 },

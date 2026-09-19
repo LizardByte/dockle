@@ -68,9 +68,11 @@ Project metadata
 ----------------
 
 ``project.name`` is required. The optional ``version``, ``description``, ``repository``, ``author``, and ``copyright``
-values are translated into native metadata where a generator supports them. The optional ``logo`` and ``favicon`` may
-name files within the project or HTTP(S) URLs. Dockle copies local assets into every generated backend and uses remote
-assets directly. On Read the Docs, ``READTHEDOCS_VERSION`` overrides ``version``. A
+values are translated into native metadata where a generator supports them. Every generated documentation backend
+automatically exposes a repository button when ``repository`` is set, with GitHub and GitLab icons plus a generic Git
+fallback for other services. The optional ``logo`` and ``favicon`` may name files within the project or HTTP(S) URLs.
+Dockle copies local assets into every generated backend and uses remote assets directly. On Read the Docs,
+``READTHEDOCS_VERSION`` overrides ``version``. A
 numeric pull-request version replaces the final component of an all-zero configured version (for example, ``0.0.0``
 becomes ``0.0.908``), preserving each project's version width.
 
@@ -220,8 +222,8 @@ must expose:
    Dockle's theme assets remain in place.
 
 ``source_edit_link``
-   URL template for an ``Edit this page`` link. Dockle replaces
-   ``{filename}`` with the current Sphinx source filename.
+   URL template for the page's pencil button. Dockle replaces ``{filename}``
+   with the current Sphinx source filename.
 
 rustdoc target settings
 -----------------------

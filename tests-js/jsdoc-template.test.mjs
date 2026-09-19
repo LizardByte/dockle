@@ -174,6 +174,8 @@ export function add(left, right) { return left + right; }
   assert.match(document, /data-dockle-theme="jsdoc"/);
   assert.match(document, /native-jsdoc-example/);
   assert.match(document, /https:\/\/example\.invalid\/native-jsdoc-example/);
+  assert.match(document, /data-dockle-repository-action/);
+  assert.match(document, /data-dockle-repository-service="generic"/);
   assert.ok(document.includes(`Dockle ${packageMetadata.version}`));
   assert.match(document, /JSDoc 4\.0\.5/);
   assert.match(document, /dockle-logo\.svg/);

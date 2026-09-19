@@ -135,6 +135,7 @@ exports.publish = (taffyData, opts, tutorials) => {
   dockle.logoFile = assetName('dockle-logo', dockle.logo);
   dockle.projectName ||= 'Documentation';
   dockle.projectUrl ||= dockle.portalUrl || 'index.html';
+  dockle.repositoryUrl ||= '';
   dockle.targetTitle ||= dockle.projectName;
 
   defaults.includeDate = false;

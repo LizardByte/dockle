@@ -1018,16 +1018,6 @@ html[data-dockle-framework="rustdoc"] .sidebar::before {
   margin-top: 0.25rem;
 }
 
-.dockle-repository {
-  align-items: center;
-  border-top: 1px solid var(--dockle-border);
-  display: flex;
-  font-size: 0.9rem;
-  gap: 0.3rem;
-  margin-top: 1rem;
-  padding-top: 1rem;
-}
-
 .dockle-portal-repository a {
   align-items: center;
   display: inline-flex;
@@ -1131,13 +1121,49 @@ html[data-dockle-framework="rustdoc"] .sidebar::before {
   margin-top: 3rem;
 }
 
-.dockle-source-edit {
+.dockle-page-actions {
   align-items: center;
-  display: inline-flex;
+  display: flex;
   float: right;
-  font-size: 0.85rem;
-  gap: 0.35rem;
+  gap: 0.5rem;
   margin: 0 0 1rem 1rem;
+}
+
+.dockle-page-action,
+.dockle-page-action:visited {
+  align-items: center;
+  background: var(--dockle-background-secondary);
+  border: 1px solid var(--dockle-border);
+  border-radius: 50%;
+  color: var(--dockle-content);
+  display: inline-flex;
+  flex: 0 0 2.6rem;
+  height: 2.6rem;
+  justify-content: center;
+  text-decoration: none;
+  transition: border-color 120ms ease, color 120ms ease;
+  width: 2.6rem;
+}
+
+.dockle-page-action:hover,
+.dockle-page-action:focus-visible {
+  border-color: var(--dockle-primary);
+  color: var(--dockle-primary);
+}
+
+.dockle-page-action:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--dockle-primary) 35%, transparent);
+  outline-offset: 2px;
+}
+
+.dockle-page-action .lucide,
+.dockle-repository-icon {
+  height: 1.2rem;
+  width: 1.2rem;
+}
+
+.dockle-repository-icon {
+  fill: currentColor;
 }
 
 .dockle-page-links a,

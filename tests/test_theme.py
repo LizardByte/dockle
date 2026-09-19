@@ -237,6 +237,62 @@ class ThemeTests(unittest.TestCase):
                 (output / "_dockle" / "highlight.min.js").is_file()
             )
 
+    def test_repository_action_is_added_for_every_framework(self) -> None:
+        content = {
+            "doxygen": '<div id="doc-content"><h1>Docs</h1></div>',
+            "jsdoc": '<div id="main"><h1>Docs</h1></div>',
+            "mkdocs": '<article class="dockle-article"><h1>Docs</h1></article>',
+            "rustdoc": '<section id="main-content"><h1>Docs</h1></section>',
+            "sphinx": '<article class="dockle-article"><h1>Docs</h1></article>',
+        }
+        repositories = {
+            "doxygen": ("https://github.com/example/project", "github"),
+            "jsdoc": ("https://gitlab.com/example/project", "gitlab"),
+            "mkdocs": ("https://codeberg.org/example/project", "generic"),
+            "rustdoc": ("https://github.com/example/project", "github"),
+            "sphinx": ("https://github.com/example/project", "github"),
+        }
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for framework, body in content.items():
+                with self.subTest(framework=framework):
+                    output = root / framework
+                    output.mkdir()
+                    html = output / "index.html"
+                    html.write_text(
+                        f"<html><head></head><body>{body}</body></html>",
+                        encoding="utf-8",
+                    )
+                    repository, service = repositories[framework]
+
+                    apply_theme(
+                        output,
+                        framework,
+                        "body {}",
+                        repository=repository,
+                    )
+                    apply_theme(
+                        output,
+                        framework,
+                        "body {}",
+                        repository=repository,
+                    )
+
+                    document = html.read_text(encoding="utf-8")
+                    self.assertEqual(
+                        document.count("data-dockle-repository-action"), 1
+                    )
+                    self.assertIn(f'href="{repository}"', document)
+                    self.assertIn(
+                        f'data-dockle-repository-service="{service}"',
+                        document,
+                    )
+                    self.assertLess(
+                        document.index("data-dockle-repository-action"),
+                        document.index("<h1>Docs</h1>"),
+                    )
+
     def test_doxygen_fence_languages_are_restored_for_highlighting(
         self,
     ) -> None:
