@@ -583,6 +583,7 @@ jobs:
           merge-multiple: true
           path: release-assets
           pattern: dockle-*
+          skip-decompress: true
 
       - name: Create/Update GitHub Release
         uses: LizardByte/actions/actions/release_create@39c468549cfb87ccb917e5e5342e18abc926dc48  # v2026.909.30231
