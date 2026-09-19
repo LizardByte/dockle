@@ -305,12 +305,7 @@ def _markdown_fences(markdown_file: Path) -> Iterator[tuple[str, list[str]]]:
     lines = markdown_file.read_text(encoding="utf-8").splitlines()
     index = 0
     while index < len(lines):
-        opening_line, quoted = _markdown_fence_line(lines[index])
-        opening = _MARKDOWN_FENCE.match(opening_line)
-        if opening is None:
-            _, separator, alias_content = opening_line.partition("|:|")
-            if separator:
-                opening = _MARKDOWN_FENCE.match(alias_content.lstrip())
+        opening, quoted = _markdown_fence_opening(lines[index])
         if opening is None:
             index += 1
             continue
@@ -318,18 +313,40 @@ def _markdown_fences(markdown_file: Path) -> Iterator[tuple[str, list[str]]]:
         closing = re.compile(
             rf"^\s*{re.escape(fence[0])}{{{len(fence)},}}\}}?[ \t]*$"
         )
-        block: list[str] = []
-        index += 1
-        while index < len(lines):
-            block_line, _ = _markdown_fence_line(lines[index])
-            candidate = block_line if quoted else lines[index]
-            if closing.match(candidate) is not None:
-                break
-            block.append(candidate)
-            index += 1
+        block, index = _markdown_fence_block(lines, index + 1, quoted, closing)
         normalized = textwrap.dedent("\n".join(block)).splitlines()
         yield _fence_language(opening.group("info")), normalized
         index += 1
+
+
+def _markdown_fence_opening(
+    line: str,
+) -> tuple[re.Match[str] | None, bool]:
+    opening_line, quoted = _markdown_fence_line(line)
+    opening = _MARKDOWN_FENCE.match(opening_line)
+    if opening is not None:
+        return opening, quoted
+    _, separator, alias_content = opening_line.partition("|:|")
+    if not separator:
+        return None, quoted
+    return _MARKDOWN_FENCE.match(alias_content.lstrip()), quoted
+
+
+def _markdown_fence_block(
+    lines: list[str],
+    index: int,
+    quoted: bool,
+    closing: re.Pattern[str],
+) -> tuple[list[str], int]:
+    block: list[str] = []
+    while index < len(lines):
+        block_line, _ = _markdown_fence_line(lines[index])
+        candidate = block_line if quoted else lines[index]
+        if closing.match(candidate) is not None:
+            break
+        block.append(candidate)
+        index += 1
+    return block, index
 
 
 def _markdown_fence_line(line: str) -> tuple[str, bool]:
@@ -353,25 +370,32 @@ def _doxygen_fragment_text(fragment: str) -> str:
     return "\n".join(lines)
 
 
+def _skip_whitespace(value: str, offset: int) -> int:
+    while offset < len(value) and value[offset].isspace():
+        offset += 1
+    return offset
+
+
+def _break_tag_end(markup: str, offset: int) -> int | None:
+    if not markup.startswith("<br", offset):
+        return None
+    offset = _skip_whitespace(markup, offset + 3)
+    if offset < len(markup) and markup[offset] == "/":
+        offset = _skip_whitespace(markup, offset + 1)
+    if offset >= len(markup) or markup[offset] != ">":
+        return None
+    return offset + 1
+
+
 def _is_break_only_markup(value: str) -> bool:
     markup = value.strip().casefold()
     offset = 0
-    found = False
     while offset < len(markup):
-        if not markup.startswith("<br", offset):
+        next_offset = _break_tag_end(markup, offset)
+        if next_offset is None:
             return False
-        offset += 3
-        while offset < len(markup) and markup[offset].isspace():
-            offset += 1
-        if offset < len(markup) and markup[offset] == "/":
-            offset += 1
-            while offset < len(markup) and markup[offset].isspace():
-                offset += 1
-        if offset >= len(markup) or markup[offset] != ">":
-            return False
-        offset += 1
-        found = True
-    return found
+        offset = next_offset
+    return bool(markup)
 
 
 def _normalized_code(code: str) -> str:

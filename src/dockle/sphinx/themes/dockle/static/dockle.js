@@ -364,7 +364,7 @@
       const row = document.createElement("tr");
       cells.slice(index, index + 2).forEach((value) => {
         const cell = document.createElement("td");
-        const marker = value.match(/\uE000(\d+)\uE001/);
+        const marker = /\uE000(\d+)\uE001/.exec(value);
         if (marker) {
           cell.append(fragments[Number(marker[1])]);
         } else {

@@ -311,13 +311,11 @@ class DoxygenBuilder(Builder):
             "QUIET": "YES",
             "DOT_GRAPH_MAX_NODES": str(settings.dot_graph_max_nodes),
         }
-        extra_files = list(settings.extra_files)
-        project_logo = self.config.project.logo
-        if isinstance(project_logo, Path) and project_logo not in extra_files:
-            extra_files.append(project_logo)
         optional_paths = {
             "EXCLUDE": settings.excludes,
-            "HTML_EXTRA_FILES": tuple(extra_files),
+            "HTML_EXTRA_FILES": _doxygen_extra_files(
+                settings.extra_files, self.config.project.logo
+            ),
             "IMAGE_PATH": settings.image_paths,
             "INCLUDE_PATH": settings.include_paths,
         }
@@ -865,6 +863,14 @@ def _doxygen_quote(value: str) -> str:
 
 def _doxygen_paths(paths: tuple[Path, ...]) -> str:
     return " ".join(_doxygen_quote(_posix(path)) for path in paths)
+
+
+def _doxygen_extra_files(
+    paths: tuple[Path, ...], logo: Path | str | None
+) -> tuple[Path, ...]:
+    if isinstance(logo, Path) and logo not in paths:
+        return (*paths, logo)
+    return paths
 
 
 def _doxygen_strings(values: tuple[str, ...]) -> str:
