@@ -38,6 +38,11 @@ _DOCKLE_FOOTER_START = re.compile(
     r"<footer\b(?=[^>]*data-dockle-built-with)[^>]*>",
     re.IGNORECASE,
 )
+_PAGE_ACTIONS_START = re.compile(
+    r'<div\b(?=[^>]*\bclass=["\'][^"\']*\bdockle-page-actions\b'
+    r'[^"\']*["\'])[^>]*>',
+    re.IGNORECASE,
+)
 _TARGET_CARDS_START = re.compile(
     r'<div\s+data-dockle-target-cards(?:=["\'][^"\']*["\'])?[^>]*>',
     re.IGNORECASE,
@@ -493,6 +498,7 @@ def apply_theme(
         document = _inject_repository_action(
             document, html_file, framework, repository
         )
+        document = _inject_theme_toggle(document, html_file, framework)
 
         decorations = _page_decorations(
             html_file=html_file,
@@ -503,9 +509,6 @@ def apply_theme(
             project_version=project_version,
             target_title=target_title,
             logo_asset=logo_asset,
-            include_theme_toggle=(
-                "data-dockle-theme-toggle" not in document
-            ),
         )
         if "data-dockle-universal-search" not in document:
             document = _insert_after_body(document, decorations, html_file)
@@ -671,6 +674,59 @@ def _repository_action(repository: str) -> str:
         f'{icon}<span class="visually-hidden">Source repository</span>'
         "</a></div>"
     )
+
+
+def _theme_toggle() -> str:
+    return (
+        '<button type="button" class="dockle-theme-toggle" '
+        'data-dockle-theme-toggle aria-label="Color scheme: auto">'
+        '<i data-lucide="sun-moon" aria-hidden="true"></i></button>'
+    )
+
+
+def _page_actions(content: str) -> str:
+    return (
+        '<div class="dockle-page-actions" aria-label="Page actions">'
+        f"{content}</div>"
+    )
+
+
+def _insert_into_page_actions(
+    document: str,
+    markup: str,
+) -> str | None:
+    match = _PAGE_ACTIONS_START.search(document)
+    if match is None:
+        return None
+    closing = document.casefold().find("</div>", match.end())
+    if closing < 0:
+        return None
+
+    return f"{document[:closing]}{markup}{document[closing:]}"
+
+
+def _inject_theme_toggle(
+    document: str,
+    html_file: Path,
+    framework: str,
+) -> str:
+    if "data-dockle-theme-toggle" in document:
+        return document
+
+    toggle = _theme_toggle()
+    page_actions = _insert_into_page_actions(
+        document,
+        toggle,
+    )
+    if page_actions is not None:
+        return page_actions
+
+    actions = _page_actions(toggle)
+    for pattern in _PAGE_CONTENT_STARTS.get(framework, ()):
+        match = pattern.search(document)
+        if match is not None:
+            return f"{document[:match.end()]}{actions}{document[match.end():]}"
+    return _insert_after_body(document, actions, html_file)
 
 
 def _ensure_footer(document: str, footer: str, html_file: Path) -> str:
@@ -868,7 +924,6 @@ def _page_decorations(
     project_version: str,
     target_title: str,
     logo_asset: Path | str | None,
-    include_theme_toggle: bool,
 ) -> str:
     relative_index = _relative(
         output / "_dockle" / "search.json",
@@ -905,14 +960,7 @@ def _page_decorations(
             f"data-dockle-brand><strong>{escape(project_name)}</strong>"
             f"{version}</a>"
         )
-    toggle = ""
-    if include_theme_toggle:
-        toggle = (
-            '<button type="button" class="dockle-theme-toggle" '
-            'data-dockle-theme-toggle aria-label="Color scheme: auto">'
-            '<i data-lucide="monitor" aria-hidden="true"></i></button>'
-        )
-    return f'{links}<div class="dockle-toolbar">{search}{toggle}</div>'
+    return f'{links}<div class="dockle-toolbar">{search}</div>'
 
 
 def _framework_version(framework: str, html_files: list[Path]) -> str:
@@ -1183,7 +1231,7 @@ def _standalone_portal_document(
   </main>
   <button type="button" class="dockle-theme-toggle"
           data-dockle-theme-toggle aria-label="Color scheme: auto">
-    <i data-lucide="monitor" aria-hidden="true"></i>
+    <i data-lucide="sun-moon" aria-hidden="true"></i>
   </button>
 </body>
 </html>

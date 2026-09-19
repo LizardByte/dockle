@@ -67,7 +67,7 @@ class SphinxThemeTests(unittest.TestCase):
         )
 
         self.assertIn('["auto", "light", "dark"]', script)
-        self.assertIn('auto: "monitor"', script)
+        self.assertIn('auto: "sun-moon"', script)
         self.assertIn("localStorage.removeItem(storageKey)", script)
 
     def test_admonitions_use_one_left_accent_layout(self) -> None:
@@ -263,11 +263,17 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertNotIn('aria-label="Source repository"', layout)
         self.assertNotIn('aria-label="Edit this page"', layout)
         self.assertLess(
-            layout.index("dockle-repository-link"),
             layout.index("dockle-source-edit"),
+            layout.index("dockle-repository-link"),
         )
+        self.assertLess(
+            layout.index("dockle-repository-link"),
+            layout.index("data-dockle-theme-toggle"),
+        )
+        self.assertIn('data-lucide="sun-moon"', layout)
         self.assertIn(".dockle-page-actions", stylesheet)
         self.assertIn(".dockle-page-action", stylesheet)
+        self.assertIn(".dockle-theme-toggle .lucide", stylesheet)
         self.assertIn(".dockle-repository-icon", stylesheet)
         self.assertIn("color: var(--dockle-content) !important", stylesheet)
         self.assertIn(".headertitle\n  > .dockle-page-actions", stylesheet)

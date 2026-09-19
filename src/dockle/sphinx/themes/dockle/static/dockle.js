@@ -66,7 +66,7 @@
     const selected = selectedScheme();
     const selectedIndex = themeModes.indexOf(selected);
     const next = themeModes[(selectedIndex + 1) % themeModes.length];
-    const icons = { auto: "monitor", light: "sun", dark: "moon" };
+    const icons = { auto: "sun-moon", light: "sun", dark: "moon" };
     document.querySelectorAll("[data-dockle-theme-toggle]").forEach((button) => {
       const icon = button.querySelector("[data-lucide]");
       const resolved = selected === "auto" ? ` (${resolvedScheme()})` : "";

@@ -176,6 +176,11 @@ export function add(left, right) { return left + right; }
   assert.match(document, /https:\/\/example\.invalid\/native-jsdoc-example/);
   assert.match(document, /data-dockle-repository-action/);
   assert.match(document, /data-dockle-repository-service="generic"/);
+  assert.match(document, /data-lucide="sun-moon"/);
+  assert.ok(
+    document.indexOf('dockle-repository-link')
+      < document.indexOf('data-dockle-theme-toggle'),
+  );
   assert.match(document, /target="_blank"/);
   assert.match(document, /rel="noopener noreferrer"/);
   assert.ok(document.includes(`Dockle ${packageMetadata.version}`));
