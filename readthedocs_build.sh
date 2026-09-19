@@ -4,6 +4,7 @@ set -euo pipefail
 dockle_dir="$(cd -- "${DOCKLE_DIR:-$(dirname -- "${BASH_SOURCE[0]}")}" && pwd -P)"
 environment_name="${READTHEDOCS_VERSION:-dockle-docs}"
 environment_file="${dockle_dir}/environment.yml"
+uv_version="0.12.13"
 uses_doxygen="$(
   python -c \
     'import tomllib; config = tomllib.load(open("dockle.toml", "rb")); print(any(t.get("framework") == "doxygen" for t in config["targets"]))'
@@ -20,6 +21,13 @@ fi
 
 npm --prefix "${dockle_dir}" ci --ignore-scripts
 npm --prefix "${dockle_dir}" run build
+
+if ! "${environment_run[@]}" uv --version >/dev/null 2>&1; then
+  echo "Installing uv==${uv_version} in the Read the Docs Python environment"
+  "${environment_run[@]}" python -m pip install \
+    --disable-pip-version-check \
+    "uv==${uv_version}"
+fi
 
 uv_run=("${environment_run[@]}" uv)
 "${uv_run[@]}" sync --project "${dockle_dir}" --locked --all-extras --no-dev
