@@ -62,14 +62,16 @@ class ProjectDogfoodTests(unittest.TestCase):
         self.assertIn(
             'conda env create --quiet --name "${environment_name}"', script
         )
+        self.assertIn('t.get("framework") == "doxygen"', script)
+        self.assertIn("python_run=(python)", script)
         self.assertIn("requirements-readthedocs.txt", script)
-        self.assertIn("python -m dockle check", script)
-        self.assertIn("python -m dockle build", script)
+        self.assertIn('"${python_run[@]}" -m dockle check', script)
+        self.assertIn('"${python_run[@]}" -m dockle build', script)
         self.assertIn("${READTHEDOCS_OUTPUT}html/", script)
         self.assertIn("npm ci --ignore-scripts", script)
         self.assertLess(
             script.index("npm run build"),
-            script.index("python -m pip install"),
+            script.index('"${python_run[@]}" -m pip install'),
         )
 
         requirements = (
