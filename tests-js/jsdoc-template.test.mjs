@@ -127,6 +127,8 @@ test('the npm command builds a self-contained native JSDoc site', async (context
   }));
   await writeFile(path.join(root, 'logo.svg'), '<svg xmlns="http://www.w3.org/2000/svg"/>');
   await writeFile(path.join(root, 'favicon.svg'), '<svg xmlns="http://www.w3.org/2000/svg"/>');
+  await writeFile(path.join(root, 'project.css'), 'body {}');
+  await writeFile(path.join(root, 'project.js'), 'void 0;');
   await writeFile(
     path.join(tutorials, 'component-reference.md'),
     '# Component reference\n',
@@ -155,6 +157,14 @@ export function add(left, right) { return left + right; }
     templates: {
       dockle: {
         favicon: 'favicon.svg',
+        extraJavascript: [
+          'project.js',
+          'https://example.invalid/widget.js',
+        ],
+        extraStylesheets: [
+          'project.css',
+          'https://example.invalid/widget.css',
+        ],
         logo: 'logo.svg',
         targetTitle: 'Native JSDoc example',
       },
@@ -187,6 +197,16 @@ export function add(left, right) { return left + right; }
   assert.match(document, /JSDoc 4\.0\.5/);
   assert.match(document, /dockle-logo\.svg/);
   assert.match(document, /dockle-favicon\.svg/);
+  assert.match(
+    document,
+    /href="project\.css" data-dockle-extra-stylesheet="0"/,
+  );
+  assert.match(document, /href="https:\/\/example\.invalid\/widget\.css"/);
+  assert.match(
+    document,
+    /src="project\.js" data-dockle-extra-javascript="0"/,
+  );
+  assert.match(document, /src="https:\/\/example\.invalid\/widget\.js"/);
   assert.match(document, />Component reference<\/a>/);
   assert.doesNotMatch(document, />component-reference<\/a>/);
   assert.match(
@@ -200,4 +220,6 @@ export function add(left, right) { return left + right; }
   await readFile(path.join(output, 'dockle.js'), 'utf8');
   await readFile(path.join(output, 'highlight.min.js'), 'utf8');
   await readFile(path.join(output, 'lucide.min.js'), 'utf8');
+  assert.equal(await readFile(path.join(output, 'project.css'), 'utf8'), 'body {}');
+  assert.equal(await readFile(path.join(output, 'project.js'), 'utf8'), 'void 0;');
 });

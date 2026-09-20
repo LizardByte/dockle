@@ -215,6 +215,7 @@ inputs = ["README.md", "cpp"]
 exclude_patterns = ["*/generated/*"]
 predefined = ["EXAMPLE=1"]
 extra_stylesheets = ["cpp/custom.css"]
+extra_javascript = ["cpp/custom.js"]
 extra_files = ["cpp/custom.js"]
 aliases = ['example{1}=<strong>\\1</strong>']
 main_page = "README.md"
@@ -233,9 +234,7 @@ generate_xml = true''',
         assert settings is not None
 
         self.assertIn(f'"{settings.main_page.as_posix()}"', doxyfile)
-        self.assertIn(
-            f'"{settings.extra_stylesheets[0].as_posix()}"', doxyfile
-        )
+        self.assertNotIn(custom_css.as_posix(), doxyfile)
         self.assertIn(f'"{settings.extra_files[0].as_posix()}"', doxyfile)
         self.assertIn('"EXAMPLE=1"', doxyfile)
         self.assertIn('EXCLUDE_PATTERNS         = "*/generated/*"', doxyfile)
@@ -254,6 +253,52 @@ generate_xml = true''',
         self.assertIn("WARN_IF_UNDOCUMENTED     = YES", doxyfile)
         self.assertIn("WARN_NO_PARAMDOC         = YES", doxyfile)
         self.assertIn('ALIASES                += "example{1}', doxyfile)
+
+    def test_doxygen_build_injects_local_and_remote_extra_assets(self) -> None:
+        custom_css = self.root / "custom.css"
+        custom_js = self.root / "custom.js"
+        fake_doxygen = self.root / "fake-doxygen"
+        custom_css.write_text("body {}", encoding="utf-8")
+        custom_js.write_text("void 0", encoding="utf-8")
+        fake_doxygen.touch()
+        configured = ALL_TARGETS_CONFIG.replace(
+            "[build]\nstrict = true",
+            '[build]\nstrict = true\n\n[tools]\ndoxygen = "./fake-doxygen"',
+        ).replace(
+            'framework = "doxygen"\nsource = "cpp"',
+            '''framework = "doxygen"
+source = "cpp"
+
+[targets.doxygen]
+extra_stylesheets = ["custom.css", "https://example.invalid/widget.css"]
+extra_javascript = ["custom.js", "https://example.invalid/widget.js"]''',
+        )
+        self.config_path.write_text(configured, encoding="utf-8")
+        config = load_config(self.config_path)
+        target = config.targets[1]
+
+        result = BuildManager(
+            config, runner=RecordingRunner(target.output)
+        ).build((target,))
+
+        self.assertEqual(result[0].themed_pages, 1)
+        html = (target.output / "index.html").read_text(encoding="utf-8")
+        self.assertIn(
+            '<link rel="stylesheet" href="custom.css" '
+            'data-dockle-extra-stylesheet="0">',
+            html,
+        )
+        self.assertIn('href="https://example.invalid/widget.css"', html)
+        self.assertIn(
+            '<script defer src="custom.js" '
+            'data-dockle-extra-javascript="0"></script>',
+            html,
+        )
+        self.assertIn('src="https://example.invalid/widget.js"', html)
+        self.assertEqual(
+            (target.output / "custom.js").read_text(encoding="utf-8"),
+            "void 0",
+        )
 
     def test_doxygen_plan_copies_local_project_logo(self) -> None:
         logo = self.root / "logo.svg"
@@ -446,6 +491,56 @@ exclude_pattern = "generated/"''',
         with self.assertRaisesRegex(BuildError, "rustdoc entry"):
             builder._write_index()
 
+    def test_rustdoc_finalize_injects_local_and_remote_extra_assets(
+        self,
+    ) -> None:
+        custom_css = self.root / "custom.css"
+        custom_js = self.root / "custom.js"
+        custom_css.write_text("body {}", encoding="utf-8")
+        custom_js.write_text("void 0", encoding="utf-8")
+        configured = ALL_TARGETS_CONFIG.replace(
+            'framework = "rustdoc"\nsource = "rust"',
+            '''framework = "rustdoc"
+source = "rust"
+entry = "fixture"
+
+[targets.rustdoc]
+extra_stylesheets = ["custom.css", "https://example.invalid/widget.css"]
+extra_javascript = ["custom.js", "https://example.invalid/widget.js"]''',
+        )
+        self.config_path.write_text(configured, encoding="utf-8")
+        config = load_config(self.config_path)
+        target = config.targets[4]
+        builder = RustdocBuilder(config, target, "cargo")
+        crate_output = builder.work / "cargo-target" / "doc" / "fixture"
+        nested_output = crate_output / "module"
+        nested_output.mkdir(parents=True)
+        for path in (crate_output / "index.html", nested_output / "index.html"):
+            path.write_text(
+                "<!doctype html><html><head></head><body>Docs</body></html>",
+                encoding="utf-8",
+            )
+
+        themed_pages = builder.finalize("body {}")
+
+        self.assertEqual(themed_pages, 3)
+        html = (target.output / "fixture" / "module" / "index.html").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            '<link rel="stylesheet" href="../../custom.css" '
+            'data-dockle-extra-stylesheet="0">',
+            html,
+        )
+        self.assertIn('href="https://example.invalid/widget.css"', html)
+        self.assertIn(
+            '<script defer src="../../custom.js" '
+            'data-dockle-extra-javascript="0"></script>',
+            html,
+        )
+        self.assertIn('src="https://example.invalid/widget.js"', html)
+        self.assertTrue((target.output / "custom.css").is_file())
+
     def test_build_writes_generated_config_and_themes_html(self) -> None:
         fake_tool = self.root / "fake-jsdoc"
         fake_tool.touch()
@@ -479,8 +574,18 @@ extra_javascript = ["project.js"]''',
         self.assertIn('"destination"', generated)
         self.assertIn('data-dockle-theme="jsdoc"', html)
         self.assertIn('data-dockle-framework="jsdoc"', html)
-        self.assertIn('<link rel="stylesheet" href="project.css">', html)
-        self.assertIn('<script defer src="project.js"></script>', html)
+        self.assertIn(
+            '<link rel="stylesheet" href="project.css" '
+            'data-dockle-extra-stylesheet="0">',
+            html,
+        )
+        self.assertIn(
+            '<script defer src="project.js" '
+            'data-dockle-extra-javascript="0"></script>',
+            html,
+        )
+        self.assertIn('"extraJavascript"', generated)
+        self.assertIn('"extraStylesheets"', generated)
         self.assertEqual(
             (target.output / "project.js").read_text(encoding="utf-8"),
             "void 0",

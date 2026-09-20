@@ -46,6 +46,70 @@ function copyConfiguredAsset(source, destination) {
   fs.copyFileSync(path.resolve(env.pwd, source), destination);
 }
 
+function escapeAttribute(value) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('"', '&quot;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+}
+
+function configuredAssets(dockle, key) {
+  const assets = dockle[key] || [];
+  if (!Array.isArray(assets) || assets.some((asset) => (
+    typeof asset !== 'string' || !asset.trim()
+  ))) {
+    throw new TypeError(`templates.dockle.${key} must be an array of strings`);
+  }
+  return assets;
+}
+
+function installExtraAssets(root, dockle) {
+  const stylesheets = configuredAssets(dockle, 'extraStylesheets');
+  const javascript = configuredAssets(dockle, 'extraJavascript');
+  const localAssets = new Map();
+  for (const asset of [...stylesheets, ...javascript]) {
+    if (/^https?:\/\//i.test(asset)) {
+      continue;
+    }
+    const name = path.basename(asset);
+    const source = path.resolve(env.pwd, asset);
+    const existing = localAssets.get(name);
+    if (existing && existing !== source) {
+      throw new Error(`extra assets must have unique filenames: ${existing} and ${source}`);
+    }
+    localAssets.set(name, source);
+  }
+  for (const [name, source] of localAssets) {
+    fs.copyFileSync(source, path.join(root, name));
+  }
+
+  for (const filename of htmlFiles(root)) {
+    let document = fs.readFileSync(filename, 'utf8');
+    const assetUrl = (asset) => {
+      if (/^https?:\/\//i.test(asset)) {
+        return asset;
+      }
+      return path.relative(path.dirname(filename), path.join(root, path.basename(asset)))
+        .split(path.sep).join('/');
+    };
+    const tags = [
+      ...stylesheets.map((asset, index) => (
+        `<link rel="stylesheet" href="${escapeAttribute(assetUrl(asset))}" `
+        + `data-dockle-extra-stylesheet="${index}">`
+      )),
+      ...javascript.map((asset, index) => (
+        `<script defer src="${escapeAttribute(assetUrl(asset))}" `
+        + `data-dockle-extra-javascript="${index}"></script>`
+      )),
+    ];
+    if (tags.length) {
+      document = document.replace('</head>', `${tags.join('\n')}\n</head>`);
+      fs.writeFileSync(filename, document, 'utf8');
+    }
+  }
+}
+
 function htmlFiles(directory) {
   const files = [];
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
@@ -116,6 +180,7 @@ function finishSite(destination, dockle) {
   fs.writeFileSync(path.join(root, 'dockle.css'), stylesheet, 'utf8');
   copyConfiguredAsset(dockle.logo, path.join(root, dockle.logoFile));
   copyConfiguredAsset(dockle.favicon, path.join(root, dockle.faviconFile));
+  installExtraAssets(root, dockle);
   const docs = htmlFiles(root).map((filename) => searchDocument(filename, root));
   fs.writeFileSync(
     path.join(root, 'search.json'),

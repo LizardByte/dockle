@@ -57,7 +57,8 @@ Complete example
    include_paths = ["include"]
    predefined = ["EXAMPLE_PUBLIC_API=1"]
    extra_stylesheets = ["docs/project.css"]
-   extra_files = ["docs/project.js"]
+   extra_javascript = ["docs/project.js", "https://cdn.example.com/widget.js"]
+   extra_files = ["docs/project-icon.svg"]
    aliases = ['example_link{1}=<a href="\\1">Example</a>']
    main_page = "README.md"
    dot_graph_max_nodes = 75
@@ -152,9 +153,12 @@ a second native configuration file:
    by default; platform and feature macros belong here because they change
    which project declarations are visible.
 
-``extra_stylesheets`` and ``extra_files``
-   Project CSS, JavaScript, images, or other files copied through Doxygen's
-   supported HTML hooks. Dockle's stylesheet always remains first.
+``extra_stylesheets`` and ``extra_javascript``
+   Project files or absolute HTTP(S) URLs injected into every generated page
+   in configuration order. Dockle copies local assets to the target output.
+
+``extra_files``
+   Other project files copied through Doxygen's supported HTML hook.
 
 ``aliases``
    Complete project-specific Doxygen alias definitions. Dockle adds these after
@@ -193,7 +197,8 @@ different parts of the repository:
    Project files copied to the JSDoc output root.
 
 ``extra_stylesheets`` and ``extra_javascript``
-   Copied asset names or absolute web URLs injected into every generated page.
+   Project files or absolute HTTP(S) URLs injected into every generated page
+   in configuration order. Dockle copies local assets to the target output.
 
 MkDocs target settings
 ----------------------
@@ -228,8 +233,11 @@ must expose:
 rustdoc target settings
 -----------------------
 
-Use ``[targets.rustdoc]`` when crate-local HTML hooks reference supporting
-assets:
+Use ``[targets.rustdoc]`` to attach supporting assets:
+
+``extra_stylesheets`` and ``extra_javascript``
+   Project files or absolute HTTP(S) URLs injected into every generated page
+   in configuration order. Dockle copies local assets to the target output.
 
 ``extra_files``
    Project files copied beside every generated rustdoc HTML page. Cargo runs

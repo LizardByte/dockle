@@ -14,6 +14,7 @@ from typing import Any
 SUPPORTED_FRAMEWORKS = frozenset(
     {"doxygen", "jsdoc", "mkdocs", "rustdoc", "sphinx"}
 )
+AssetReference = Path | str
 _TARGET_NAME = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 _TARGET_KEYS = {
     "doxygen",
@@ -84,7 +85,8 @@ class DoxygenConfig:
     image_paths: tuple[Path, ...] = ()
     include_paths: tuple[Path, ...] = ()
     predefined: tuple[str, ...] = ()
-    extra_stylesheets: tuple[Path, ...] = ()
+    extra_javascript: tuple[AssetReference, ...] = ()
+    extra_stylesheets: tuple[AssetReference, ...] = ()
     extra_files: tuple[Path, ...] = ()
     aliases: tuple[str, ...] = ()
     main_page: Path | None = None
@@ -106,8 +108,8 @@ class JsDocConfig:
     include_pattern: str = r".+\.(c|m)?jsx?$"
     exclude_pattern: str = ""
     extra_files: tuple[Path, ...] = ()
-    extra_javascript: tuple[str, ...] = ()
-    extra_stylesheets: tuple[str, ...] = ()
+    extra_javascript: tuple[AssetReference, ...] = ()
+    extra_stylesheets: tuple[AssetReference, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -135,6 +137,8 @@ class RustdocConfig:
     """Project-specific rustdoc settings owned by ``dockle.toml``."""
 
     extra_files: tuple[Path, ...] = ()
+    extra_javascript: tuple[AssetReference, ...] = ()
+    extra_stylesheets: tuple[AssetReference, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -448,6 +452,7 @@ def _load_doxygen(
         "exclude_patterns",
         "excludes",
         "extra_files",
+        "extra_javascript",
         "extra_stylesheets",
         "generate_xml",
         "image_paths",
@@ -481,7 +486,10 @@ def _load_doxygen(
         image_paths=_path_list(raw, "image_paths", doxygen_where, root),
         include_paths=_path_list(raw, "include_paths", doxygen_where, root),
         predefined=_string_list(raw, "predefined", doxygen_where),
-        extra_stylesheets=_path_list(
+        extra_javascript=_asset_list(
+            raw, "extra_javascript", doxygen_where, root
+        ),
+        extra_stylesheets=_asset_list(
             raw, "extra_stylesheets", doxygen_where, root
         ),
         extra_files=_path_list(raw, "extra_files", doxygen_where, root),
@@ -560,11 +568,11 @@ def _load_jsdoc(
             raw, "exclude_pattern", jsdoc_where
         ),
         extra_files=_path_list(raw, "extra_files", jsdoc_where, root),
-        extra_javascript=_string_list(
-            raw, "extra_javascript", jsdoc_where
+        extra_javascript=_asset_list(
+            raw, "extra_javascript", jsdoc_where, root
         ),
-        extra_stylesheets=_string_list(
-            raw, "extra_stylesheets", jsdoc_where
+        extra_stylesheets=_asset_list(
+            raw, "extra_stylesheets", jsdoc_where, root
         ),
     )
 
@@ -657,9 +665,19 @@ def _load_rustdoc(
         return None
 
     rustdoc_where = f"{where}.rustdoc"
-    _reject_unknown(raw, {"extra_files"}, rustdoc_where)
+    _reject_unknown(
+        raw,
+        {"extra_files", "extra_javascript", "extra_stylesheets"},
+        rustdoc_where,
+    )
     return RustdocConfig(
-        extra_files=_path_list(raw, "extra_files", rustdoc_where, root)
+        extra_files=_path_list(raw, "extra_files", rustdoc_where, root),
+        extra_javascript=_asset_list(
+            raw, "extra_javascript", rustdoc_where, root
+        ),
+        extra_stylesheets=_asset_list(
+            raw, "extra_stylesheets", rustdoc_where, root
+        ),
     )
 
 
@@ -813,6 +831,17 @@ def _path_list(
         return default
     return tuple(
         _path_within_root(root, value, f"{where}.{key}[{index}]")
+        for index, value in enumerate(_string_list(raw, key, where))
+    )
+
+
+def _asset_list(
+    raw: dict[str, Any], key: str, where: str, root: Path
+) -> tuple[AssetReference, ...]:
+    return tuple(
+        value
+        if value.casefold().startswith(("https://", "http://"))
+        else _path_within_root(root, value, f"{where}.{key}[{index}]")
         for index, value in enumerate(_string_list(raw, key, where))
     )
 
