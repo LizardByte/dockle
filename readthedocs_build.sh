@@ -43,12 +43,21 @@ uses_docs_group="$(
 
 if [[ "${uses_docs_group}" == "True" ]]; then
   echo "Installing the locked project documentation dependency group"
-  env UV_PROJECT_ENVIRONMENT="${dockle_dir}/.venv" \
-    "${uv_run[@]}" sync \
+  docs_requirements="$(mktemp)"
+  trap 'rm -f "${docs_requirements}"' EXIT
+  "${uv_run[@]}" export \
+    --quiet \
     --project "${project_dir}" \
     --locked \
     --only-group docs \
-    --inexact
+    --no-emit-project \
+    --format requirements.txt \
+    --output-file "${docs_requirements}"
+  "${uv_run[@]}" pip install \
+    --python "${dockle_dir}/.venv/bin/python" \
+    --requirement "${docs_requirements}"
+  rm -f "${docs_requirements}"
+  trap - EXIT
 elif [[ -f docs/requirements.txt ]]; then
   "${uv_run[@]}" pip install \
     --python "${dockle_dir}/.venv/bin/python" \
