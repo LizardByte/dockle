@@ -283,6 +283,8 @@ class ProjectDogfoodTests(unittest.TestCase):
         script = (PROJECT_ROOT / "readthedocs_build.sh").read_text(
             encoding="utf-8"
         )
+        self.assertIn('uv_run=("${environment_run[@]}" uv)', script)
+        self.assertNotIn("python -m uv", script)
         docs_install = script.split(
             'if [[ "${uses_docs_group}" == "True" ]]', maxsplit=1
         )[1].split("elif [[ -f docs/requirements.txt ]]", maxsplit=1)[0]

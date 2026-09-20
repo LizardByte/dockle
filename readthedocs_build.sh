@@ -22,7 +22,7 @@ fi
 npm --prefix "${dockle_dir}" ci --ignore-scripts
 npm --prefix "${dockle_dir}" run build
 
-uv_run=("${environment_run[@]}" python -m uv)
+uv_run=("${environment_run[@]}" uv)
 "${uv_run[@]}" sync --project "${dockle_dir}" --locked --all-extras --no-dev
 dockle_run=(
   "${uv_run[@]}" run --project "${dockle_dir}" --locked --all-extras --no-dev --no-sync
