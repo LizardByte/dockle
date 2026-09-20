@@ -343,6 +343,7 @@ image_paths = ["images"]
 include_paths = ["include"]
 predefined = ["EXAMPLE=1"]
 extra_stylesheets = ["docs/custom.css"]
+extra_javascript = ["docs/custom.js", "https://example.invalid/widget.js"]
 extra_files = ["docs/custom.js"]
 aliases = ['example{1}=<strong>\\1</strong>']
 main_page = "README.md"
@@ -367,6 +368,13 @@ warn_no_paramdoc = false
                 ((root / "README.md").resolve(), (root / "src").resolve()),
             )
             self.assertEqual(doxygen.predefined, ("EXAMPLE=1",))
+            self.assertEqual(
+                doxygen.extra_javascript,
+                (
+                    (root / "docs" / "custom.js").resolve(),
+                    "https://example.invalid/widget.js",
+                ),
+            )
             self.assertEqual(doxygen.main_page, (root / "README.md").resolve())
             self.assertEqual(doxygen.dot_graph_max_nodes, 75)
             self.assertTrue(doxygen.optimize_output_java)
@@ -430,7 +438,10 @@ extra_stylesheets = ["https://example.invalid/project.css"]
             self.assertEqual(
                 jsdoc.extra_files, ((root / "project.js").resolve(),)
             )
-            self.assertEqual(jsdoc.extra_javascript, ("project.js",))
+            self.assertEqual(
+                jsdoc.extra_javascript,
+                ((root / "project.js").resolve(),),
+            )
             self.assertEqual(
                 jsdoc.extra_stylesheets,
                 ("https://example.invalid/project.css",),
@@ -496,12 +507,14 @@ source_edit_link = "https://example.invalid/edit"
             with self.assertRaisesRegex(ConfigError, "must contain.*filename"):
                 load_config(path)
 
-    def test_loads_typed_rustdoc_extra_files(self) -> None:
+    def test_loads_typed_rustdoc_assets(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "docs").mkdir()
             extra_file = root / "crowdin.js"
             extra_file.touch()
+            stylesheet = root / "crowdin.css"
+            stylesheet.touch()
             path = root / "dockle.toml"
             path.write_text(
                 MINIMAL_CONFIG.replace(
@@ -510,6 +523,8 @@ source_edit_link = "https://example.invalid/edit"
                 + '''
 [targets.rustdoc]
 extra_files = ["crowdin.js"]
+extra_javascript = ["crowdin.js", "https://example.invalid/widget.js"]
+extra_stylesheets = ["crowdin.css"]
 ''',
                 encoding="utf-8",
             )
@@ -519,6 +534,13 @@ extra_files = ["crowdin.js"]
 
             assert rustdoc is not None
             self.assertEqual(rustdoc.extra_files, (extra_file.resolve(),))
+            self.assertEqual(
+                rustdoc.extra_javascript,
+                (extra_file.resolve(), "https://example.invalid/widget.js"),
+            )
+            self.assertEqual(
+                rustdoc.extra_stylesheets, (stylesheet.resolve(),)
+            )
 
     def test_selects_targets_in_configuration_order(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

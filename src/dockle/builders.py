@@ -15,7 +15,7 @@ from html import escape
 from pathlib import Path
 
 from dockle import __version__
-from dockle.config import DockleConfig, TargetConfig
+from dockle.config import AssetReference, DockleConfig, TargetConfig
 from dockle.theme import (
     ThemeError,
     _theme_asset,
@@ -126,6 +126,74 @@ class Builder(ABC):
 
     def _theme_file(self) -> Path:
         return self.work / "theme" / "dockle.css"
+
+    def _inject_extra_assets(
+        self,
+        stylesheets: tuple[AssetReference, ...],
+        javascript: tuple[AssetReference, ...],
+        *,
+        framework_marker: str | None = None,
+    ) -> int:
+        """Copy configured project assets and inject every asset by URL."""
+
+        local_assets: dict[str, Path] = {}
+        for asset in (*stylesheets, *javascript):
+            if not isinstance(asset, Path):
+                continue
+            existing = local_assets.get(asset.name)
+            if existing is not None and existing != asset:
+                raise BuildError(
+                    "extra assets must have unique filenames: "
+                    f"{existing} and {asset}"
+                )
+            local_assets[asset.name] = asset
+        for name, source in local_assets.items():
+            shutil.copy2(source, self.target.output / name)
+
+        matched = 0
+        for html_file in sorted(self.target.output.rglob("*.html")):
+            document = html_file.read_text(encoding="utf-8")
+            if (
+                framework_marker is not None
+                and f'data-dockle-framework="{framework_marker}"'
+                not in document
+            ):
+                continue
+            matched += 1
+            assets = [
+                *(
+                    '<link rel="stylesheet" href="'
+                    f'{escape(self._asset_url(asset, html_file), quote=True)}" '
+                    f'data-dockle-extra-stylesheet="{index}">'
+                    for index, asset in enumerate(stylesheets)
+                    if f'data-dockle-extra-stylesheet="{index}"'
+                    not in document
+                ),
+                *(
+                    '<script defer src="'
+                    f'{escape(self._asset_url(asset, html_file), quote=True)}" '
+                    f'data-dockle-extra-javascript="{index}"></script>'
+                    for index, asset in enumerate(javascript)
+                    if f'data-dockle-extra-javascript="{index}"'
+                    not in document
+                ),
+            ]
+            if not assets:
+                continue
+            if "</head>" not in document:
+                raise ThemeError(f"generated HTML has no </head>: {html_file}")
+            document = document.replace(
+                "</head>", "\n".join(assets) + "\n</head>", 1
+            )
+            html_file.write_text(document, encoding="utf-8")
+        return matched
+
+    def _asset_url(self, asset: AssetReference, html_file: Path) -> str:
+        if isinstance(asset, str):
+            return asset
+        return Path(
+            os.path.relpath(self.target.output / asset.name, html_file.parent)
+        ).as_posix()
 
 
 class SphinxBuilder(Builder):
@@ -249,10 +317,6 @@ class DoxygenBuilder(Builder):
         warn_as_error = (
             "FAIL_ON_WARNINGS" if self.config.build.strict else "NO"
         )
-        extra_stylesheets = (
-            self._theme_file(),
-            *settings.extra_stylesheets,
-        )
         values = {
             "DOXYFILE_ENCODING": "UTF-8",
             "PROJECT_NAME": _doxygen_quote(self.config.project.name),
@@ -266,7 +330,7 @@ class DoxygenBuilder(Builder):
             "HTML_OUTPUT": ".",
             "HTML_COLORSTYLE": "LIGHT",
             "HTML_COPY_CLIPBOARD": "NO",
-            "HTML_EXTRA_STYLESHEET": _doxygen_paths(extra_stylesheets),
+            "HTML_EXTRA_STYLESHEET": _doxygen_paths((self._theme_file(),)),
             "GENERATE_TREEVIEW": "YES",
             "FULL_SIDEBAR": "YES",
             "HTML_DYNAMIC_MENUS": "YES",
@@ -422,7 +486,12 @@ class DoxygenBuilder(Builder):
             annotate_doxygen_code_languages(
                 self.target.output, settings.inputs
             )
-        return super().finalize(stylesheet)
+        themed_pages = super().finalize(stylesheet)
+        if settings is not None:
+            self._inject_extra_assets(
+                settings.extra_stylesheets, settings.extra_javascript
+            )
+        return themed_pages
 
 
 class MkDocsBuilder(Builder):
@@ -543,6 +612,12 @@ class JsDocBuilder(Builder):
                     "repositoryUrl": self.config.project.repository,
                     "stylesheet": str(self._theme_file()),
                     "targetTitle": self.target.title,
+                    "extraJavascript": [
+                        str(asset) for asset in settings.extra_javascript
+                    ],
+                    "extraStylesheets": [
+                        str(asset) for asset in settings.extra_stylesheets
+                    ],
                 },
             },
         }
@@ -580,46 +655,17 @@ class JsDocBuilder(Builder):
             shutil.copy2(extra_file, self.target.output / extra_file.name)
         for name in ("lucide.min.js", "highlight.min.js"):
             shutil.copyfile(_theme_asset(name), self.target.output / name)
-        html_files: list[Path] = []
-        for html_file in sorted(self.target.output.rglob("*.html")):
-            document = html_file.read_text(encoding="utf-8")
-            if 'data-dockle-framework="jsdoc"' not in document:
-                continue
-            html_files.append(html_file)
-            assets = [
-                *(
-                    '<link rel="stylesheet" href="'
-                    f'{escape(self._asset_url(asset, html_file), quote=True)}">'
-                    for asset in settings.extra_stylesheets
-                ),
-                *(
-                    '<script defer src="'
-                    f'{escape(self._asset_url(asset, html_file), quote=True)}">'
-                    "</script>"
-                    for asset in settings.extra_javascript
-                ),
-            ]
-            if assets:
-                document = document.replace(
-                    "</head>", "\n".join(assets) + "\n</head>", 1
-                )
-                html_file.write_text(document, encoding="utf-8")
+        html_files = self._inject_extra_assets(
+            settings.extra_stylesheets,
+            settings.extra_javascript,
+            framework_marker="jsdoc",
+        )
         if not html_files:
             raise ThemeError(
                 "jsdoc did not generate HTML with Dockle's native template in "
                 f"{self.target.output}"
             )
-        return len(html_files)
-
-    def _asset_url(self, asset: str, html_file: Path) -> str:
-        if asset.startswith(("https://", "http://")):
-            return asset
-        return Path(
-            os.path.relpath(
-                self.target.output / Path(asset).name,
-                html_file.parent,
-            )
-        ).as_posix()
+        return html_files
 
 
 class RustdocBuilder(Builder):
@@ -671,7 +717,12 @@ class RustdocBuilder(Builder):
                 for extra_file in settings.extra_files:
                     shutil.copy2(extra_file, directory / extra_file.name)
         self._write_index()
-        return super().finalize(stylesheet)
+        themed_pages = super().finalize(stylesheet)
+        if settings is not None:
+            self._inject_extra_assets(
+                settings.extra_stylesheets, settings.extra_javascript
+            )
+        return themed_pages
 
     def _write_index(self) -> None:
         """Create the root page that Cargo omits for package documentation."""
@@ -759,7 +810,8 @@ def _required_paths(target: TargetConfig) -> tuple[Path, ...]:
         paths.extend(target.doxygen.inputs)
         paths.extend(target.doxygen.image_paths)
         paths.extend(target.doxygen.include_paths)
-        paths.extend(target.doxygen.extra_stylesheets)
+        paths.extend(_local_assets(target.doxygen.extra_stylesheets))
+        paths.extend(_local_assets(target.doxygen.extra_javascript))
         paths.extend(target.doxygen.extra_files)
         if target.doxygen.main_page is not None:
             paths.append(target.doxygen.main_page)
@@ -768,13 +820,21 @@ def _required_paths(target: TargetConfig) -> tuple[Path, ...]:
         if target.jsdoc.readme is not None:
             paths.append(target.jsdoc.readme)
         paths.extend(target.jsdoc.extra_files)
+        paths.extend(_local_assets(target.jsdoc.extra_stylesheets))
+        paths.extend(_local_assets(target.jsdoc.extra_javascript))
     if target.sphinx is not None:
         paths.extend(target.sphinx.static_paths)
         if target.sphinx.extra_config is not None:
             paths.append(target.sphinx.extra_config)
     if target.rustdoc is not None:
         paths.extend(target.rustdoc.extra_files)
+        paths.extend(_local_assets(target.rustdoc.extra_stylesheets))
+        paths.extend(_local_assets(target.rustdoc.extra_javascript))
     return tuple(paths)
+
+
+def _local_assets(assets: tuple[AssetReference, ...]) -> tuple[Path, ...]:
+    return tuple(asset for asset in assets if isinstance(asset, Path))
 
 
 class BuildManager:

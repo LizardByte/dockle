@@ -70,6 +70,22 @@ provide additional source and template options, and ``dockle-jsdoc --configure j
 unless another template was explicitly selected. The multi-framework Python adapter emits the same native template
 configuration from ``dockle.toml``.
 
+The standalone template accepts the equivalent ``extraStylesheets`` and
+``extraJavascript`` arrays under ``templates.dockle``. Each entry can be a
+project file or an absolute HTTP(S) URL; local assets are copied into the
+generated site:
+
+.. code-block:: json
+
+   {
+     "templates": {
+       "dockle": {
+         "extraStylesheets": ["docs/project.css", "https://cdn.example.com/widget.css"],
+         "extraJavascript": ["docs/project.js", "https://cdn.example.com/widget.js"]
+       }
+     }
+   }
+
 A crates.io package is less useful: Cargo expects source that it can compile, while Dockle has no Rust API. Cargo users
 can consume the standalone release asset directly; a crate should wait for a Rust-native API or a supported
 ``cargo-binstall`` contract.
