@@ -9,7 +9,7 @@ build:
   os: ubuntu-24.04
   tools:
     python: "miniconda-latest"
-    nodejs: "22"
+    nodejs: "24"
     rust: "1.91"
   jobs:
     build:

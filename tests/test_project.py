@@ -279,6 +279,27 @@ class ProjectDogfoodTests(unittest.TestCase):
         )
         self.assertTrue((PROJECT_ROOT / "uv.lock").is_file())
 
+    def test_consumer_docs_group_preserves_dockle_environment(self) -> None:
+        script = (PROJECT_ROOT / "readthedocs_build.sh").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('uv_run=("${environment_run[@]}" uv)', script)
+        self.assertNotIn("python -m uv", script)
+        docs_install = script.split(
+            'if [[ "${uses_docs_group}" == "True" ]]', maxsplit=1
+        )[1].split("elif [[ -f docs/requirements.txt ]]", maxsplit=1)[0]
+
+        self.assertIn('"${uv_run[@]}" export', docs_install)
+        self.assertIn("--locked", docs_install)
+        self.assertIn("--only-group docs", docs_install)
+        self.assertIn("--no-emit-project", docs_install)
+        self.assertIn('"${uv_run[@]}" pip install', docs_install)
+        self.assertIn(
+            '--python "${dockle_dir}/.venv/bin/python"', docs_install
+        )
+        self.assertNotIn("UV_PROJECT_ENVIRONMENT", docs_install)
+        self.assertNotIn('"${uv_run[@]}" sync', docs_install)
+
     def test_pypi_publish_requires_a_stable_release_event(self) -> None:
         workflow = (
             PROJECT_ROOT / ".github" / "workflows" / "ci-release.yml"
