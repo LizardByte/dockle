@@ -2,6 +2,7 @@
 set -euo pipefail
 
 dockle_dir="$(cd -- "${DOCKLE_DIR:-$(dirname -- "${BASH_SOURCE[0]}")}" && pwd -P)"
+project_dir="$(pwd -P)"
 environment_name="${READTHEDOCS_VERSION:-dockle-docs}"
 environment_file="${dockle_dir}/environment.yml"
 uv_version="0.12.13"
@@ -35,7 +36,20 @@ dockle_run=(
   "${uv_run[@]}" run --project "${dockle_dir}" --locked --all-extras --no-dev --no-sync
 )
 
-if [[ -f docs/requirements.txt ]]; then
+uses_docs_group="$(
+  python -c \
+    'import pathlib, tomllib; path = pathlib.Path("pyproject.toml"); print(path.is_file() and "docs" in tomllib.load(path.open("rb")).get("dependency-groups", {}))'
+)"
+
+if [[ "${uses_docs_group}" == "True" ]]; then
+  echo "Installing the locked project documentation dependency group"
+  env UV_PROJECT_ENVIRONMENT="${dockle_dir}/.venv" \
+    "${uv_run[@]}" sync \
+    --project "${project_dir}" \
+    --locked \
+    --only-group docs \
+    --inexact
+elif [[ -f docs/requirements.txt ]]; then
   "${uv_run[@]}" pip install \
     --python "${dockle_dir}/.venv/bin/python" \
     --requirement docs/requirements.txt

@@ -153,7 +153,10 @@ selection. Consumers call the same script from a `third-party/dockle` checkout. 
 Doxygen, Graphviz, and Python while Read the Docs supplies Node.js and Rust. The script creates that environment, installs
 the hosted prerequisites, runs Dockle through `conda run`, and copies the complete portal to
 `$READTHEDOCS_OUTPUT/html/`. Optional project hooks named `readthedocs_pre_build.sh` and
-`readthedocs_post_build.sh` run immediately before and after Dockle.
+`readthedocs_post_build.sh` run immediately before and after Dockle. Consumers can declare documentation-only Python
+dependencies in a `docs` dependency group in their root `pyproject.toml` and commit `uv.lock`; the shared script installs
+that locked group into Dockle's build environment without removing Dockle's own dependencies. A legacy
+`docs/requirements.txt` remains supported when no `docs` group is declared.
 
 No Sphinx or MkDocs configuration is duplicated for the hosting service. Once this repository is imported into Read
 the Docs, each branch and pull request build will exercise the root Sphinx documentation and all five adapters used
