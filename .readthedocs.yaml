@@ -8,7 +8,7 @@ version: 2
 build:
   os: ubuntu-26.04
   tools:
-    python: "miniconda-latest"
+    python: "miniforge3-26.3"
     nodejs: "24"
     rust: "1.96"
   jobs:
