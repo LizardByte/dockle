@@ -10,7 +10,7 @@ build:
   tools:
     python: "miniconda-latest"
     nodejs: "24"
-    rust: "1.91"
+    rust: "1.96"
   jobs:
     build:
       html:
