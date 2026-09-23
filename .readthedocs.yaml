@@ -9,7 +9,7 @@ build:
   os: ubuntu-26.04
   tools:
     python: "miniforge3-26.3"
-    nodejs: "24"
+    nodejs: "26"
     rust: "1.96"
   jobs:
     build:
