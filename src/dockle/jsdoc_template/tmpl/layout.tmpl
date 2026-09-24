@@ -13,6 +13,7 @@ const repositoryService = normalizedRepositoryUrl.includes('github')
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="readthedocs-addons-api-version" content="1">
   <meta name="generator" content="JSDoc <?js= safe(env.version.number) ?> with Dockle <?js= safe(dockle.dockleVersion) ?>">
   <title><?js= safe(pageTitle) ?></title>
   <?js if (dockle.faviconFile) { ?>
@@ -33,19 +34,21 @@ const repositoryService = normalizedRepositoryUrl.includes('github')
     <?js if (dockle.projectVersion) { ?><span><?js= safe(dockle.projectVersion) ?></span><?js } ?>
   </a>
   <div class="dockle-toolbar">
-    <div class="dockle-search dockle-universal-search"
+    <form class="dockle-search dockle-universal-search"
          data-dockle-universal-search
          data-dockle-logo-url="<?js= safe(dockle.logoFile) ?>"
-         data-dockle-target-title="<?js= safe(dockle.targetTitle) ?>">
-      <i class="dockle-search-icon" data-lucide="search" aria-hidden="true"></i>
+         data-dockle-target-title="<?js= safe(dockle.targetTitle) ?>"
+         action="dockle-search.html" method="get" role="search">
       <label class="visually-hidden" for="dockle-search-input">Search documentation</label>
-      <input id="dockle-search-input" type="search"
+      <input id="dockle-search-input" type="search" name="q" required
              placeholder="Search documentation" autocomplete="off"
              data-dockle-search="search.json" data-dockle-root=".">
+      <button class="dockle-search-submit" type="submit" aria-label="Search documentation"
+              title="Search documentation"><i data-lucide="search" aria-hidden="true"></i></button>
       <ul class="dockle-search-results"
           data-dockle-search-results="dockle-search-input"
           aria-live="polite" hidden></ul>
-    </div>
+    </form>
   </div>
 
   <div id="main">

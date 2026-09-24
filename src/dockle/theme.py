@@ -134,39 +134,73 @@ class ThemeError(RuntimeError):
 class _SearchDocumentParser(HTMLParser):
     """Collect useful searchable text from one generated HTML page."""
 
-    def __init__(self) -> None:
+    _VOID_TAGS = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "wbr"}
+    _SKIP_TAGS = {"aside", "button", "footer", "form", "header", "nav", "script", "style", "svg"}
+    _SKIP_CLASSES = {
+        "dockle-page-actions", "dockle-page-links", "dockle-universal-search",
+        "headerlink", "visually-hidden",
+    }
+
+    def __init__(self, framework: str) -> None:
         super().__init__(convert_charrefs=True)
+        self.framework = framework
         self.title: list[str] = []
-        self.text: list[str] = []
-        self._in_title = False
-        self._ignored = 0
+        self.heading: list[str] = []
+        self.content: list[str] = []
+        self.body: list[str] = []
+        self.has_content = False
+        self._stack: list[tuple[str, bool, bool, bool, bool, bool]] = []
+
+    def _is_content_root(self, tag: str, attributes: dict[str, str], classes: set[str]) -> bool:
+        if self.framework in {"sphinx", "mkdocs"}:
+            return tag == "article" and "dockle-article" in classes
+        if self.framework == "doxygen":
+            return tag == "div" and "contents" in classes
+        if self.framework == "jsdoc":
+            return tag == "div" and attributes.get("id") == "main"
+        if self.framework == "rustdoc":
+            return tag == "section" and attributes.get("id") == "main-content"
+        return tag == "main"
 
     def handle_starttag(
         self,
         tag: str,
         attrs: list[tuple[str, str | None]],
     ) -> None:
-        del attrs
-        if tag in {"script", "style", "svg"}:
-            self._ignored += 1
-        if tag == "title":
-            self._in_title = True
+        attributes = {name: value or "" for name, value in attrs}
+        classes = set(attributes.get("class", "").split())
+        parent = self._stack[-1] if self._stack else ("", False, False, False, False, False)
+        in_body = parent[1] or tag == "body"
+        in_content = parent[2] or (not self.has_content and self._is_content_root(tag, attributes, classes))
+        if in_content and not parent[2]:
+            self.has_content = True
+        ignored = parent[3] or tag in self._SKIP_TAGS or bool(classes & self._SKIP_CLASSES)
+        in_title = parent[4] or tag == "title"
+        in_heading = parent[5] or (tag == "h1" and in_content)
+        if tag not in self._VOID_TAGS:
+            self._stack.append((tag, in_body, in_content, ignored, in_title, in_heading))
 
     def handle_endtag(self, tag: str) -> None:
-        if tag == "title":
-            self._in_title = False
-        if tag in {"script", "style", "svg"} and self._ignored:
-            self._ignored -= 1
+        for index in range(len(self._stack) - 1, -1, -1):
+            if self._stack[index][0] == tag:
+                del self._stack[index:]
+                break
 
     def handle_data(self, data: str) -> None:
-        if self._ignored:
-            return
         cleaned = " ".join(data.split())
-        if not cleaned:
+        if not cleaned or not self._stack:
             return
-        self.text.append(cleaned)
-        if self._in_title:
+        _, in_body, in_content, ignored, in_title, in_heading = self._stack[-1]
+        if in_title:
             self.title.append(cleaned)
+        if ignored:
+            return
+        if in_heading:
+            self.heading.append(cleaned)
+        elif in_content:
+            self.content.append(cleaned)
+        if in_body and not in_heading:
+            self.body.append(cleaned)
 
 
 class _LinkRelationshipParser(HTMLParser):
@@ -465,7 +499,10 @@ def apply_theme(
 ) -> int:
     """Inject shared assets, navigation, branding, and client search."""
 
-    html_files = sorted(output.rglob(_HTML_GLOB))
+    html_files = sorted(
+        path for path in output.rglob(_HTML_GLOB)
+        if path.name != "dockle-search.html"
+    )
     if not html_files:
         raise ThemeError(
             f"{framework} did not generate any HTML files in {output}"
@@ -474,7 +511,7 @@ def apply_theme(
     asset_dir = _write_theme_assets(output, stylesheet)
     logo_asset = _copy_logo(logo, asset_dir)
     favicon_asset = _copy_favicon(favicon, asset_dir)
-    search_documents = _build_search_documents(html_files, output)
+    search_documents = _build_search_documents(html_files, output, framework)
     (asset_dir / "search.json").write_text(
         json.dumps({"docs": search_documents}, ensure_ascii=False),
         encoding="utf-8",
@@ -493,6 +530,12 @@ def apply_theme(
         document = _inject_theme_assets(
             document, html_file, asset_dir, framework, native_theme
         )
+        if 'name="readthedocs-addons-api-version"' not in document:
+            document = _insert_before_head_end(
+                document,
+                '<meta name="readthedocs-addons-api-version" content="1">',
+                html_file,
+            )
         document = _inject_favicon(document, html_file, favicon_asset)
         document = _mark_framework(document, html_file, framework)
         document = _inject_repository_action(
@@ -517,6 +560,28 @@ def apply_theme(
         if document != original:
             html_file.write_text(document, encoding="utf-8")
             themed += 1
+    search_page = (
+        Path(__file__).parent / "jsdoc_template" / "tmpl" / "dockle-search.html"
+    ).read_text(encoding="utf-8")
+    search_page = (
+        search_page.replace("{{FRAMEWORK}}", escape(framework, quote=True))
+        .replace("{{PROJECT}}", escape(project_name or target_title or "Documentation"))
+        .replace("{{ASSETS}}", "_dockle/")
+        .replace("{{INDEX}}", "_dockle/search.json")
+        .replace(
+            "{{LOGO}}",
+            escape(_asset_url(logo_asset, output / "dockle-search.html"))
+            if logo_asset else "",
+        )
+        .replace(
+            "{{FAVICON_LINK}}",
+            '<link rel="icon" href="'
+            + escape(_asset_url(favicon_asset, output / "dockle-search.html"))
+            + '" data-dockle-favicon>'
+            if favicon_asset else "",
+        )
+    )
+    (output / "dockle-search.html").write_text(search_page, encoding="utf-8")
     return themed
 
 
@@ -895,13 +960,15 @@ def _find_tag_end(document: str, start: int) -> int | None:
 def _build_search_documents(
     html_files: list[Path],
     output: Path,
+    framework: str,
 ) -> list[dict[str, str]]:
     documents: list[dict[str, str]] = []
     for html_file in html_files:
-        parser = _SearchDocumentParser()
+        parser = _SearchDocumentParser(framework)
         parser.feed(html_file.read_text(encoding="utf-8"))
-        text = " ".join(parser.text)
-        title = " ".join(parser.title)
+        text = " ".join(parser.content if parser.has_content else parser.body)
+        title = " ".join(parser.heading or parser.title)
+        title = re.split(r"\s+[—–]\s+", title, maxsplit=1)[0]
         if not title:
             title = html_file.stem.replace("-", " ").title()
         documents.append(
@@ -931,21 +998,24 @@ def _page_decorations(
     )
     relative_root = _relative(output, html_file)
     logo_url = _asset_url(logo_asset, html_file) if logo_asset else ""
-    search = f"""<div class="dockle-search dockle-universal-search"
+    search = f"""<form class="dockle-search dockle-universal-search"
        data-dockle-universal-search data-dockle-logo-url="{escape(logo_url)}"
-       data-dockle-target-title="{escape(target_title)}">
-    <i class="dockle-search-icon" data-lucide="search" aria-hidden="true"></i>
+       data-dockle-target-title="{escape(target_title)}"
+       action="{_relative(output / 'dockle-search.html', html_file)}"
+       method="get" role="search">
     <label class="visually-hidden" for="dockle-search-input">
       Search documentation
     </label>
-    <input id="dockle-search-input" type="search"
+    <input id="dockle-search-input" type="search" name="q" required
            placeholder="Search documentation" autocomplete="off"
            data-dockle-search="{relative_index}"
            data-dockle-root="{relative_root}">
+    <button class="dockle-search-submit" type="submit" aria-label="Search documentation"
+            title="Search documentation"><i data-lucide="search" aria-hidden="true"></i></button>
     <ul class="dockle-search-results"
         data-dockle-search-results="dockle-search-input"
         aria-live="polite" hidden></ul>
-  </div>"""
+  </form>"""
     links = ""
     if project_name and framework in {"doxygen", "jsdoc", "rustdoc"}:
         brand_root = portal if portal is not None else output

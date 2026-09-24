@@ -1331,6 +1331,51 @@
   };
 
   const normalize = (value) => value.toLocaleLowerCase();
+  const cleanSearchTitle = (value) => value.replace(/\s+[—–]\s+[^—–]+$/, "");
+  const searchExcerpt = (value, query) => {
+    const content = value.replace(/\s+/g, " ").trim();
+    if (!content) {
+      return "";
+    }
+    const folded = normalize(content);
+    const terms = normalize(query).split(/\s+/).filter(Boolean);
+    let matchAt = folded.indexOf(normalize(query));
+    if (matchAt < 0) {
+      matchAt = Math.min(...terms.map((term) => {
+        const position = folded.indexOf(term);
+        return position < 0 ? Infinity : position;
+      }));
+    }
+    const start = Number.isFinite(matchAt) && matchAt > 70
+      ? content.indexOf(" ", matchAt - 70) + 1 : 0;
+    const limit = Math.min(content.length, start + 220);
+    const wordEnd = content.lastIndexOf(" ", limit);
+    const end = limit < content.length && wordEnd > start ? wordEnd : limit;
+    return `${start ? "… " : ""}${content.slice(start, end)}${end < content.length ? " …" : ""}`;
+  };
+  const decodeSearchHighlight = (value) => {
+    const template = document.createElement("template");
+    template.innerHTML = value;
+    return template.content.textContent || "";
+  };
+  const appendSearchHighlight = (host, value, query) => {
+    const terms = [...new Set(query.split(/\s+/).filter(Boolean))];
+    if (!terms.length) {
+      host.textContent = value;
+      return;
+    }
+    const escaped = terms.map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    const pattern = new RegExp(`(${escaped.join("|")})`, "gi");
+    for (const fragment of value.split(pattern)) {
+      if (terms.some((term) => normalize(term) === normalize(fragment))) {
+        const mark = document.createElement("mark");
+        mark.textContent = fragment;
+        host.append(mark);
+      } else {
+        host.append(document.createTextNode(fragment));
+      }
+    }
+  };
   const score = (entry, terms) => {
     const title = normalize(entry.title);
     const text = normalize(entry.text);
@@ -1356,6 +1401,12 @@
     }
 
     let documents;
+    let hostedSearch;
+    let liveRequestId = 0;
+    let pageRequestId = 0;
+    const pageResults = document.querySelector("[data-dockle-search-page]");
+    const pageSummary = document.querySelector("[data-dockle-search-summary]");
+    const rootPath = input.dataset.dockleRoot.replace(/\/?$/, "/");
     const loadDocuments = async () => {
       if (!documents) {
         const response = await fetch(input.dataset.dockleSearch);
@@ -1367,6 +1418,73 @@
       return documents;
     };
 
+    const localSearch = async (query, limit, page) => {
+      const terms = normalize(query).split(/\s+/).filter(Boolean);
+      const matches = (await loadDocuments())
+        .map((entry) => ({ entry, score: score(entry, terms) }))
+        .filter((match) => match.score >= 0)
+        .sort((left, right) => right.score - left.score);
+      const start = (page - 1) * limit;
+      return {
+        count: matches.length,
+        next: start + limit < matches.length,
+        matches: matches.slice(start, start + limit).map(({ entry }) => ({
+          title: cleanSearchTitle(entry.title),
+          excerpt: searchExcerpt(entry.text, query),
+          href: new URL(`${rootPath}${entry.location}`, document.baseURI).href,
+        })),
+      };
+    };
+
+    const search = async (query, limit, page = 1) => {
+      if (hostedSearch) {
+        try {
+          const url = new URL("/_/api/v3/search/", location.origin);
+          url.searchParams.set("q", `project:${hostedSearch.project}/${hostedSearch.version} ${query}`);
+          url.searchParams.set("page_size", String(limit));
+          url.searchParams.set("page", String(page));
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(`Read the Docs search returned ${response.status}`);
+          }
+          const data = await response.json();
+          if (data.count) {
+            return {
+              count: data.count,
+              next: data.next,
+              matches: data.results.map((entry) => {
+                const highlights = entry.blocks?.flatMap((block) => block.highlights?.content || []) || [];
+                const context = highlights.filter(Boolean).slice(0, 2).join(" … ")
+                  || entry.blocks?.find((block) => block.content)?.content || "";
+                return {
+                  title: cleanSearchTitle(entry.title),
+                  excerpt: searchExcerpt(decodeSearchHighlight(context), query),
+                  href: new URL(entry.path, entry.domain).href,
+                };
+              }),
+            };
+          }
+        } catch {
+          // Read the Docs preview builds may not have a server index yet.
+        }
+      }
+      return localSearch(query, limit, page);
+    };
+
+    const setHostedSearch = (eventData) => {
+      const data = eventData?.detail?.data?.() || eventData?.data?.();
+      const project = data?.projects?.current?.slug;
+      const version = data?.versions?.current?.slug;
+      if (project && version && !/^\d+$/.test(version)) {
+        hostedSearch = { project, version };
+        if (pageResults) {
+          void renderPage();
+        } else if (input.value.trim().length >= 2) {
+          input.dispatchEvent(new Event("input"));
+        }
+      }
+    };
+
     const closeResults = () => {
       results.hidden = true;
       results.replaceChildren();
@@ -1374,7 +1492,7 @@
 
     input.addEventListener("input", async () => {
       const query = input.value.trim();
-      const terms = normalize(query).split(/\s+/).filter(Boolean);
+      const currentRequest = ++liveRequestId;
       results.replaceChildren();
       results.hidden = query.length < 2;
       if (results.hidden) {
@@ -1382,19 +1500,23 @@
       }
 
       try {
-        const matches = (await loadDocuments())
-          .map((entry) => ({ entry, score: score(entry, terms) }))
-          .filter((match) => match.score >= 0)
-          .sort((left, right) => right.score - left.score)
-          .slice(0, 8);
+        const { matches } = await search(query, 8);
+        if (currentRequest !== liveRequestId) {
+          return;
+        }
         for (const match of matches) {
           const item = document.createElement("li");
           const link = document.createElement("a");
-          const rootPath = input.dataset.dockleRoot.replace(/\/?$/, "/");
-          link.href = new URL(`${rootPath}${match.entry.location}`, document.baseURI);
+          link.href = match.href;
           const title = document.createElement("strong");
-          title.textContent = match.entry.title;
+          title.textContent = match.title;
           link.append(title);
+          if (match.excerpt) {
+            const excerpt = document.createElement("small");
+            excerpt.className = "dockle-live-search-snippet";
+            appendSearchHighlight(excerpt, match.excerpt, query);
+            link.append(excerpt);
+          }
           item.append(link);
           results.append(item);
         }
@@ -1404,11 +1526,70 @@
           results.append(item);
         }
       } catch {
+        if (currentRequest !== liveRequestId) {
+          return;
+        }
         const item = document.createElement("li");
         item.textContent = "Search is unavailable";
         results.append(item);
       }
     });
+
+    const renderPage = async () => {
+      const query = new URLSearchParams(location.search).get("q")?.trim() || "";
+      input.value = query;
+      if (!pageResults || !pageSummary) {
+        return;
+      }
+      pageResults.replaceChildren();
+      pageResults.parentElement?.querySelector(".dockle-search-more")?.remove();
+      pageSummary.textContent = query ? `Searching for “${query}”…` : "Enter a search term above.";
+      if (!query) {
+        return;
+      }
+      const currentRequest = ++pageRequestId;
+      const addPage = async (page) => {
+        try {
+          const { matches, count, next } = await search(query, 25, page);
+          if (currentRequest !== pageRequestId) {
+            return;
+          }
+          pageSummary.textContent = count === 1 ? "1 matching page" : `${count} matching pages`;
+          for (const match of matches) {
+            const item = document.createElement("li");
+            const link = document.createElement("a");
+            link.href = match.href;
+            link.textContent = match.title;
+            const excerpt = document.createElement("p");
+            appendSearchHighlight(excerpt, match.excerpt, query);
+            item.append(link, excerpt);
+            pageResults.append(item);
+          }
+          pageResults.parentElement?.querySelector(".dockle-search-more")?.remove();
+          if (next) {
+            const more = document.createElement("button");
+            more.className = "dockle-search-more";
+            more.type = "button";
+            more.textContent = "Load more results";
+            more.addEventListener("click", () => {
+              more.disabled = true;
+              void addPage(page + 1);
+            });
+            pageResults.after(more);
+          }
+        } catch {
+          pageSummary.textContent = "Search is unavailable";
+        }
+      };
+      await addPage(1);
+    };
+    if (pageResults) {
+      void renderPage();
+    }
+    document.addEventListener("readthedocs-addons-data-ready", setHostedSearch);
+    if (window.ReadTheDocsEventData) {
+      setHostedSearch(window.ReadTheDocsEventData);
+    }
 
     input.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
