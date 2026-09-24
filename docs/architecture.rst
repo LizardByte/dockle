@@ -79,6 +79,10 @@ navigation tree. Rustdoc receives the same controls through generated-HTML enhan
 implementations are first-party Dockle code; ``doxygen-awesome-css`` and ``doxyconfig`` are design references, not
 dependencies.
 
+Each target publishes a ``dockle-search.html`` results page. The search field offers live suggestions and submits to
+that page with a shareable ``?q=`` URL. On Read the Docs, Dockle uses the Addons project and version metadata to query
+the hosted search API; elsewhere, and when a hosted index is unavailable, it uses the target's local ``search.json``.
+
 Dockle also packages the complete pinned Highlight.js browser distribution. After a generator renders authored code,
 the shared client normalizes its language identifier and replaces native Pygments, Prettify, Doxygen, or rustdoc token
 markup with one Highlight.js token stream. This gives every adapter the same lexer behavior and palette without making

@@ -163,12 +163,18 @@ function searchableText(document) {
 
 function searchDocument(filename, root) {
   const document = fs.readFileSync(filename, 'utf8');
-  const title = /<title[^>]*>([^<]*)<\/title>/i.exec(document)?.[1]
+  const title = /<h1\b[^>]*class="page-title"[^>]*>([\s\S]*?)<\/h1>/i.exec(document)?.[1]
+    || /<title[^>]*>([^<]*)<\/title>/i.exec(document)?.[1]
     || path.basename(filename, '.html');
+  const content = /<div id="main">([\s\S]*?)<footer\b/i.exec(document)?.[1]
+    || document;
+  const body = content
+    .replace(/<div class="dockle-page-actions"[\s\S]*?<\/div>/i, ' ')
+    .replace(/<h1\b[^>]*>[\s\S]*?<\/h1>/i, ' ');
   return {
     location: path.relative(root, filename).split(path.sep).join('/'),
-    text: searchableText(document).slice(0, 4000),
-    title: decodeEntities(title).trim(),
+    text: searchableText(body).slice(0, 4000),
+    title: decodeEntities(title).trim().split(' — ')[0].split(' – ')[0],
   };
 }
 
@@ -180,8 +186,20 @@ function finishSite(destination, dockle) {
   fs.writeFileSync(path.join(root, 'dockle.css'), stylesheet, 'utf8');
   copyConfiguredAsset(dockle.logo, path.join(root, dockle.logoFile));
   copyConfiguredAsset(dockle.favicon, path.join(root, dockle.faviconFile));
+  const searchPage = fs.readFileSync(path.join(__dirname, 'tmpl', 'dockle-search.html'), 'utf8')
+    .replaceAll('{{FRAMEWORK}}', 'jsdoc')
+    .replaceAll('{{PROJECT}}', escapeAttribute(dockle.projectName))
+    .replaceAll('{{ASSETS}}', '')
+    .replaceAll('{{INDEX}}', 'search.json')
+    .replaceAll('{{LOGO}}', escapeAttribute(dockle.logoFile))
+    .replaceAll('{{FAVICON_LINK}}', dockle.faviconFile
+      ? `<link rel="icon" href="${escapeAttribute(dockle.faviconFile)}" data-dockle-favicon>`
+      : '');
+  fs.writeFileSync(path.join(root, 'dockle-search.html'), searchPage, 'utf8');
   installExtraAssets(root, dockle);
-  const docs = htmlFiles(root).map((filename) => searchDocument(filename, root));
+  const docs = htmlFiles(root)
+    .filter((filename) => path.basename(filename) !== 'dockle-search.html')
+    .map((filename) => searchDocument(filename, root));
   fs.writeFileSync(
     path.join(root, 'search.json'),
     JSON.stringify({ docs }),
