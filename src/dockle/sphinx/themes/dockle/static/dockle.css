@@ -1341,6 +1341,7 @@ a.dockle-page-action:focus-visible {
 
 .dockle-portal-card:hover {
   border-color: var(--dockle-primary);
+  text-decoration: none !important;
   transform: translateY(-2px);
 }
 
