@@ -174,7 +174,7 @@ function searchDocument(filename, root) {
   return {
     location: path.relative(root, filename).split(path.sep).join('/'),
     text: searchableText(body).slice(0, 4000),
-    title: decodeEntities(title).trim().split(/\s+[—–]\s+/)[0],
+    title: decodeEntities(title).trim().split(' — ')[0].split(' – ')[0],
   };
 }
 

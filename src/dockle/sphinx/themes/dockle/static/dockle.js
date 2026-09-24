@@ -1331,7 +1331,10 @@
   };
 
   const normalize = (value) => value.toLocaleLowerCase();
-  const cleanSearchTitle = (value) => value.replace(/\s+[—–]\s+[^—–]+$/, "");
+  const cleanSearchTitle = (value) => {
+    const separator = Math.max(value.lastIndexOf(" — "), value.lastIndexOf(" – "));
+    return separator < 0 ? value : value.slice(0, separator);
+  };
   const searchExcerpt = (value, query) => {
     const content = value.replace(/\s+/g, " ").trim();
     if (!content) {
@@ -1364,7 +1367,7 @@
       host.textContent = value;
       return;
     }
-    const escaped = terms.map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    const escaped = terms.map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`));
     const pattern = new RegExp(`(${escaped.join("|")})`, "gi");
     for (const fragment of value.split(pattern)) {
       if (terms.some((term) => normalize(term) === normalize(fragment))) {

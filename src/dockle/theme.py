@@ -106,6 +106,7 @@ _SCRIPT_ASSET = "dockle.js"
 _LUCIDE_ASSET = "lucide.min.js"
 _HIGHLIGHT_ASSET = "highlight.min.js"
 _INDEX_FILE = "index.html"
+_SEARCH_PAGE = "dockle-search.html"
 _HTML_GLOB = "*.html"
 _FRAMEWORKS = {
     "doxygen": ("Doxygen", "https://www.doxygen.nl/"),
@@ -501,7 +502,7 @@ def apply_theme(
 
     html_files = sorted(
         path for path in output.rglob(_HTML_GLOB)
-        if path.name != "dockle-search.html"
+        if path.name != _SEARCH_PAGE
     )
     if not html_files:
         raise ThemeError(
@@ -561,7 +562,7 @@ def apply_theme(
             html_file.write_text(document, encoding="utf-8")
             themed += 1
     search_page = (
-        Path(__file__).parent / "jsdoc_template" / "tmpl" / "dockle-search.html"
+        Path(__file__).parent / "jsdoc_template" / "tmpl" / _SEARCH_PAGE
     ).read_text(encoding="utf-8")
     search_page = (
         search_page.replace("{{FRAMEWORK}}", escape(framework, quote=True))
@@ -570,18 +571,18 @@ def apply_theme(
         .replace("{{INDEX}}", "_dockle/search.json")
         .replace(
             "{{LOGO}}",
-            escape(_asset_url(logo_asset, output / "dockle-search.html"))
+            escape(_asset_url(logo_asset, output / _SEARCH_PAGE))
             if logo_asset else "",
         )
         .replace(
             "{{FAVICON_LINK}}",
             '<link rel="icon" href="'
-            + escape(_asset_url(favicon_asset, output / "dockle-search.html"))
+            + escape(_asset_url(favicon_asset, output / _SEARCH_PAGE))
             + '" data-dockle-favicon>'
             if favicon_asset else "",
         )
     )
-    (output / "dockle-search.html").write_text(search_page, encoding="utf-8")
+    (output / _SEARCH_PAGE).write_text(search_page, encoding="utf-8")
     return themed
 
 
@@ -968,7 +969,7 @@ def _build_search_documents(
         parser.feed(html_file.read_text(encoding="utf-8"))
         text = " ".join(parser.content if parser.has_content else parser.body)
         title = " ".join(parser.heading or parser.title)
-        title = re.split(r"\s+[—–]\s+", title, maxsplit=1)[0]
+        title = title.split(" — ", 1)[0].split(" – ", 1)[0]
         if not title:
             title = html_file.stem.replace("-", " ").title()
         documents.append(
@@ -1001,7 +1002,7 @@ def _page_decorations(
     search = f"""<form class="dockle-search dockle-universal-search"
        data-dockle-universal-search data-dockle-logo-url="{escape(logo_url)}"
        data-dockle-target-title="{escape(target_title)}"
-       action="{_relative(output / 'dockle-search.html', html_file)}"
+       action="{_relative(output / _SEARCH_PAGE, html_file)}"
        method="get" role="search">
     <label class="visually-hidden" for="dockle-search-input">
       Search documentation
