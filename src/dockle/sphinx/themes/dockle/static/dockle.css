@@ -2134,6 +2134,14 @@ html[data-dockle-framework="rustdoc"] #main-content {
   position: relative;
 }
 
+@media (min-width: 1101px) {
+  html[data-dockle-framework="rustdoc"].dockle-has-page-toc
+    #main-content
+    > .dockle-page-actions {
+    right: var(--dockle-page-toc-width);
+  }
+}
+
 html[data-dockle-framework="rustdoc"] body.rustdoc:not(.src) > main > .width-limiter {
   margin-left: 0;
   margin-right: auto;
