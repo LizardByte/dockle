@@ -2134,12 +2134,9 @@ html[data-dockle-framework="rustdoc"] #main-content {
   position: relative;
 }
 
-@media (min-width: 1101px) {
-  html[data-dockle-framework="rustdoc"].dockle-has-page-toc
-    #main-content
-    > .dockle-page-actions {
-    right: var(--dockle-page-toc-width);
-  }
+/* Rustdoc renders Settings, Help, and Summary inside the heading row. */
+html[data-dockle-framework="rustdoc"] #main-content > .main-heading {
+  margin-right: 6.7rem;
 }
 
 html[data-dockle-framework="rustdoc"] body.rustdoc:not(.src) > main > .width-limiter {
@@ -2313,12 +2310,25 @@ html[data-dockle-framework="rustdoc"] rustdoc-topbar {
     display: none !important;
   }
 
+  html[data-dockle-framework="rustdoc"] .dockle-compat-toc {
+    display: none;
+  }
+
   html[data-dockle-framework="doxygen"].dockle-has-page-toc #doc-content {
     margin-right: 0 !important;
   }
 }
 
 @media (max-width: 800px) {
+  html[data-dockle-framework="rustdoc"] #main-content > .dockle-page-actions {
+    margin-bottom: 1rem;
+    position: static;
+  }
+
+  html[data-dockle-framework="rustdoc"] #main-content > .main-heading {
+    margin-right: 0;
+  }
+
   .dockle-sidebar::before,
   html[data-dockle-framework="doxygen"] #side-nav::before,
   html[data-dockle-framework="jsdoc"] body > nav::before,
