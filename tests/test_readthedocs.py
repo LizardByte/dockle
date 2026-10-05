@@ -51,7 +51,7 @@ class ReadTheDocsTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         self.project = self.root / "consumer project"
         self.project.mkdir()
         self.dockle = self.root / "shared dockle"
@@ -94,17 +94,18 @@ class ReadTheDocsTests(unittest.TestCase):
             "MOCK_COMMAND_LOG": str(self.log),
             "MOCK_CONDA_PYTHON": self.conda_python,
         }
-        subprocess.run(
+        result = subprocess.run(
             [
                 "bash",
                 str(self.script),
             ],
             cwd=self.project,
             env=environment,
-            check=True,
+            check=False,
             capture_output=True,
             text=True,
         )
+        self.assertEqual(result.returncode, 0, f"{result.stdout}\n{result.stderr}")
         self.assertEqual((self.output / "html/index.html").read_text(), "built portal")
         return [json.loads(line) for line in self.log.read_text().splitlines()]
 
@@ -154,7 +155,7 @@ class ReadTheDocsTests(unittest.TestCase):
         commands = self.run_build(pyproject='[dependency-groups]\ndocs = ["example-docs==1.0"]\n')
         self.assertFalse(any(command["tool"] == "conda" for command in commands))
         sync = self.uv_command(commands, "sync")
-        self.assertEqual(sync[sync.index("--python") + 1], str(self.bin / "python"))
+        self.assertTrue(Path(sync[sync.index("--python") + 1]).samefile(self.bin / "python"))
         self.assert_docs_overlay(commands, ["--group"])
 
     def test_docs_group_and_extra_are_both_installed(self) -> None:

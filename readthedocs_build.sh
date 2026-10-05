@@ -16,7 +16,8 @@ if [[ "${uses_doxygen}" == "True" ]]; then
   environment_run=(conda run --no-capture-output --name "${environment_name}")
 else
   echo "Using the Read the Docs Python environment; this project has no Doxygen target"
-  environment_run=()
+  # Bash 3.2 treats an empty array as unset under nounset; env is a passthrough.
+  environment_run=(env)
 fi
 
 npm --prefix "${dockle_dir}" ci --ignore-scripts
