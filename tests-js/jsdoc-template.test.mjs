@@ -49,8 +49,8 @@ test('the packaged highlighter includes every built-in grammar', async () => {
   assert.equal(context.hljs.listLanguages().length, packagedLanguages.length);
   const fixtureLanguages = new Set((await readdir(path.join(
     projectRoot,
-    'node_modules',
-    'highlightjs-fixtures',
+    'third-party',
+    'highlight.js',
     'test',
     'markup',
   ), { withFileTypes: true }))

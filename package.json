@@ -47,6 +47,7 @@
     "access": "public"
   },
   "scripts": {
+    "prebuild": "git submodule update --init --depth 1 -- third-party/highlight.js",
     "build": "npm run sync:highlighter && npm run sync:lucide && npm run stage:examples",
     "prepack": "npm run build",
     "pretest": "npm run build",
@@ -67,7 +68,6 @@
     "c8": "10.1.3",
     "eslint": "10.12.0",
     "globals": "17.13.0",
-    "highlightjs-fixtures": "github:highlightjs/highlight.js#11.12.0",
     "lucide": "1.52.0"
   }
 }

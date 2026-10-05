@@ -25,8 +25,8 @@ const runtimePath = path.join(
 );
 const fixtureRoot = path.join(
   root,
-  'node_modules',
-  'highlightjs-fixtures',
+  'third-party',
+  'highlight.js',
   'test',
   'markup',
 );
