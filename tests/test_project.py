@@ -94,7 +94,9 @@ class ProjectDogfoodTests(unittest.TestCase):
         with (PROJECT_ROOT / "package.json").open(encoding="utf-8") as stream:
             package = json.load(stream)
         version = package["devDependencies"]["@highlightjs/cdn-assets"]
-        fixtures = package["devDependencies"]["highlightjs-fixtures"]
+        fixture_manifest = PROJECT_ROOT / "third-party" / "highlight.js" / "package.json"
+        with fixture_manifest.open(encoding="utf-8") as stream:
+            fixtures = json.load(stream)
         runtime = (
             PROJECT_ROOT
             / "src"
@@ -107,10 +109,7 @@ class ProjectDogfoodTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
 
         self.assertRegex(version, r"^\d+\.\d+\.\d+$")
-        self.assertEqual(
-            fixtures,
-            f"github:highlightjs/highlight.js#{version}",
-        )
+        self.assertEqual(fixtures["version"], version)
         self.assertTrue(
             runtime.startswith(
                 f"/*! Highlight.js {version} | BSD-3-Clause |"

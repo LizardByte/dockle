@@ -146,6 +146,9 @@ Doxygen and Cargo must be installed separately. The JSDoc adapter finds a projec
 `node_modules/.bin`, so a global Node.js package is not required. Open `_site/index.html` to move between the generated
 Sphinx, Doxygen, MkDocs, JSDoc, and rustdoc sites.
 
+The language gallery uses upstream fixtures from the pinned `third-party/highlight.js` submodule. `npm run build`
+initializes it automatically; keep its release tag aligned with the `@highlightjs/cdn-assets` dependency.
+
 ## Read the Docs
 
 The root `.readthedocs.yaml` delegates to `readthedocs_build.sh` because Dockle, rather than Read the Docs, owns generator
