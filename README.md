@@ -150,13 +150,16 @@ Sphinx, Doxygen, MkDocs, JSDoc, and rustdoc sites.
 
 The root `.readthedocs.yaml` delegates to `readthedocs_build.sh` because Dockle, rather than Read the Docs, owns generator
 selection. Consumers call the same script from a `third-party/dockle` checkout. A fully pinned conda environment supplies
-Doxygen, Graphviz, and Python while Read the Docs supplies Node.js and Rust. The script creates that environment, installs
-the hosted prerequisites, runs Dockle through `conda run`, and copies the complete portal to
-`$READTHEDOCS_OUTPUT/html/`. Optional project hooks named `readthedocs_pre_build.sh` and
-`readthedocs_post_build.sh` run immediately before and after Dockle. Consumers can declare documentation-only Python
-dependencies in a `docs` dependency group in their root `pyproject.toml` and commit `uv.lock`; the shared script installs
-that locked group into Dockle's build environment without removing Dockle's own dependencies. A legacy
-`docs/requirements.txt` remains supported when no `docs` group is declared.
+Doxygen, Graphviz, and Python while Read the Docs supplies Node.js and Rust. For Doxygen targets, the script creates
+Dockle's shared environment and binds its virtual environment to that Conda interpreter so the pinned generators are
+used. Other projects use the Read the Docs Python environment. The script installs the hosted prerequisites, builds the
+portal, and copies it to `$READTHEDOCS_OUTPUT/html/`. Optional project hooks named `readthedocs_pre_build.sh` and
+`readthedocs_post_build.sh` run immediately before and after Dockle. Consumers can declare Python documentation
+dependencies in a `docs` dependency group, a `docs` optional extra, or both in their root `pyproject.toml` and commit
+`uv.lock`. The shared script installs the selected documentation dependencies and the project's runtime dependencies
+needed by autodoc into Dockle's build environment. It excludes the consumer's Dockle package requirement so the checked
+out Dockle remains installed. A legacy `docs/requirements.txt` remains supported when neither a `docs` group nor extra is
+declared.
 
 No Sphinx or MkDocs configuration is duplicated for the hosting service. Once this repository is imported into Read
 the Docs, each branch and pull request build will exercise the root Sphinx documentation and all five adapters used
