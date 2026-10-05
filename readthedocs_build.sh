@@ -23,26 +23,48 @@ npm --prefix "${dockle_dir}" ci --ignore-scripts
 npm --prefix "${dockle_dir}" run build
 
 uv_run=("${environment_run[@]}" uv)
-"${uv_run[@]}" sync --project "${dockle_dir}" --locked --all-extras --no-dev
+python_executable="$("${environment_run[@]}" python -c 'import sys; print(sys.executable)')"
+"${uv_run[@]}" sync --project "${dockle_dir}" --locked --all-extras --no-dev --python "${python_executable}"
 dockle_run=(
   "${uv_run[@]}" run --project "${dockle_dir}" --locked --all-extras --no-dev --no-sync
 )
 
-uses_docs_group="$(
-  python -c \
-    'import pathlib, tomllib; path = pathlib.Path("pyproject.toml"); print(path.is_file() and "docs" in tomllib.load(path.open("rb")).get("dependency-groups", {}))'
+docs_selection="$(
+  python - <<'PY'
+import tomllib
+from pathlib import Path
+
+path = Path("pyproject.toml")
+config = tomllib.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+options = []
+if "docs" in config.get("dependency-groups", {}):
+    options.extend((
+        "--group",
+        "docs",
+    ))
+if "docs" in config.get("project", {}).get("optional-dependencies", {}):
+    options.extend((
+        "--extra",
+        "docs",
+    ))
+print(" ".join(options))
+PY
 )"
 
-if [[ "${uses_docs_group}" == "True" ]]; then
-  echo "Installing the locked project documentation dependency group"
+if [[ -n "${docs_selection}" ]]; then
+  echo "Installing the locked project runtime and documentation dependencies"
+  read -r -a docs_options <<< "${docs_selection}"
   docs_requirements="$(mktemp)"
   trap 'rm -f "${docs_requirements}"' EXIT
   "${uv_run[@]}" export \
     --quiet \
     --project "${project_dir}" \
     --locked \
-    --only-group docs \
+    --no-dev \
+    "${docs_options[@]}" \
     --no-emit-project \
+    --no-emit-package lizardbyte-dockle \
+    --python "${python_executable}" \
     --format requirements.txt \
     --output-file "${docs_requirements}"
   "${uv_run[@]}" pip install \
