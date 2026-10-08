@@ -7,5 +7,5 @@ dependencies:
   - doxygen==1.18.0
   - graphviz==14.1.2
   - pip==26.2.1
-  - python==3.14.7
+  - python==3.14.8
   - uv==0.12.23
