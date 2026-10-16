@@ -26,6 +26,10 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertTrue((THEME_DIRECTORY / "theme.toml").is_file())
         self.assertTrue((THEME_DIRECTORY / "layout.html").is_file())
         self.assertTrue((THEME_DIRECTORY / "static" / "dockle.css").is_file())
+        self.assertNotIn(
+            "!important",
+            (THEME_DIRECTORY / "static" / "dockle.css").read_text(encoding="utf-8"),
+        )
         self.assertTrue((THEME_DIRECTORY / "static" / "dockle.js").is_file())
         self.assertTrue(
             (THEME_DIRECTORY / "static" / "lucide.min.js").is_file()
@@ -158,7 +162,7 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertIn("dockle-alias-table", stylesheet)
         self.assertIn(".dockle-tab-list button:focus-visible", stylesheet)
         self.assertIn(".dockle-tab-panel[hidden]", stylesheet)
-        self.assertIn("display: none !important", stylesheet)
+        self.assertIn("display: none", stylesheet)
 
     def test_sidebar_identity_stays_pinned_and_compacts_on_scroll(self) -> None:
         stylesheet = (
@@ -232,7 +236,7 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertIn("event.stopPropagation()", script)
         self.assertIn("dockle-compat-toc", script)
         self.assertIn(".dockle-compat-toc", stylesheet)
-        self.assertIn("border-left: 0 !important", stylesheet)
+        self.assertIn("border-left: 0", stylesheet)
         self.assertIn("contents.replaceChildren()", script)
         self.assertIn("#page-nav .dockle-toc-depth-1", stylesheet)
 
@@ -275,7 +279,7 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertIn(".dockle-page-action", stylesheet)
         self.assertIn(".dockle-theme-toggle .lucide", stylesheet)
         self.assertIn(".dockle-repository-icon", stylesheet)
-        self.assertIn("color: var(--dockle-content) !important", stylesheet)
+        self.assertIn("color: var(--dockle-content)", stylesheet)
         self.assertIn(".headertitle\n  > .dockle-page-actions", stylesheet)
         doxygen_title = stylesheet.split(
             'html[data-dockle-framework="doxygen"] div.header .title {', 1
@@ -310,11 +314,11 @@ class SphinxThemeTests(unittest.TestCase):
         )
         self.assertIn("div.fragment .clipboard", stylesheet)
         self.assertIn(
-            '#nav-tree a:hover {\n  background-image: none !important;',
+            '#nav-tree a:hover {\n  background-image: none;',
             stylesheet,
         )
-        self.assertIn("font-size: 1rem !important", stylesheet)
-        self.assertIn("text-indent: 0 !important", stylesheet)
+        self.assertIn("font-size: 1rem", stylesheet)
+        self.assertIn("text-indent: 0", stylesheet)
 
     def test_code_tokens_and_jsdoc_inline_code_share_theme_colors(self) -> None:
         stylesheet = (
@@ -399,13 +403,13 @@ class SphinxThemeTests(unittest.TestCase):
         self.assertIn("#copy-path::before", stylesheet)
         self.assertIn(
             '.dockle-code-block > pre > code {\n'
-            "  background: transparent !important;\n"
-            "  border-radius: 0 !important;",
+            "  background: transparent;\n"
+            "  border-radius: 0;",
             stylesheet,
         )
         self.assertIn(
             '.dockle-code-block\n  > .button-holder {\n'
-            "  display: none !important;",
+            "  display: none;",
             stylesheet,
         )
 
