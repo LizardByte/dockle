@@ -47,6 +47,7 @@ function createBrowser(chromium) {
 function loadSettings(browser, root, pages = ['index.html', 'usage.html', 'd0/d00/source.html']) {
   const document = Object.create(browser.cookieDocument);
   document.currentScript = { src: `https://docs.example.test${root}cookie.js` };
+  document.addEventListener = () => {};
   const context = createContext({ ...browser, document, URL, dockleDoxygenNavigationPages: pages });
   runInContext(cookieSource, context, { filename: fixturePath });
   runInContext(runtime, context, { filename: runtimePath });
@@ -138,4 +139,61 @@ test('documentation roots with spaces or Unicode remain distinct', () => {
 
 test('Doxygen versions without the Cookie helper are left untouched', () => {
   assert.doesNotThrow(() => runInContext(runtime, createContext({}), { filename: runtimePath }));
+});
+
+test('responsive layout discards native panel dimensions on initialization and resize', () => {
+  const panels = new Map();
+  for (const id of ['side-nav', 'nav-tree', 'doc-content', 'page-nav']) {
+    const values = new Map([
+      ['height', '999px'], ['width', '250px'], ['margin-left', '250px'],
+      ['overflow', 'auto'],
+    ]);
+    panels.set(id, { style: {
+      getPropertyValue: (property) => values.get(property) ?? '',
+      removeProperty: (property) => values.delete(property),
+    }, values });
+  }
+  const observers = [];
+  const events = [];
+  const container = { style: {} };
+  panels.get('page-nav').offsetWidth = 224;
+  const context = createContext({
+    Cookie: { readSetting() {} },
+    dockleDoxygenNavigationPages: [],
+    URL,
+    document: {
+      currentScript: { src: 'https://docs.example.test/cookie.js' },
+      addEventListener: (...args) => events.push(args),
+      getElementById: (id) => id === 'container' ? container : panels.get(id),
+    },
+    MutationObserver: class {
+      constructor(callback) { this.callback = callback; }
+      observe(panel, options) { observers.push({ panel, options, callback: this.callback }); }
+    },
+  });
+  runInContext(runtime, context, { filename: runtimePath });
+  assert.equal(events[0][0], 'DOMContentLoaded');
+  assert.equal(events[0][2].once, true);
+  events[0][1]();
+  assert.equal(observers.length, 4);
+  assert.equal(container.style.gridTemplateColumns, 'auto 224px');
+  for (const { panel, options, callback } of observers) {
+    assert.equal(options.attributes, true);
+    assert.deepEqual(Array.from(options.attributeFilter), ['style']);
+    assert.equal(panel.values.get('overflow'), 'auto');
+    const removed = ['height', 'width', 'margin-left'].filter((p) => !panel.values.has(p));
+    assert.ok(removed.length > 0);
+    for (const property of removed) panel.values.set(property, '123px');
+    callback();
+    for (const property of removed) assert.equal(panel.values.has(property), false);
+    // Repeated delivery after our own removals must not cause more style writes.
+    panel.style.removeProperty = () => assert.fail('unchanged styles were rewritten');
+    callback();
+  }
+  panels.get('page-nav').offsetWidth = 0;
+  container.style.gridTemplateColumns = 'auto 6px';
+  observers[3].callback();
+  assert.equal(container.style.gridTemplateColumns, 'auto 6px');
+  panels.clear();
+  assert.doesNotThrow(() => events[0][1]());
 });
