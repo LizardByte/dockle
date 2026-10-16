@@ -1906,6 +1906,10 @@ html[data-dockle-framework="doxygen"] .classindex dl.odd {
   border-bottom: 1px solid var(--dockle-border);
 }
 
+html[data-dockle-framework="doxygen"] .classindex .alphachar a {
+  color: var(--dockle-content);
+}
+
 html[data-dockle-framework="doxygen"] .dockle-home {
   bottom: 1rem;
 }
