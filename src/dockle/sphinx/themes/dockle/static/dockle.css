@@ -67,8 +67,13 @@ html {
   font-family: var(--dockle-font);
   font-size: 16px;
   line-height: 1.6;
-  scroll-behavior: smooth;
   scrollbar-gutter: stable;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 *,
@@ -1263,7 +1268,7 @@ a.dockle-page-action:focus-visible {
   min-width: 11rem;
   padding: 0.75rem 0.9rem;
   text-decoration: none;
-  transition: border-color 120ms ease, transform 120ms ease;
+  transition: border-color 120ms ease;
 }
 
 .dockle-page-links a:hover {
@@ -1418,13 +1423,21 @@ a.dockle-page-action:focus-visible {
   min-height: 10rem;
   padding: 1.25rem;
   text-decoration: none;
-  transition: border-color 120ms ease, transform 120ms ease;
+  transition: border-color 120ms ease;
 }
 
 .dockle-portal-card:hover {
   border-color: var(--dockle-primary);
   text-decoration: none;
   transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dockle-page-links a,
+  .dockle-page-links a:visited,
+  .dockle-portal-card {
+    transition: border-color 120ms ease, transform 120ms ease;
+  }
 }
 
 .dockle-portal-card strong {
